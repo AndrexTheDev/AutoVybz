@@ -22,9 +22,9 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '21'
@@ -32,24 +32,34 @@ jobs:
       - name: Install the Android NDK and CMake
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;$NDK_VERSION" "cmake;$CMAKE_VERSION" >/dev/null
 
-      - name: Native host checks (FFT vs. DFT, Oboe/JNI syntax)
-        run: tools/native/host_check.sh
+      - name: Unit tests + debug build
+        run: |
+          chmod +x gradlew
+          set -o pipefail
+          if ! ./gradlew testDebugUnitTest assembleDebug --no-daemon --console=plain 2>&1 | tee gradle.log; then
+            # surface compiler / test errors as annotations (raw logs are not always reachable)
+            grep -E '^e: |error:|FAILED|What went wrong|Exception|expected:<' gradle.log | head -60 | sed 's/^/::error::/'
+            exit 1
+          fi
 
       - name: Mic profile DB is up to date
         run: |
           python3 tools/micdb/generate_mic_profiles.py
           git diff --exit-code app/src/main/assets/autovybz/mic_profiles.json
 
-      - name: Unit tests + debug build
+      - name: Native host checks (FFT vs. DFT, Oboe/JNI syntax)
+        if: always()
         run: |
-          chmod +x gradlew
-          ./gradlew testDebugUnitTest assembleDebug --no-daemon
+          bash tools/native/host_check.sh > host.log 2>&1 || { cat host.log; tail -40 host.log | sed 's/^/::error::/'; exit 1; }
+          cat host.log
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: autovybz-debug
           path: |
             app/build/outputs/apk/debug/*.apk
             app/build/reports/tests/
+            gradle.log
+            host.log
           if-no-files-found: ignore
