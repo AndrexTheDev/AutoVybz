@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Equalizer314</string>
+    <string name="app_name">AutoVybz</string>
 
     <!-- Layout copy, extracted for translation -->
     <string name="audio_effects_pipeline">Ланцюжок аудіоефектів</string>
@@ -212,7 +212,7 @@
     <string name="backup_saved">Резервну копію збережено</string>
     <string name="backup_failed">Помилка резервного копіювання: %1$s</string>
     <string name="backup_restored">Резервну копію відновлено</string>
-    <string name="not_a_valid_backup">Недійсна резервна копія Equalizer314</string>
+    <string name="not_a_valid_backup">Недійсна резервна копія AutoVybz</string>
     <string name="restore_failed">Помилка відновлення: %1$s</string>
     <string name="backup_restore_blurb">Експорт або імпорт налаштувань, пресетів і прив\'язок у .json; імпорт перезапише всі поточні налаштування застосунку</string>
     <string name="could_not_parse_apo_preset">Не вдалося розібрати пресет APO</string>
@@ -313,10 +313,10 @@
     <string name="power_off">ВИМК</string>
     <string name="notif_channel_name">Системний еквалайзер</string>
     <string name="notif_channel_desc">Показується, коли активний загальносистемний еквалайзер</string>
-    <string name="notif_title_remote_controlled">Equalizer314: віддалене керування</string>
-    <string name="notif_title_remote">Equalizer314: пульт</string>
-    <string name="notif_title_online">Equalizer314: активний</string>
-    <string name="notif_title_offline">Equalizer314: неактивний</string>
+    <string name="notif_title_remote_controlled">AutoVybz: віддалене керування</string>
+    <string name="notif_title_remote">AutoVybz: пульт</string>
+    <string name="notif_title_online">AutoVybz: активний</string>
+    <string name="notif_title_offline">AutoVybz: неактивний</string>
     <string name="turn_off">Вимкнути</string>
     <string name="turn_on">Увімкнути</string>
     <string name="notif_volume">Гучність: %1$d%%</string>
@@ -335,7 +335,7 @@
     <string name="disable_eq">Вимкнути еквалайзер</string>
     <string name="nav_eq">Еквалайзер</string>
     <string name="nav_settings">Налаштування</string>
-    <string name="qs_tile_label">EQ314</string>
+    <string name="qs_tile_label">AutoVybz</string>
     <string name="remote_connected_controlling">Пульт підключено — керування цим пристроєм</string>
     <string name="remote_connected">Пульт підключено</string>
     <string name="remote_disconnected">Пульт відключено</string>

@@ -10,13 +10,13 @@
          dark remains the default. -->
     <style name="Theme.Equalizer314" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Primary (grey) -->
-        <item name="colorPrimary">#FF585858</item>
+        <item name="colorPrimary">@color/avz_green</item>
         <item name="colorOnPrimary">#FFFFFFFF</item>
         <item name="colorPrimaryContainer">#FFC8C8C8</item>
         <item name="colorOnPrimaryContainer">#FF252525</item>
 
         <!-- Secondary -->
-        <item name="colorSecondary">#FF696969</item>
+        <item name="colorSecondary">#FF8A7200</item>
         <item name="colorOnSecondary">#FFFFFFFF</item>
         <item name="colorSecondaryContainer">#FFCFCFCF</item>
         <item name="colorOnSecondaryContainer">#FF252525</item>

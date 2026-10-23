@@ -4,36 +4,39 @@
      by AppCompatDelegate night mode (see EqApp + the Settings toggle). -->
 <resources>
     <style name="Theme.Equalizer314" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Primary (grey) -->
-        <item name="colorPrimary">#FFAAAAAA</item>
-        <item name="colorOnPrimary">#FF000000</item>
-        <item name="colorPrimaryContainer">#FF3A3A3A</item>
-        <item name="colorOnPrimaryContainer">#FFDDDDDD</item>
+        <!-- AutoVybz: Jamaica accents on charcoal (see values/autovybz_colors.xml). -->
+        <item name="colorPrimary">@color/avz_green</item>
+        <item name="colorOnPrimary">#FFFFFFFF</item>
+        <item name="colorPrimaryContainer">@color/avz_green_container</item>
+        <item name="colorOnPrimaryContainer">#FFC8F5D8</item>
 
-        <!-- Secondary -->
-        <item name="colorSecondary">#FF999999</item>
-        <item name="colorOnSecondary">#FF000000</item>
-        <item name="colorSecondaryContainer">#FF333333</item>
-        <item name="colorOnSecondaryContainer">#FFDDDDDD</item>
+        <!-- Secondary: gold -->
+        <item name="colorSecondary">@color/avz_gold</item>
+        <item name="colorOnSecondary">#FF121212</item>
+        <item name="colorSecondaryContainer">@color/avz_gold_container</item>
+        <item name="colorOnSecondaryContainer">#FFFFF1B3</item>
 
         <!-- Tertiary -->
-        <item name="colorTertiary">#FFBBBBBB</item>
-        <item name="colorOnTertiary">#FF000000</item>
-        <item name="colorTertiaryContainer">#FF3A3A3A</item>
-        <item name="colorOnTertiaryContainer">#FFDDDDDD</item>
+        <item name="colorTertiary">@color/avz_green_bright</item>
+        <item name="colorOnTertiary">#FF00210C</item>
+        <item name="colorTertiaryContainer">@color/avz_green_container</item>
+        <item name="colorOnTertiaryContainer">#FFC8F5D8</item>
 
         <!-- Surface / background -->
-        <item name="colorSurface">#FF0E0E0E</item>
-        <item name="colorOnSurface">#FFE2E2E2</item>
+        <item name="android:colorBackground">@color/avz_background</item>
+        <item name="android:windowBackground">@color/avz_background</item>
+        <item name="colorSurface">@color/avz_background</item>
+        <item name="colorOnSurface">@color/avz_on_dark</item>
         <item name="colorSurfaceVariant">#FF1E1E1E</item>
-        <item name="colorOnSurfaceVariant">#FFBBBBBB</item>
-        <item name="colorSurfaceContainerLow">#FF161616</item>
+        <item name="colorOnSurfaceVariant">@color/avz_on_dark_muted</item>
+        <item name="colorSurfaceContainerLow">@color/avz_surface</item>
         <item name="colorSurfaceContainer">#FF1C1C1C</item>
-        <item name="colorSurfaceContainerHigh">#FF252525</item>
+        <item name="colorSurfaceContainerHigh">@color/avz_surface_high</item>
 
         <!-- Outline -->
-        <item name="colorOutline">#FF444444</item>
-        <item name="colorOutlineVariant">#FF333333</item>
+        <item name="colorOutline">@color/avz_outline</item>
+        <item name="colorOutlineVariant">#FF2C2C2C</item>
+        <item name="colorError">@color/avz_error</item>
 
         <!-- System bars -->
         <item name="android:statusBarColor">@android:color/transparent</item>

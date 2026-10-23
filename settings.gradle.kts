@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Equalizer314"
+rootProject.name = "AutoVybz"
 include(":app")

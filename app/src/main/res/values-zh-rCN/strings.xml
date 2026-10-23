@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-<string name="app_name">Equalizer314</string>
+<string name="app_name">AutoVybz</string>
 <!-- 布局副本，提取以便翻译 -->
 <string name="audio_effects_pipeline">音频效果管线</string>
 <string name="drag_the_handle_on_the_left">拖动每个效果卡片左侧的把手可重新排序处理效果链。音频流从“通道输入”开始，到“音频输出”结束。动态处理 是主要均衡器、多段压缩和限制器，可在应用中调整；其他可附加到通道输入的音频效果可在此处点击并在新屏幕中编辑。</string>
@@ -215,7 +215,7 @@
 <string name="backup_saved">备份已保存</string>
 <string name="backup_failed">备份失败：%1$s</string>
 <string name="backup_restored">备份已还原</string>
-<string name="not_a_valid_backup">不是有效的 Equalizer314 备份</string>
+<string name="not_a_valid_backup">不是有效的 AutoVybz 备份</string>
 <string name="restore_failed">还原失败：%1$s</string>
 <string name="backup_restore_blurb">将设置、预设与绑定导出或导入为 .json；导入将覆盖应用中所有当前设置</string>
 <string name="could_not_parse_apo_preset">无法解析 APO 预设</string>
@@ -316,10 +316,10 @@
 <string name="power_off">关</string>
 <string name="notif_channel_name">系统 EQ</string>
 <string name="notif_channel_desc">系统全局 EQ 处于活动状态时显示</string>
-<string name="notif_title_remote_controlled">Equalizer314：远程控制中</string>
-<string name="notif_title_remote">Equalizer314：远程</string>
-<string name="notif_title_online">Equalizer314：在线</string>
-<string name="notif_title_offline">Equalizer314：离线</string>
+<string name="notif_title_remote_controlled">AutoVybz：远程控制中</string>
+<string name="notif_title_remote">AutoVybz：远程</string>
+<string name="notif_title_online">AutoVybz：在线</string>
+<string name="notif_title_offline">AutoVybz：离线</string>
 <string name="turn_off">关闭</string>
 <string name="turn_on">开启</string>
 <string name="notif_volume">音量：%1$d%%</string>
@@ -338,7 +338,7 @@
 <string name="disable_eq">禁用 EQ</string>
 <string name="nav_eq">均衡器</string>
 <string name="nav_settings">设置</string>
-<string name="qs_tile_label">EQ314</string>
+<string name="qs_tile_label">AutoVybz</string>
 <string name="remote_connected_controlling">远程已连接 — 正在控制此设备</string>
 <string name="remote_connected">远程已连接</string>
 <string name="remote_disconnected">远程已断开</string>

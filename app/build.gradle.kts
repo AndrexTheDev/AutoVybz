@@ -10,11 +10,14 @@ android {
     ndkVersion = "27.2.12479018"
 
     defaultConfig {
-        applicationId = "com.bearinmind.equalizer314"
+        // AutoVybz fork: own applicationId so it installs side by side with upstream Equalizer314.
+        // The Kotlin namespace stays com.bearinmind.equalizer314 to keep upstream merges painless;
+        // all AutoVybz code lives in com.andrexthedev.autovybz.
+        applicationId = "com.andrexthedev.autovybz"
         minSdk = 24
         targetSdk = 36
-        versionCode = 27
-        versionName = "0.0.22-beta"
+        versionCode = 1
+        versionName = "0.1.0-alpha"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -56,6 +59,16 @@ android {
 
     buildFeatures {
         buildConfig = true
+        // AutoVybz UI (wizard, pro settings, help, about) is written in Jetpack Compose;
+        // the inherited Equalizer314 screens stay classic Views.
+        compose = true
+        // Oboe ships as a prefab AAR consumed by src/main/cpp/autovybz (CMake find_package).
+        prefab = true
+    }
+
+    composeOptions {
+        // Must match the Kotlin plugin version (1.9.20 -> 1.5.4).
+        kotlinCompilerExtensionVersion = "1.5.4"
     }
 
     externalNativeBuild {
@@ -100,6 +113,23 @@ dependencies {
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 
+    // ---- AutoVybz ----------------------------------------------------------
+    // Jetpack Compose (wizard / pro / help / about screens)
+    val composeBom = platform("androidx.compose:compose-bom:2024.02.00")
+    implementation(composeBom)
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-graphics")
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    implementation("androidx.compose.foundation:foundation")
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.material:material-icons-core")
+    implementation("androidx.activity:activity-compose:1.8.2")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.7.0")
+    debugImplementation("androidx.compose.ui:ui-tooling")
+    // Oboe: low-latency full-duplex capture/playback for the measurement engine (prefab, C++)
+    implementation("com.google.oboe:oboe:1.9.0")
+
     // (Removed unused androidx.media3-exoplayer/ui/session dependencies.
     // They were an artefact of an earlier capture-based design that
     // never shipped. The current implementation uses Android's native
@@ -111,6 +141,8 @@ dependencies {
 
     // Testing
     testImplementation("junit:junit:4.13.2")
+    // org.json is part of the Android framework; unit tests on the JVM need a real implementation.
+    testImplementation("org.json:json:20231013")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
 }

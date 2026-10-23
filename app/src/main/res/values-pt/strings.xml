@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Equalizer314</string>
+    <string name="app_name">AutoVybz</string>
 
     <string name="audio_effects_pipeline">Cadeia de efeitos de áudio</string>
     <string name="drag_the_handle_on_the_left">Arraste a alça à esquerda de cada cartão de efeito para reordenar a cadeia de processamento. O fluxo de áudio começa na Entrada de canal e termina na Saída de áudio. O DynamicsProcessing é o EQ principal, o MBC e o limitador expostos no app; os outros efeitos que podem ser anexados à entrada de canal podem ser tocados e editados aqui mesmo, em uma nova tela.</string>
@@ -215,7 +215,7 @@
     <string name="backup_saved">Backup salvo</string>
     <string name="backup_failed">Falha no backup: %1$s</string>
     <string name="backup_restored">Backup restaurado</string>
-    <string name="not_a_valid_backup">Não é um backup válido do Equalizer314</string>
+    <string name="not_a_valid_backup">Não é um backup válido do AutoVybz</string>
     <string name="restore_failed">Falha ao restaurar: %1$s</string>
     <string name="backup_restore_blurb">Exporte ou importe configurações, presets e vínculos em um .json ; importar substitui todas as configurações atuais do app</string>
     <string name="could_not_parse_apo_preset">Não foi possível ler o preset APO</string>
@@ -316,10 +316,10 @@
     <string name="power_off">OFF</string>
     <string name="notif_channel_name">EQ do sistema</string>
     <string name="notif_channel_desc">Aparece quando o EQ de todo o sistema está ativo</string>
-    <string name="notif_title_remote_controlled">Equalizer314: Controlado remotamente</string>
-    <string name="notif_title_remote">Equalizer314: Remoto</string>
-    <string name="notif_title_online">Equalizer314: Ativo</string>
-    <string name="notif_title_offline">Equalizer314: Inativo</string>
+    <string name="notif_title_remote_controlled">AutoVybz: Controlado remotamente</string>
+    <string name="notif_title_remote">AutoVybz: Remoto</string>
+    <string name="notif_title_online">AutoVybz: Ativo</string>
+    <string name="notif_title_offline">AutoVybz: Inativo</string>
     <string name="turn_off">Desligar</string>
     <string name="turn_on">Ligar</string>
     <string name="notif_volume">Volume: %1$d%%</string>
@@ -338,7 +338,7 @@
     <string name="disable_eq">Desativar EQ</string>
     <string name="nav_eq">EQ</string>
     <string name="nav_settings">Configurações</string>
-    <string name="qs_tile_label">EQ314</string>
+    <string name="qs_tile_label">AutoVybz</string>
     <string name="remote_connected_controlling">Remoto conectado — controlando este aparelho</string>
     <string name="remote_connected">Remoto conectado</string>
     <string name="remote_disconnected">Remoto desconectado</string>
