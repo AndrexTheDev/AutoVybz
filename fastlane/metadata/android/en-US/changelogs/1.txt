@@ -1,10 +1,8 @@
-Initial beta release.
-
-- Four EQ modes: Parametric, Graphic, Table, Simple.
-- Up to 16 bands, 5 filter types (Bell, Shelf, Pass).
-- Multiband compressor (1-6 bands) with soft-knee and GR traces.
-- Limiter with waveform meter and LUFS metering.
-- Real-time FFT spectrum analyzer via the Visualizer API.
-- AutoEQ target-curve fitter.
-- APO import/export for desktop Equalizer APO interchange.
-- Custom preset library with mini-graph thumbnails.
+AutoVybz 0.1.0-alpha – first release
+• 1-click speaker & room calibration wizard (10 s sweep + pink noise)
+• Oboe/C++ capture with UNPROCESSED mic input, Java fallback
+• Phone mic compensation profiles, USB measurement mic support
+• Smart / Flat / Bass Boost / Harman / Custom targets, 5 or 10 PEQ bands
+• Auto pre-gain + limiter, presets in the Equalizer314 list
+• Export: Equalizer APO, JSON, REW CSV
+• Jamaica dark theme, help guide, crypto donate dialog

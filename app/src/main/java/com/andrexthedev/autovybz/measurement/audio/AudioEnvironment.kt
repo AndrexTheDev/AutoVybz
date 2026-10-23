@@ -9,6 +9,7 @@ import android.os.Build
 import android.util.Log
 import com.andrexthedev.autovybz.measurement.mic.InputSource
 import com.bearinmind.equalizer314.audio.EqService
+import com.bearinmind.equalizer314.state.EqPreferencesManager
 
 /** Reads the current output route and decides whether a measurement is allowed. */
 object RouteInspector {
@@ -92,6 +93,11 @@ object EqBypass {
         if (!EqService.isDpRunning) return false
         EqService.stop(context, silentToast = true)
         return true
+    }
+
+    /** Mirrors MainActivity's app-open fallback: restart the EQ if it was on when the app was last used. */
+    fun startIfPersistedOn(context: Context) {
+        if (!EqService.isDpRunning && EqPreferencesManager(context).getPowerState()) resume(context)
     }
 
     fun resume(context: Context) {

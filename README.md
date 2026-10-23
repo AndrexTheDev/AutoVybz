@@ -1,113 +1,93 @@
-<h1><img width="100" src="app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" alt="Equalizer314" align="absmiddle"> Equalizer314</h1>
+<h1><img width="96" src="branding/autovybz_logo_1024.png" alt="AutoVybz" align="absmiddle"> AutoVybz</h1>
 
-<a href="https://github.com/bearinmindcat/Equalizer314/releases/latest"><img src="https://raw.githubusercontent.com/NeoApplications/Neo-Backup/034b226cea5c1b30eb4f6a6f313e4dadcbb0ece4/badge_github.png" alt="Get it on GitHub" height="70"></a>
-<a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/{%22id%22:%22com.bearinmind.equalizer314%22,%22url%22:%22https://github.com/bearinmindcat/Equalizer314%22,%22author%22:%22bearinmindcat%22,%22name%22:%22Equalizer314%22}"><img src="https://raw.githubusercontent.com/ImranR98/Obtainium/b1c8ac6f2ab08497189721a788a5763e28ff64cd/assets/graphics/badge_obtainium.png" alt="Get it on Obtainium" height="70"></a>
-<a href="https://f-droid.org/packages/com.bearinmind.equalizer314/"><img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" alt="Get it on F-Droid" height="70"></a>
-<a href="https://play.google.com/store/apps/details?id=com.bearinmind.equalizer314"><img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" height="70"></a>
+**One tap. 10 seconds. Your speaker, tuned to your room.**
 
-<img src="https://img.shields.io/badge/Requires-Android%209.0%2B%20(API%2028)-3DDC84?logo=android&logoColor=white" alt="Requires Android 9.0+ (API 28)">
+AutoVybz is a free, 100 % open-source (GPL-3.0) Android app that **automatically calibrates external
+loudspeakers** (Bluetooth, AUX, USB, HDMI) to your room with the phone's microphone — and then runs the
+correction system-wide through the proven [Equalizer314](https://github.com/bearinmindcat/Equalizer314)
+engine (DynamicsProcessing, 10-band PEQ, multiband compressor, limiter). Donationware: no ads, no tracking.
 
-Though the app is still in beta, a lot of crash issues and inconsistences are fixed. As of now the app is also released on google play and currently going through the walk of shame. Still in early stages of testing and development, so I'll try my best to make note of your issues, run them myself and fix them as quick as possible.
+> Status: **0.1.0-alpha** – first public structure. Build with Android Studio / Gradle (see below).
 
-## About
+## Features
 
-To start off there is really no "free" and/or "open source" alternatives to Wavelet and Poweramp EQ out there, and I felt like after using both of those apps ammong other various EQ apps that there were huge shortcomings in terms of the features & accessibilities they offered. When I started developing this app I wanted to have both a powerful parametric eq function with minimal permissions; this is why I choose to use both the DynamicsProcessing & Visualizer APIs as the framework for ths app as you only need minimal permissions for both of them to work in tandem. There are shortcomings from both these APIs, but I'll discuss more of that later.
+- **1-click wizard for everyone** – big "Calibrate speaker" button, safety check, live mic level, result graph.
+- **Measurement**: exactly 10 s stimulus = room-noise capture + periodic pink noise + logarithmic sine sweep
+  20 Hz – 20 kHz; Kirkeby-regularised deconvolution, automatic latency detection (Bluetooth-safe),
+  sweep/noise cross-check, SNR per 1/3 octave, clipping / low-signal warnings.
+- **Capture path**: Oboe (C++, AAudio/OpenSL) full-duplex with `UNPROCESSED` input, fallback
+  `VOICE_RECOGNITION` → `MIC`; Java `AudioRecord/AudioTrack` fallback if the native engine fails.
+  Native C++ FFT via JNI, Kotlin FFT fallback.
+- **Mic compensation**: JSON database keyed by `Build.MANUFACTURER` / `Build.MODEL`
+  (estimated MEMS archetypes – see [docs/MIC_PROFILES.md](docs/MIC_PROFILES.md)), Pro: USB measurement mic
+  with calibration file (UMIK-style) or manual offset profile.
+- **Dynamic smoothing**: 1 octave in the sub/bass → 1/3 octave from ~320 Hz (Pro: fine / strong).
+- **Targets**: Smart (gentle bass lift, default), Neutral/Flat, Bass Boost, Harman/Loudness (analytic
+  approximation), Custom (bass/treble/tilt).
+- **Target inversion**: 5 or 10 parametric filters (default 10), bass roll-off detection + excursion guard
+  (never boosts bass the speaker can't play), max boost / cut limits, automatic negative pre-gain +
+  Equalizer314 limiter as anti-clipping.
+- **Presets**: auto-named `AutoVybz_<device>_<yyyy-MM-dd>` (editable), saved into the normal Equalizer314
+  preset list, activated with one tap.
+- **Export**: Equalizer APO / Peace / AutoEq `ParametricEQ.txt`, parametric EQ JSON, REW-importable CSV,
+  internal `.avz.json` (curves + filters + metadata).
+- **Pro area**: Equalizer314 10-band PEQ graph, multiband compressor, limiter, measurement & mic settings,
+  saved calibrations.
+- **Help** with step-by-step phone placement guide; **About** with credits and crypto donate dialog.
+- Design: deep charcoal `#121212`, Jamaica green `#009B3A` + gold `#FED100`.
 
-To start off this app is built off of DynamicsProcessing API you can read more about the documentation and features it offers here (https://developer.android.com/reference/android/media/audiofx/DynamicsProcessing); this is the same API that Poweramp EQ & Wavelet both use but I felt in some aspects they wern't really being able really squeeze out the max potential that this API can offer.
+## Measurement tips
 
-As someone who comes from the audio production & IEM world I have a lot of experience understaning what both sides of those worlds want and wanted to be able to take advantage of both to create something that met my creative endeavors.
+1. Connect the external speaker (headphones and the phone's own speaker are blocked on purpose).
+2. Phone at the listening position, ear height, bottom mic towards the speaker, 1–2 m away, not hand-held.
+3. Normal listening level on the speaker; AutoVybz sets media volume to ~70 % (restored afterwards).
+4. Quiet room; disable Dolby Atmos / sound effects / speaker-app EQ. The AutoVybz EQ pauses itself.
 
-Using the Visualizer API I wanted to give users a way they can reliably cross reference visual data with audio data; this is both useful for the main EQ portion as you can visually reference audio changes you make, but this comes more into play with the Limiting & Multiband Compression sides of the app. While these features are for use in the DynamicsProcessing API; and many apps like Poweramp EQ & Wavelet (who premium locks these features); they just add knobs/sliders in and expect the user to understand exactly how these features work and without real audio-visual feedback, users aren't really able to take advantage of these features in their full potential. This is the reason why many DAWs and VST Plugins use audio-visual feedback with these functions specifically.
+## Building
 
-Using Visualizer API with these DynamicsProcessing features; you're really able to get an intimiate audio-visual feedback loop that gives you complete control over your audio framework. Shown below are some screenshots of the Multiband Compression & Limiter and how the Visualizer API functions with the input curves, gr trace curves, & the limiter waveform metering. 
+Requirements: Android Studio (AGP 8.2, Kotlin 1.9.20), JDK 17–21, Android SDK 36, **NDK 27.2.12479018**,
+CMake 3.22.1.
 
-<p align="center">
-  <img width="48%" alt="Screenshot (1534)" src="https://github.com/user-attachments/assets/2449b96f-8306-4319-9eb0-ddead8ea84e5" />
-  <img width="48%" alt="Screenshot (1535)" src="https://github.com/user-attachments/assets/720725c4-6205-456c-ad83-c2667757927d" />
-</p>
+```bash
+./gradlew testDebugUnitTest   # JVM unit tests (DSP, fitter, exports, mic DB, routing)
+./gradlew assembleDebug
+tools/native/host_check.sh    # optional: FFT vs. DFT + Oboe/JNI syntax check on the host
+python3 tools/micdb/generate_mic_profiles.py   # regenerate the mic profile DB
+python3 tools/branding/generate_icons.py       # regenerate launcher icons from branding/
+```
 
-A lot of other funtions that don't use the Visualizer API I also wanted to still give correct visual feedback (same style implementation that many DAWs use) such other various functions like the compressor & attack/release visuals. You can independently change these values with the slider and by moving you finger along the line/graph itself. This occurs in other places in the app as well, but these are two good examples of this.
+CI (`.github/workflows/ci.yml`) builds and tests every push. Releases: push a tag `AutoVybz-v<versionName>`
+with the secrets `AUTOVYBZ_KEYSTORE_BASE64`, `AUTOVYBZ_STORE_PASSWORD`, `AUTOVYBZ_KEY_ALIAS`,
+`AUTOVYBZ_KEY_PASSWORD` (optional variable `AUTOVYBZ_RELEASE_CERT_SHA256`).
 
-<p align="center">
-  <img width="48%" alt="Screenshot (1545)" src="https://github.com/user-attachments/assets/7c38d5b5-ca3e-4585-aad0-b35c8f57c610" />
-  <img width="48%" alt="Screenshot (1537)" src="https://github.com/user-attachments/assets/261c4359-4f0d-44af-a199-068f570ff3ea" />
-</p>
+## Architecture
 
+```
+app/src/main/java/com/andrexthedev/autovybz/
+  measurement/dsp     stimulus, FFT, smoothing, analyzer        (pure Kotlin, unit-tested)
+  measurement/eq      biquads, targets, fitter, AutoEQ renderer (pure Kotlin, unit-tested)
+  measurement/mic     mic profiles, calibration-file parser, DB loader
+  measurement/audio   Oboe/JNI + Java engines, route check, volume guard, EQ bypass
+  measurement/        MeasurementController (orchestration)
+  preset/, export/    AutoVybz preset model, Equalizer314 pool bridge, exporters
+  ui/                 Jetpack Compose: wizard, pro, help, about/donate, theme
+app/src/main/cpp/autovybz/   C++17 Oboe full-duplex engine + FFT + JNI
+app/src/main/java/com/bearinmind/equalizer314/   upstream Equalizer314 (classic Views)
+```
 
-## Why DynamicsProcessing & Visualizer APIs?
+## Credits & license
 
-There exists other apps and methods for device eq & visualization; but I wanted to talk about why I choose DynamicsProcessing & Visualizer as the framework for this app vs the other available and why I choose not to use those. To touch on this point again I choose to use the DynamicsProcessing API, the same API that both popular apps such as Poweramp EQ and Wavelet use as I decided DynamicsProcessing had enough tangibility in coparison to what I had to sacrifice using other more powerful methods.
+AutoVybz by **AndrexTheDev** (hippie.highho@gmail.com) is a fork of
+**[Equalizer314](https://github.com/bearinmindcat/Equalizer314) by bearinmindcat** and, like upstream,
+licensed under the **GNU GPL v3.0** – see [LICENSE](LICENSE) and [NOTICE.md](NOTICE.md).
+The original upstream README is kept in [docs/UPSTREAM_README.md](docs/UPSTREAM_README.md).
 
-Other methods of EQ available (ranked from);
+## Support
 
-Androids built-in Equalizer class (android.media.audiofx.Equalizer)
-- Fixed amount of EQ bands, this is what many "lazy" eq apps use and other apps who want to use EQ but don't want to focus on building an EQ engine (audiobook apps, music players, media players, video players, etc)
-- Attaches to an audio session
+AutoVybz is donationware. If it improved your sound:
 
-AudioEffect API subclasses (https://developer.android.com/reference/android/media/audiofx/AudioEffect)
-- Much better than androids built-in equalizer class but still lacks in comparison to DynamicsProcessing
-- A lot of apps build with DynamicsProcessing & AudioEffects as there are some subclasses available within the API that can offer "different" features that DynamicsProcessing cannot and they can attach to the same audio session pipeline
-- Attaches to an audio session
-
-AudioPlaybackCapture (RootlessJamesDSP)
-- Has much more access to the audio framework than what any of the avaialble APIs above can do, but in order to do so you need to grant ADB perms using something like Shizuku, going this way would also provide a much more accurate Visualizer/Spectrum; but going this route would force you to use the RECORD_AUDIO permission while also increasing latency with audio, and I wanted to keep the permissions in my app as low as possible and there was already a well developed app using this method so I wanted to stay clear of doing something that was already done
-- Another limitation is that some apps such as spotify block internal audio capture
-
-AudioFlinger (JamesDSP & ViPER4Android)
-- This is the "best" method if you really want control over your audio without latency issues. There is no "down-side" to using this method other than you need a rooted device which steers a lot of people away. This along with RootlessJamesDSP are best used if you want to apply custom audio effects directly without relying on android's built-in effects.
-- only con? root.
-
-
-## Presets & EQ Generation & AutoEQ
-
-To reference, lots of apps run AutoEQ (https://github.com/jaakkopasanen/AutoEq/wiki/Choosing-an-Equalizer-App); including Wavelet & Poweramp EQ. What both those apps don't offer are either "free access to auto eq" (comon wavelet....) & using the built in AutoEQ algorithm from the AutoEQ Github which you can take a look at here (https://github.com/jaakkopasanen/AutoEq/wiki/How-Does-AutoEq-Work%3F). This algorithm is done on the "Generate Custom EQ" section of the app; you need a "measurement" & "target" which both can be taken from squig.link along various resources online.
-
-On top of this I would also like to mention maintaining homogenity between preset sharing among popular equalization "applications"; this why I want with APO as the main export method than having an independent export method such as what Poweramp EQ & Wavelet use (Also as shown below in the "Generated EQ" portion). This would allow you to transfer the exported APO file to your desktop equalization software (EqualizerAPO) without having running into conversion issues. I was thinking about creating a conversion software in the app or on this github so incase people want to trasnfer over from Wavelet & Poweramp EQ, they can with ease. It might be something I will implement later if a lot of people request.
-
-<p align="center">
-  <img width="48%" alt="Screenshot (1542)" src="https://github.com/user-attachments/assets/8150ad20-6170-42ae-aa02-4c6298f536ea" />
-  <img width="48%" alt="Screenshot (1541)" src="https://github.com/user-attachments/assets/896cdd5f-a483-4eeb-8bb8-c378c6788bf4" />
-</p>
-
-## Known Issues
-
-On this app I specifically use session 0 for all applications unlike what Wavelet and Poweramp EQ do by attaching itself to an audio session. In the future I can give the option to attach to individual audio sessions like the ladder apps, but for now as of the v0.0.1-beta release there is no ability to do so.
-
-As for conflicts, as long as another app is using session 0, the eq from this app will not work, only one app can control session 0 at a time. In the code I added an auto-reclaim feature that will attempt to take over session 0 if another app takes it over, but sometimes this will not always work, and you'll experience brief audio glithes of dropouts while this is happening.
-
-These same issues occur with Wavelet, RootlessJamesDSP, Poweramp EQ; and most other EQ apps as they all target session 0.
-
-## Screenshots
-
-<p align="center">
-  <img width="19%" alt="Screenshot 1" src="fastlane/metadata/android/en-US/images/phoneScreenshots/1.jpg" />
-  <img width="19%" alt="Screenshot 2" src="fastlane/metadata/android/en-US/images/phoneScreenshots/2.jpg" />
-  <img width="19%" alt="Screenshot 3" src="fastlane/metadata/android/en-US/images/phoneScreenshots/3.jpg" />
-  <img width="19%" alt="Screenshot 4" src="fastlane/metadata/android/en-US/images/phoneScreenshots/4.jpg" />
-  <img width="19%" alt="Screenshot 5" src="fastlane/metadata/android/en-US/images/phoneScreenshots/5.jpg" />
-</p>
-
-<p align="center">
-  <img width="24%" alt="Screenshot 6" src="fastlane/metadata/android/en-US/images/phoneScreenshots/6.jpg" />
-  <img width="24%" alt="Screenshot 7" src="fastlane/metadata/android/en-US/images/phoneScreenshots/7.jpg" />
-  <img width="24%" alt="Screenshot 8" src="fastlane/metadata/android/en-US/images/phoneScreenshots/8.jpg" />
-  <img width="24%" alt="Screenshot 9" src="fastlane/metadata/android/en-US/images/phoneScreenshots/9.jpg" />
-</p>
-
-## Acknowledgment/Resources
-
-All of these acknowledgements are mentioned in code comments, but I wanted too also include them here as well, because I think these are all good resources to read up on.
-
-- [Audio EQ Cookbook](https://www.w3.org/TR/audio-eq-cookbook/) - biquad math for the parametric eq.
-- [Matched Second Order Digital Filters](https://www.vicanek.de/articles/BiquadFits.pdf) — bell filter math for parametric eq.
-- [AutoEq](https://github.com/jaakkopasanen/AutoEq) - used for target curve/measurement fitting + autoeq presets.
-- [*Digital Dynamic Range Compressor
-  Design*](https://www.eecs.qmul.ac.uk/~josh/documents/2012/GiannoulisMassbergReiss-dynamicrangecompression-JAES2012.pdf) - used for hard/soft knee transfer function for the multiband compression
-- [ITU-R BS.1770](https://www.itu.int/rec/R-REC-BS.1770) - used LUFS measurements
-- [Linkwitz–Riley crossover](https://en.wikipedia.org/wiki/Linkwitz%E2%80%93Riley_filter) - used for crossover math in multiband compression section
-
-## License
-
-Equalizer314 is released under the **GNU General Public License v3.0**. See [LICENSE](LICENSE) for the full text.
-
-You are free to use, modify, and redistribute this software under the terms of the GPL v3. If you distribute a modified version, you must release the source under the same license.
+| Coin | Address |
+|---|---|
+| SOL | `79KsqtJJdhKFJ9woxnYgtf3nq7HxQveafWBCtC3mxWi8` |
+| BTC | `bc1qeqzrlfg3edrydk4s0hecakc82gp26n5p7hkc7f` |
+| ETH / EVM | `0xBC3fab34f69bc9f6661608C3FB36dDdC313C42F7` |

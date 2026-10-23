@@ -5,6 +5,7 @@ import android.content.Intent
 import android.os.Build
 import android.util.Log
 import com.andrexthedev.autovybz.export.PresetNaming
+import com.andrexthedev.autovybz.measurement.audio.EqBypass
 import com.andrexthedev.autovybz.preset.model.AutoVybzPreset
 import com.bearinmind.equalizer314.audio.EqService
 import com.bearinmind.equalizer314.dsp.BiquadFilter
@@ -107,11 +108,15 @@ object AutoVybzPresetStore {
             .putBoolean(KEY_PENDING_APPLY, true)
             .putString(KEY_LAST_PRESET, preset.name)
             .apply()
-        if (EqService.isDpRunning) {
-            runCatching {
+        runCatching {
+            if (EqService.isDpRunning) {
+                // Live update of the running DynamicsProcessing chain.
                 context.startService(Intent(context, EqService::class.java).setAction(EqService.ACTION_APPLY_PERSISTED_EQ))
-            }.onFailure { Log.w(TAG, "live apply failed", it) }
-        }
+            } else {
+                // "Activate" = make it audible: headless start loads exactly the prefs written above.
+                EqBypass.resume(context)
+            }
+        }.onFailure { Log.w(TAG, "live apply failed", it) }
     }
 
     /** Called from MainActivity.onResume: true once after a wizard apply, so the Pro EQ screen reloads. */

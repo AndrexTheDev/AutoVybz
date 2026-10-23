@@ -1,1 +1,1 @@
-System-wide EQ with multiband compression, limiter, and audio-visual feedback.
+1-tap speaker & room calibration with your phone mic + system-wide 10-band EQ.

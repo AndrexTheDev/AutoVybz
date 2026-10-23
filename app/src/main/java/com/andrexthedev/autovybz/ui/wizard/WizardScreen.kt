@@ -1,0 +1,568 @@
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+
+package com.andrexthedev.autovybz.ui.wizard
+
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import com.andrexthedev.autovybz.measurement.MeasurementProgress
+import com.andrexthedev.autovybz.measurement.audio.RouteClassifier
+import com.andrexthedev.autovybz.measurement.dsp.MeasurementWarning
+import com.andrexthedev.autovybz.measurement.eq.TargetType
+import com.andrexthedev.autovybz.measurement.mic.ProfileConfidence
+import com.andrexthedev.autovybz.ui.components.AvzCard
+import com.andrexthedev.autovybz.ui.components.ChartSeries
+import com.andrexthedev.autovybz.ui.components.ExportButton
+import com.andrexthedev.autovybz.ui.components.FrequencyResponseChart
+import com.andrexthedev.autovybz.ui.components.LevelMeter
+import com.andrexthedev.autovybz.ui.components.SectionTitle
+import com.andrexthedev.autovybz.ui.theme.AutoVybzColors
+import com.bearinmind.equalizer314.R
+import java.util.Locale
+import kotlin.math.roundToInt
+
+@Composable
+fun WizardScreen(
+    vm: WizardViewModel,
+    state: WizardUiState,
+    onOpenHelp: () -> Unit,
+    onOpenProEq: () -> Unit,
+) {
+    val context = LocalContext.current
+    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        vm.onStartClicked(granted)
+    }
+    val startMeasurement = {
+        val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+        if (granted) vm.onStartClicked(true) else permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+    }
+
+    Column(
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        // Only animate when the *kind* of step changes (progress updates re-use the same content).
+        AnimatedContent(targetState = state.step, contentKey = { it::class }, label = "wizard-step") { shown ->
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                when (val step = shown) {
+                    WizardStep.Idle -> IdleStep(state, vm, startMeasurement, onOpenHelp)
+                    is WizardStep.RouteBlocked -> RouteBlockedStep(step, onRetry = startMeasurement, onBack = vm::onReset)
+                    is WizardStep.ConfirmSafety -> SafetyStep(step, vm)
+                    WizardStep.Preparing -> BusyStep(stringResource(R.string.avz_preparing), null)
+                    is WizardStep.Measuring -> MeasuringStep(step, vm::onCancel)
+                    WizardStep.Analyzing -> BusyStep(stringResource(R.string.avz_analyzing), null)
+                    is WizardStep.Result -> ResultStep(step, state, vm)
+                    is WizardStep.Saved -> SavedStep(step, onOpenProEq, vm::onReset)
+                    is WizardStep.Error -> ErrorStep(step, onRetry = startMeasurement, onBack = vm::onReset, onSettings = {
+                        context.startActivity(
+                            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null)),
+                        )
+                    })
+                }
+            }
+        }
+        Spacer(Modifier.height(24.dp))
+    }
+}
+
+/* ------------------------------------------------------------------ idle -- */
+
+@Composable
+private fun IdleStep(state: WizardUiState, vm: WizardViewModel, onStart: () -> Unit, onOpenHelp: () -> Unit) {
+    Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+        Spacer(Modifier.height(8.dp))
+        Text(
+            stringResource(R.string.avz_wizard_subtitle),
+            style = MaterialTheme.typography.bodyLarge,
+            color = AutoVybzColors.OnDarkMuted,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(24.dp))
+        BigStartButton(onStart)
+    }
+
+    OutlinedTextField(
+        value = state.speakerName,
+        onValueChange = vm::onSpeakerNameChanged,
+        label = { Text(stringResource(R.string.avz_speaker_name_label)) },
+        placeholder = { Text(stringResource(R.string.avz_speaker_name_hint)) },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+        colors = avzTextFieldColors(),
+        modifier = Modifier.fillMaxWidth(),
+    )
+
+    SectionTitle(stringResource(R.string.avz_target_label))
+    TargetChooser(state.target, vm::onTargetChanged)
+
+    AvzCard {
+        Text(stringResource(R.string.avz_wizard_before_title), style = MaterialTheme.typography.titleMedium)
+        NumberedLine(1, stringResource(R.string.avz_wizard_before_1))
+        NumberedLine(2, stringResource(R.string.avz_wizard_before_2))
+        NumberedLine(3, stringResource(R.string.avz_wizard_before_3))
+        TextButton(onClick = onOpenHelp) {
+            Icon(Icons.Filled.Info, contentDescription = null, tint = AutoVybzColors.Gold)
+            Text("  " + stringResource(R.string.avz_wizard_help_link), color = AutoVybzColors.Gold)
+        }
+    }
+}
+
+/** The one big round button laypeople need. */
+@Composable
+private fun BigStartButton(onClick: () -> Unit) {
+    Box(
+        Modifier.size(212.dp).clip(CircleShape)
+            .background(Brush.radialGradient(listOf(AutoVybzColors.Green.copy(alpha = 0.35f), AutoVybzColors.Background))),
+        contentAlignment = Alignment.Center,
+    ) {
+        Button(
+            onClick = onClick,
+            shape = CircleShape,
+            colors = ButtonDefaults.buttonColors(containerColor = AutoVybzColors.Green, contentColor = androidx.compose.ui.graphics.Color.White),
+            border = BorderStroke(3.dp, AutoVybzColors.Gold),
+            modifier = Modifier.size(176.dp),
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(Icons.Filled.PlayArrow, contentDescription = null, modifier = Modifier.size(48.dp))
+                Text(
+                    stringResource(R.string.avz_wizard_start),
+                    style = MaterialTheme.typography.titleMedium,
+                    textAlign = TextAlign.Center,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TargetChooser(selected: TargetType, onSelect: (TargetType) -> Unit) {
+    val items = listOf(
+        Triple(TargetType.SMART, R.string.avz_target_smart, R.string.avz_target_smart_desc),
+        Triple(TargetType.FLAT, R.string.avz_target_flat, R.string.avz_target_flat_desc),
+        Triple(TargetType.BASS_BOOST, R.string.avz_target_bass, R.string.avz_target_bass_desc),
+        Triple(TargetType.HARMAN, R.string.avz_target_harman, R.string.avz_target_harman_desc),
+        Triple(TargetType.CUSTOM, R.string.avz_target_custom, R.string.avz_target_custom_desc),
+    )
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        for ((type, label, _) in items) {
+            FilterChip(
+                selected = selected == type,
+                onClick = { onSelect(type) },
+                label = { Text(stringResource(label)) },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = AutoVybzColors.GreenContainer,
+                    selectedLabelColor = AutoVybzColors.GreenBright,
+                    labelColor = AutoVybzColors.OnDarkMuted,
+                ),
+            )
+        }
+    }
+    items.firstOrNull { it.first == selected }?.let {
+        Text(stringResource(it.third), style = MaterialTheme.typography.bodySmall, color = AutoVybzColors.OnDarkMuted)
+    }
+}
+
+@Composable
+private fun NumberedLine(n: Int, text: String) {
+    Row(verticalAlignment = Alignment.Top) {
+        Box(
+            Modifier.size(22.dp).clip(CircleShape).background(AutoVybzColors.GreenContainer),
+            contentAlignment = Alignment.Center,
+        ) { Text(n.toString(), style = MaterialTheme.typography.labelMedium, color = AutoVybzColors.GreenBright) }
+        Spacer(Modifier.width(10.dp))
+        Text(text, style = MaterialTheme.typography.bodyMedium)
+    }
+}
+
+/* --------------------------------------------------------- route blocked -- */
+
+@Composable
+private fun RouteBlockedStep(step: WizardStep.RouteBlocked, onRetry: () -> Unit, onBack: () -> Unit) {
+    val headphones = step.verdict == RouteClassifier.Verdict.BLOCKED_HEADPHONES
+    AvzCard(accent = AutoVybzColors.Error) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Filled.Warning, contentDescription = null, tint = AutoVybzColors.Error)
+            Spacer(Modifier.width(10.dp))
+            Text(
+                stringResource(if (headphones) R.string.avz_route_headphones_title else R.string.avz_route_builtin_title),
+                style = MaterialTheme.typography.titleLarge,
+            )
+        }
+        Text(stringResource(if (headphones) R.string.avz_route_headphones_text else R.string.avz_route_builtin_text))
+        step.routeName?.let { Text(stringResource(R.string.avz_safety_route, it), color = AutoVybzColors.OnDarkMuted) }
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            OutlinedButton(onClick = onBack) { Text(stringResource(R.string.avz_back)) }
+            Button(onClick = onRetry) {
+                Icon(Icons.Filled.Refresh, contentDescription = null)
+                Text("  " + stringResource(R.string.avz_retry))
+            }
+        }
+    }
+}
+
+/* ---------------------------------------------------------------- safety -- */
+
+@Composable
+private fun SafetyStep(step: WizardStep.ConfirmSafety, vm: WizardViewModel) {
+    var readWarning by remember { mutableStateOf(false) }
+    var isSpeaker by remember { mutableStateOf(!step.needsSpeakerConfirmation) }
+
+    AvzCard(accent = AutoVybzColors.Gold) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Filled.Warning, contentDescription = null, tint = AutoVybzColors.Gold)
+            Spacer(Modifier.width(10.dp))
+            Text(stringResource(R.string.avz_safety_title), style = MaterialTheme.typography.titleLarge)
+        }
+        Text(stringResource(R.string.avz_safety_text))
+        Bullet(stringResource(R.string.avz_safety_b1))
+        Bullet(stringResource(R.string.avz_safety_b2))
+        Bullet(stringResource(R.string.avz_safety_b3))
+        Text(stringResource(R.string.avz_safety_effects), style = MaterialTheme.typography.bodySmall, color = AutoVybzColors.OnDarkMuted)
+        step.routeName?.let { Text(stringResource(R.string.avz_safety_route, it), color = AutoVybzColors.GreenBright) }
+    }
+
+    AvzCard {
+        Text(
+            stringResource(R.string.avz_volume_label) + "  " + (step.volume * 100).roundToInt() + " %",
+            style = MaterialTheme.typography.titleMedium,
+        )
+        if (step.volumeFixed) {
+            Text(stringResource(R.string.avz_volume_fixed), color = AutoVybzColors.OnDarkMuted)
+        } else {
+            Slider(
+                value = step.volume,
+                onValueChange = vm::onVolumeChanged,
+                colors = SliderDefaults.colors(
+                    thumbColor = AutoVybzColors.Gold,
+                    activeTrackColor = AutoVybzColors.Green,
+                    inactiveTrackColor = AutoVybzColors.SurfaceHigh,
+                ),
+            )
+        }
+    }
+
+    if (step.needsSpeakerConfirmation) {
+        CheckRow(isSpeaker, { isSpeaker = it }, stringResource(R.string.avz_safety_confirm_speaker))
+    }
+    CheckRow(readWarning, { readWarning = it }, stringResource(R.string.avz_safety_confirm))
+
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+        OutlinedButton(onClick = vm::onCancel, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.avz_cancel)) }
+        Button(
+            onClick = vm::onConfirmStart,
+            enabled = readWarning && isSpeaker,
+            colors = ButtonDefaults.buttonColors(containerColor = AutoVybzColors.Green),
+            modifier = Modifier.weight(1.6f),
+        ) { Text(stringResource(R.string.avz_safety_start)) }
+    }
+}
+
+@Composable
+private fun Bullet(text: String) {
+    Row {
+        Text("•  ", color = AutoVybzColors.Gold)
+        Text(text, style = MaterialTheme.typography.bodyMedium)
+    }
+}
+
+@Composable
+private fun CheckRow(checked: Boolean, onChange: (Boolean) -> Unit, text: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Checkbox(
+            checked = checked,
+            onCheckedChange = onChange,
+            colors = CheckboxDefaults.colors(checkedColor = AutoVybzColors.Green, checkmarkColor = androidx.compose.ui.graphics.Color.White),
+        )
+        Text(text, style = MaterialTheme.typography.bodyMedium)
+    }
+}
+
+/* ------------------------------------------------------------- measuring -- */
+
+@Composable
+private fun MeasuringStep(step: WizardStep.Measuring, onCancel: () -> Unit) {
+    val phaseText = when (step.phase) {
+        MeasurementProgress.Phase.SILENCE -> R.string.avz_phase_silence
+        MeasurementProgress.Phase.PINK_NOISE -> R.string.avz_phase_pink
+        MeasurementProgress.Phase.SWEEP -> R.string.avz_phase_sweep
+        MeasurementProgress.Phase.DECAY -> R.string.avz_phase_decay
+    }
+    Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+        Spacer(Modifier.height(24.dp))
+        Box(contentAlignment = Alignment.Center) {
+            CircularProgressIndicator(
+                progress = { step.fraction },
+                modifier = Modifier.size(180.dp),
+                color = AutoVybzColors.Green,
+                trackColor = AutoVybzColors.SurfaceHigh,
+                strokeWidth = 10.dp,
+            )
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                val secondsLeft = ((1f - step.fraction) * 11f).roundToInt().coerceAtLeast(0)
+                Text("$secondsLeft s", style = MaterialTheme.typography.displaySmall, color = AutoVybzColors.Gold)
+                Text(stringResource(R.string.avz_measuring_title), color = AutoVybzColors.OnDarkMuted)
+            }
+        }
+        Spacer(Modifier.height(20.dp))
+        Text(stringResource(phaseText), style = MaterialTheme.typography.titleLarge)
+        Text(stringResource(R.string.avz_measuring_hint), color = AutoVybzColors.OnDarkMuted, textAlign = TextAlign.Center)
+    }
+    AvzCard {
+        Text(stringResource(R.string.avz_input_level), style = MaterialTheme.typography.titleSmall)
+        LevelMeter(step.inputPeak)
+        Text(stringResource(R.string.avz_eq_paused), style = MaterialTheme.typography.bodySmall, color = AutoVybzColors.OnDarkMuted)
+    }
+    OutlinedButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.avz_cancel)) }
+}
+
+@Composable
+private fun BusyStep(title: String, subtitle: String?) {
+    Column(Modifier.fillMaxWidth().padding(top = 48.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        CircularProgressIndicator(color = AutoVybzColors.Gold, modifier = Modifier.size(64.dp))
+        Spacer(Modifier.height(20.dp))
+        Text(title, style = MaterialTheme.typography.titleLarge)
+        subtitle?.let { Text(it, color = AutoVybzColors.OnDarkMuted) }
+    }
+}
+
+/* ---------------------------------------------------------------- result -- */
+
+@Composable
+private fun ResultStep(step: WizardStep.Result, state: WizardUiState, vm: WizardViewModel) {
+    val o = step.outcome
+    val e = o.autoEq
+    val r = o.result
+
+    Text(stringResource(R.string.avz_result_title), style = MaterialTheme.typography.headlineSmall)
+    AvzCard {
+        FrequencyResponseChart(
+            frequencies = e.frequencies,
+            series = listOf(
+                ChartSeries(e.measuredDb, AutoVybzColors.CurveMeasured, label = stringResource(R.string.avz_legend_measured)),
+                ChartSeries(e.targetDb, AutoVybzColors.CurveTarget, width = 2f, dashed = true, label = stringResource(R.string.avz_legend_target)),
+                ChartSeries(e.predictedDb, AutoVybzColors.CurveCorrected, width = 3f, label = stringResource(R.string.avz_legend_corrected)),
+            ),
+        )
+        Text(
+            stringResource(
+                R.string.avz_result_summary,
+                e.bands.size,
+                fmt1(e.preampDb),
+                fmt1(e.rmsErrorBeforeDb),
+                fmt1(e.rmsErrorAfterDb),
+            ),
+            style = MaterialTheme.typography.bodyMedium,
+            color = AutoVybzColors.OnDarkMuted,
+        )
+    }
+
+    // Warnings
+    for (w in r.warnings) {
+        val text = when (w) {
+            MeasurementWarning.CLIPPING -> stringResource(R.string.avz_warn_clipping)
+            MeasurementWarning.LOW_SNR -> stringResource(R.string.avz_warn_low_snr)
+            MeasurementWarning.SWEEP_NOISE_MISMATCH -> stringResource(R.string.avz_warn_mismatch)
+            MeasurementWarning.HIGH_LATENCY -> stringResource(R.string.avz_warn_latency, r.latencyMs.roundToInt())
+        }
+        val severe = w == MeasurementWarning.CLIPPING || w == MeasurementWarning.LOW_SNR
+        Row(
+            Modifier.fillMaxWidth().clip(MaterialTheme.shapes.small)
+                .background(if (severe) AutoVybzColors.GoldContainer else AutoVybzColors.SurfaceHigh).padding(12.dp),
+        ) {
+            Icon(if (severe) Icons.Filled.Warning else Icons.Filled.Info, contentDescription = null, tint = AutoVybzColors.Gold)
+            Spacer(Modifier.width(10.dp))
+            Text(text, style = MaterialTheme.typography.bodyMedium)
+        }
+    }
+
+    SectionTitle(stringResource(R.string.avz_target_label))
+    TargetChooser(state.target, vm::onTargetChanged)
+    SectionTitle(stringResource(R.string.avz_result_precision))
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        for ((count, label) in listOf(5 to R.string.avz_bands_5, 10 to R.string.avz_bands_10)) {
+            FilterChip(
+                selected = state.bandCount == count,
+                onClick = { vm.onBandCountChanged(count) },
+                label = { Text(stringResource(label)) },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = AutoVybzColors.GreenContainer,
+                    selectedLabelColor = AutoVybzColors.GreenBright,
+                ),
+            )
+        }
+    }
+
+    OutlinedTextField(
+        value = step.presetName,
+        onValueChange = vm::onPresetNameChanged,
+        label = { Text(stringResource(R.string.avz_preset_name)) },
+        isError = !step.nameValid,
+        supportingText = if (!step.nameValid) ({ Text(stringResource(R.string.avz_preset_name_invalid)) }) else null,
+        singleLine = true,
+        colors = avzTextFieldColors(),
+        modifier = Modifier.fillMaxWidth(),
+    )
+
+    Button(
+        onClick = { vm.onSave(apply = true) },
+        enabled = step.nameValid,
+        colors = ButtonDefaults.buttonColors(containerColor = AutoVybzColors.Green),
+        modifier = Modifier.fillMaxWidth().height(56.dp),
+    ) {
+        Icon(Icons.Filled.CheckCircle, contentDescription = null)
+        Text("  " + stringResource(R.string.avz_save_apply), style = MaterialTheme.typography.titleMedium)
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+        OutlinedButton(onClick = { vm.onSave(apply = false) }, enabled = step.nameValid) { Text(stringResource(R.string.avz_save_only)) }
+        OutlinedButton(onClick = vm::onReset) { Text(stringResource(R.string.avz_measure_again)) }
+    }
+    ExportButton(preset = vm::currentPreset)
+
+    // Details for the curious
+    com.andrexthedev.autovybz.ui.components.CollapsibleCard(title = stringResource(R.string.avz_result_details)) {
+        Text(stringResource(R.string.avz_detail_mic, o.micDescription), style = MaterialTheme.typography.bodySmall)
+        Text(stringResource(R.string.avz_detail_engine, "${o.capture.engineName}, FFT ${o.fftEngine}, ${o.capture.sourceUsed.name}"), style = MaterialTheme.typography.bodySmall)
+        Text(stringResource(R.string.avz_detail_range, e.lowLimitHz.roundToInt(), e.highLimitHz.roundToInt()), style = MaterialTheme.typography.bodySmall)
+        Text(stringResource(R.string.avz_detail_snr, r.medianSnrDb.roundToInt()), style = MaterialTheme.typography.bodySmall)
+        if (o.micProfile?.confidence == ProfileConfidence.ESTIMATED) {
+            Text(stringResource(R.string.avz_mic_estimated_note), style = MaterialTheme.typography.bodySmall, color = AutoVybzColors.Gold)
+        }
+        Text(stringResource(R.string.avz_detail_bands), style = MaterialTheme.typography.titleSmall)
+        for (b in e.bands) {
+            Text(
+                String.format(Locale.US, "%-4s %7.1f Hz  %+5.1f dB  Q %.2f", b.type.apoCode, b.frequency, b.gainDb, b.q),
+                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                color = AutoVybzColors.OnDarkMuted,
+            )
+        }
+    }
+}
+
+/* ----------------------------------------------------------------- saved -- */
+
+@Composable
+private fun SavedStep(step: WizardStep.Saved, onOpenProEq: () -> Unit, onDone: () -> Unit) {
+    Column(Modifier.fillMaxWidth().padding(top = 32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = AutoVybzColors.GreenBright, modifier = Modifier.size(96.dp))
+        Spacer(Modifier.height(12.dp))
+        Text(stringResource(R.string.avz_saved_title), style = MaterialTheme.typography.headlineMedium, color = AutoVybzColors.Gold)
+        Spacer(Modifier.height(8.dp))
+        Text(
+            stringResource(if (step.applied) R.string.avz_saved_applied else R.string.avz_saved_only, step.presetName),
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(24.dp))
+        Button(onClick = onDone, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = AutoVybzColors.Green)) {
+            Text(stringResource(R.string.avz_done))
+        }
+        Spacer(Modifier.height(8.dp))
+        OutlinedButton(onClick = onOpenProEq, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.avz_open_pro_eq)) }
+    }
+}
+
+/* ----------------------------------------------------------------- error -- */
+
+@Composable
+private fun ErrorStep(step: WizardStep.Error, onRetry: () -> Unit, onBack: () -> Unit, onSettings: () -> Unit) {
+    AvzCard(accent = AutoVybzColors.Error) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Filled.Warning, contentDescription = null, tint = AutoVybzColors.Error)
+            Spacer(Modifier.width(10.dp))
+            Text(stringResource(R.string.avz_err_title), style = MaterialTheme.typography.titleLarge)
+        }
+        val detail = step.detail ?: "-"
+        Text(
+            when (step.error) {
+                WizardError.PERMISSION_DENIED -> stringResource(R.string.avz_err_permission)
+                WizardError.NO_SIGNAL -> stringResource(R.string.avz_err_no_signal)
+                WizardError.CAPTURE_FAILED -> stringResource(R.string.avz_err_capture, detail)
+                WizardError.UNKNOWN -> stringResource(R.string.avz_err_unknown, detail)
+            },
+        )
+        if (step.error == WizardError.PERMISSION_DENIED) {
+            Text(stringResource(R.string.avz_permission_rationale), style = MaterialTheme.typography.bodySmall, color = AutoVybzColors.OnDarkMuted)
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            OutlinedButton(onClick = onBack) { Text(stringResource(R.string.avz_back)) }
+            if (step.error == WizardError.PERMISSION_DENIED) {
+                OutlinedButton(onClick = onSettings) { Text(stringResource(R.string.avz_err_permission_settings)) }
+            }
+            Button(onClick = onRetry) { Text(stringResource(R.string.avz_retry)) }
+        }
+    }
+}
+
+/* ------------------------------------------------------------------ util -- */
+
+@Composable
+internal fun avzTextFieldColors() = OutlinedTextFieldDefaults.colors(
+    focusedBorderColor = AutoVybzColors.Green,
+    unfocusedBorderColor = AutoVybzColors.Outline,
+    focusedLabelColor = AutoVybzColors.GreenBright,
+    cursorColor = AutoVybzColors.Gold,
+)
+
+private fun fmt1(v: Double) = String.format(Locale.getDefault(), "%.1f", v)

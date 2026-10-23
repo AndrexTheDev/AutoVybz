@@ -1,11 +1,24 @@
-To start off there is really no "free" and/or "open source" alternative to Wavelet and Poweramp EQ that pairs the full DynamicsProcessing API with real audio-visual feedback, and I felt like after using both of those apps among other various EQ apps that there were huge shortcomings in terms of the features & accessibilities they offered. When I started developing this app I wanted to have both a powerful parametric eq function with minimal permissions; this is why I choose to use both the DynamicsProcessing & Visualizer APIs as the framework for this app as you only need minimal permissions for both of them to work in tandem. There are shortcomings from both these APIs, but I'll discuss more of that later.
+<b>One tap. 10 seconds. Your speaker, tuned to your room.</b>
 
-This app is built off of DynamicsProcessing API; this is the same API that Poweramp EQ & Wavelet both use but I felt in some aspects they weren't really being able really squeeze out the max potential that this API can offer.
+AutoVybz automatically calibrates your external loudspeaker (Bluetooth, AUX, USB, HDMI) to your room using your phone's microphone, then applies the correction system-wide.
 
-As someone who comes from the audio production & IEM world I have a lot of experience understanding what both sides of those worlds want and wanted to be able to take advantage of both to create something that met my creative endeavors.
+<b>How it works</b>
+<ul>
+<li>Exactly 10 s test: room noise, pink noise and a logarithmic sine sweep from 20 Hz to 20 kHz</li>
+<li>Raw microphone input (UNPROCESSED, fallback VOICE_RECOGNITION) via a native Oboe/C++ engine</li>
+<li>Automatic latency detection – works with Bluetooth speakers</li>
+<li>Microphone compensation profiles by phone model; USB measurement mics with calibration files (Pro)</li>
+<li>Dynamic smoothing (strong in the bass, 1/3 octave in mids and highs)</li>
+<li>Up to 10 parametric filters fitted to your target, without boosting bass your speaker can't play</li>
+<li>Automatic pre-gain and limiter against clipping</li>
+</ul>
 
-Using the Visualizer API I wanted to give users a way they can reliably cross reference visual data with audio data; this is both useful for the main EQ portion as you can visually reference audio changes you make, but this comes more into play with the Limiting & Multiband Compression sides of the app. While these features are for use in the DynamicsProcessing API; and many apps like Poweramp EQ & Wavelet (who premium locks these features); they just add knobs/sliders in and expect the user to understand exactly how these features work and without real audio-visual feedback, users aren't really able to take advantage of these features in their full potential. This is the reason why many DAWs and VST Plugins use audio-visual feedback with these functions specifically.
+<b>Targets</b>: Smart (gentle bass boost), Neutral/Flat, Bass Boost, Harman/Loudness, Custom.
 
-Using Visualizer API with these DynamicsProcessing features; you're really able to get an intimate audio-visual feedback loop that gives you complete control over your audio framework.
+<b>Pro area</b>: full Equalizer314 engine – 10-band parametric EQ with graph, multiband compressor, limiter, presets, AutoEQ.
 
-This app is free and open source software (FOSS) licensed under the GPL-3.0 License.
+<b>Export</b>: Equalizer APO / Peace text, parametric EQ JSON, CSV for REW.
+
+Headphones are intentionally excluded – AutoVybz is made for loudspeakers.
+
+100 % open source (GPL-3.0), donationware, no ads, no tracking. Based on Equalizer314 by bearinmindcat.

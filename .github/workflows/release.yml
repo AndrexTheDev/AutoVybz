@@ -1,10 +1,11 @@
-# Release pipeline: pushing a version tag (Equalizer314-v0.0.22-beta, …) builds the APK signed with the
+# Release pipeline: pushing a version tag (AutoVybz-v0.1.0-alpha, …) builds the APK signed with the
 # release key and makes it a draft GitHub release named after the tag, with the fastlane changelog for
 # that versionCode as its notes. Edit the notes on GitHub and publish the draft.
 #
-# The tag must match versionName in app/build.gradle.kts, and the APK must be signed with the key F-Droid
-# expects (AllowedAPKSigningKeys): F-Droid rebuilds every release from source and only publishes it when
-# its build is byte-identical to the APK attached here (Equalizer314-v<version>.apk).
+# The tag must match versionName in app/build.gradle.kts. If the repository variable
+# AUTOVYBZ_RELEASE_CERT_SHA256 is set (SHA-256 of AutoVybz's own release certificate, e.g. the value
+# F-Droid lists in AllowedAPKSigningKeys), tagged builds must be signed with exactly that key
+# (AutoVybz-v<version>.apk). AutoVybz uses its own key, never the upstream one.
 #
 # A manual run (Actions › Release › Run workflow) is a dry run: it builds the APK at the version in
 # app/build.gradle.kts and keeps it as the run's artifact, and releases nothing.
@@ -12,7 +13,7 @@ name: Release
 
 on:
   push:
-    tags: ['Equalizer314-v*']
+    tags: ['AutoVybz-v*']
   workflow_dispatch:
 
 permissions:
@@ -24,8 +25,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  # SHA-256 of the release certificate, as in F-Droid's AllowedAPKSigningKeys
-  RELEASE_CERT_SHA256: 7a8368d18ad64294f9aadf4b736adcd15cb0cb88c6b9dc2e0bd5f1e461b83e52
+  # SHA-256 of AutoVybz's release certificate (repository variable; empty = not enforced)
+  RELEASE_CERT_SHA256: ${{ vars.AUTOVYBZ_RELEASE_CERT_SHA256 }}
   # same versions as app/build.gradle.kts and F-Droid's recipe (ndk: r27c)
   NDK_VERSION: 27.2.12479018
   CMAKE_VERSION: 3.22.1
@@ -49,7 +50,7 @@ jobs:
             echo "::error::versionName / versionCode not found in app/build.gradle.kts"
             exit 1
           fi
-          if [ "$GITHUB_REF_TYPE" = tag ] && [ "${GITHUB_REF_NAME#Equalizer314-v}" != "$name" ]; then
+          if [ "$GITHUB_REF_TYPE" = tag ] && [ "${GITHUB_REF_NAME#AutoVybz-v}" != "$name" ]; then
             echo "::error::tag $GITHUB_REF_NAME doesn't match versionName $name"
             exit 1
           fi
@@ -68,10 +69,10 @@ jobs:
 
       - name: Release key
         env:
-          KEYSTORE_BASE64: ${{ secrets.EQUALIZER314_KEYSTORE_BASE64 }}
-          STORE_PASSWORD: ${{ secrets.EQUALIZER314_STORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.EQUALIZER314_KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.EQUALIZER314_KEY_PASSWORD }}
+          KEYSTORE_BASE64: ${{ secrets.AUTOVYBZ_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.AUTOVYBZ_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.AUTOVYBZ_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.AUTOVYBZ_KEY_PASSWORD }}
         run: |
           # Gradle reads ORG_GRADLE_PROJECT_* as the RELEASE_* properties app/build.gradle.kts signs with.
           if [ -n "$KEYSTORE_BASE64" ]; then
@@ -104,7 +105,7 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon
           mkdir -p dist
-          cp app/build/outputs/apk/release/app-release.apk "dist/Equalizer314-v$VERSION.apk"
+          cp app/build/outputs/apk/release/app-release.apk "dist/AutoVybz-v$VERSION.apk"
 
       - name: Check the signature
         run: |
@@ -112,8 +113,8 @@ jobs:
           apk="$(ls dist/*.apk)"
           certs="$("$apksigner" verify --print-certs "$apk")"
           sha="$(sed -n 's/.*certificate SHA-256 digest: //p' <<<"$certs" | head -n 1)"
-          if [ "$GITHUB_REF_TYPE" = tag ] && [ "$sha" != "$RELEASE_CERT_SHA256" ]; then
-            echo "::error::$apk is signed with $sha, not the release key F-Droid expects"
+          if [ "$GITHUB_REF_TYPE" = tag ] && [ -n "$RELEASE_CERT_SHA256" ] && [ "$sha" != "$RELEASE_CERT_SHA256" ]; then
+            echo "::error::$apk is signed with $sha, not the AutoVybz release key"
             exit 1
           fi
           {
