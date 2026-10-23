@@ -1,0 +1,9 @@
+- Light & Dark theme: a Light Theme toggle in Settings (in place of the old Simple-EQ toggle). The whole app — screens, the EQ graph, and the meters — re-themes instantly and the choice survives a restart.
+- Backup & Restore: export all your settings, presets, and device/app bindings to a single .json file and restore them on a fresh install or after switching APK source, so a reinstall no longer wipes everything (issue #37).
+- Overwrite presets: every saved preset now has an overwrite button to re-save the current EQ into it (handy for tweaking a loaded preset), using the same styled popup as Save Custom Preset (issue #45).
+- Per-band fill curves: each band's individual contribution is drawn as a translucent colored curve under the white summed response — Allen & Heath SQ-5 / FabFilter style (issue #40).
+- Simple-mode presets now share the same custom-preset pool as Parametric / Graphic / Table, with matching row styling (issue #39).
+- Bell filters switched from Vicanek to RBJ so equal-and-opposite peaks cancel correctly instead of leaving residual ripple (issue #41).
+- Device- and app-bound presets now apply their independent Left / Right channel filters when auto-switching, not just the composite curve (issue #46).
+- Session-0 recovery watchdog: when another app steals the global audio session (e.g. switching between apps), the EQ now detects it and re-attaches automatically instead of going flat until you manually toggle it off/on (issue #47).
+- Settings tidy-up: AutoEQ & Presets, Generate Custom EQ, and Convert to APO are now grouped under a new "Presets & Conversions" screen; the parametric dB sliders span ±20 dB to match the graph.

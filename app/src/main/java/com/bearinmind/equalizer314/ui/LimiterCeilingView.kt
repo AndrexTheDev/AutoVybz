@@ -1,0 +1,348 @@
+package com.bearinmind.equalizer314.ui
+
+import com.bearinmind.equalizer314.R
+import android.content.Context
+import android.graphics.*
+import android.util.AttributeSet
+import android.view.MotionEvent
+import android.view.View
+
+/**
+ * Ableton-style limiter display with two columns:
+ * - Left: "Ceiling" — shows input level pumping with draggable ceiling line.
+ *   Signal below ceiling = green, signal above ceiling = red (clipped).
+ * - Right: "GR" — gain reduction meter (fills from top, orange)
+ */
+class LimiterCeilingView @JvmOverloads constructor(
+    context: Context, attrs: AttributeSet? = null
+) : View(context, attrs) {
+
+    init {
+        setLayerType(LAYER_TYPE_SOFTWARE, null)
+    }
+
+    var ceilingDb: Float = -0.5f
+        set(value) { field = value.coerceIn(dbMin, dbMax); invalidate() }
+
+    // Target values (set from outside)
+    var inputDb: Float = -30f
+    var grDb: Float = 0f
+
+    // Smoothed values for display (asymmetric: fast attack, slow release)
+    private var smoothedInput = -30f
+    private var smoothedGr = 0f
+    private val attackAlpha = 0.5f    // fast rise
+    private val releaseAlpha = 0.08f  // slow fall
+
+    var onCeilingChanged: ((Float) -> Unit)? = null
+
+    private val dbMin = -40f
+    private val dbMax = 0f
+    private val dbRange = dbMax - dbMin
+
+    private var dragging = false
+    private var lastTapTime = 0L
+    private val doubleTapTimeout = 300L
+    private var touchStartY = 0f
+    private var hasDragged = false
+
+    // Peak hold for input (2 second hold at ~30fps = 60 frames)
+    private var peakDb = -60f
+    private var peakHoldFrames = 0
+    private val peakHoldMax = 60
+
+    // Peak hold for GR (same timing)
+    private var grPeakDb = 0f
+    private var grPeakHoldFrames = 0
+
+    companion object {
+        const val DEFAULT_CEILING = 0f
+    }
+
+    private val bgPaint = Paint().apply { color = 0x00000000 }  // transparent — waveform shows through
+    private val columnBgPaint = Paint().apply { color = 0xCC2A2A2A.toInt() }  // semi-transparent columns
+    private val inputBelowPaint = Paint().apply { color = 0xFFBBBBBB.toInt() } // grey
+    private val inputAbovePaint = Paint().apply { color = 0xFFBBBBBB.toInt() } // same grey
+    private val ceilingLinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = 0xFFBBBBBB.toInt(); strokeWidth = 2f
+        pathEffect = DashPathEffect(floatArrayOf(8f, 5f), 0f)
+    }
+    private val grFillPaint = Paint().apply { color = 0xFFBBBBBB.toInt() }
+    private val gridPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = 0xFF3A3A3A.toInt(); strokeWidth = 1f
+    }
+    private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = 0xFF888888.toInt(); textSize = 20f; textAlign = Paint.Align.CENTER
+    }
+    private val titlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = 0xFFAAAAAA.toInt(); textSize = 22f; textAlign = Paint.Align.CENTER
+    }
+    private val valuePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = 0xFFDDDDDD.toInt(); textSize = 24f; textAlign = Paint.Align.CENTER
+        typeface = Typeface.DEFAULT_BOLD
+    }
+    private val grValuePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = 0xFFBBBBBB.toInt(); textSize = 24f; textAlign = Paint.Align.CENTER
+        typeface = Typeface.DEFAULT_BOLD
+    }
+    private val peakLinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = 0xFFBBBBBB.toInt(); strokeWidth = 2f  // same grey as graph input trace
+    }
+    private val haloPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = 0x30FFFFFF.toInt(); style = Paint.Style.FILL
+    }
+
+    // True when the app is in light mode — also read in onDraw for the
+    // locally-built drag triangle paints.
+    private val isLightTheme = (resources.configuration.uiMode and
+        android.content.res.Configuration.UI_MODE_NIGHT_MASK) !=
+        android.content.res.Configuration.UI_MODE_NIGHT_YES
+
+    // Light-theme overrides — this view overlays the (now light) waveform,
+    // so its dark columns/halo and light-grey traces flip.
+    init {
+        if (isLightTheme) {
+            columnBgPaint.color = 0xCCD0D0D0.toInt()
+            inputBelowPaint.color = 0xFF585858.toInt()
+            inputAbovePaint.color = 0xFF585858.toInt()
+            ceilingLinePaint.color = 0xFF585858.toInt()
+            grFillPaint.color = 0xFF585858.toInt()
+            gridPaint.color = 0xFFCFCFCF.toInt()
+            labelPaint.color = 0xFF6A6A6A.toInt()
+            titlePaint.color = 0xFF585858.toInt()
+            valuePaint.color = 0xFF252525.toInt()
+            grValuePaint.color = 0xFF585858.toInt()
+            peakLinePaint.color = 0xFF585858.toInt()
+            haloPaint.color = 0x30000000
+        }
+    }
+
+    private val topPad = 50f
+    private val bottomPad = 40f
+    private val sidePad = 8f  // tighter padding
+
+    private fun meterTop() = topPad
+    private fun meterBottom(h: Float) = h - bottomPad
+    private fun meterHeight(h: Float) = meterBottom(h) - meterTop()
+
+    // Ceiling/GR scale: 0 to -30
+    private fun dbToY(db: Float, h: Float): Float {
+        val norm = (dbMax - db) / dbRange
+        return meterTop() + meterHeight(h) * norm
+    }
+
+    private fun yToDb(y: Float, h: Float): Float {
+        val norm = (y - meterTop()) / meterHeight(h)
+        return (dbMax - norm * dbRange).coerceIn(dbMin, dbMax)
+    }
+
+    override fun onDraw(canvas: Canvas) {
+        val w = width.toFloat()
+        val h = height.toFloat()
+        if (w <= 0 || h <= 0) return
+
+        // Smooth input and GR with asymmetric ballistics
+        val inputAlpha = if (inputDb > smoothedInput) attackAlpha else releaseAlpha
+        smoothedInput = inputAlpha * inputDb + (1f - inputAlpha) * smoothedInput
+
+        val grAlpha = if (grDb < smoothedGr) attackAlpha else releaseAlpha
+        smoothedGr = grAlpha * grDb + (1f - grAlpha) * smoothedGr
+
+        canvas.drawRect(0f, 0f, w, h, bgPaint)
+
+        val gap = 36f  // gap between columns for dB labels
+        val colWidth = (w - sidePad * 2 - gap) / 2f * 0.7f  // thinner columns
+        val totalWidth = colWidth * 2 + gap
+        val startX = (w - totalWidth) / 2f  // center both columns
+        val ceilingLeft = startX
+        val ceilingRight = ceilingLeft + colWidth
+        val grLeft = ceilingRight + gap
+        val grRight = grLeft + colWidth
+        val labelCenterX = (ceilingRight + grLeft) / 2f
+
+        val mt = meterTop()
+        val mb = meterBottom(h)
+        val cornerR = 8f
+
+        // Column backgrounds
+        canvas.drawRoundRect(ceilingLeft, mt, ceilingRight, mb, cornerR, cornerR, columnBgPaint)
+        canvas.drawRoundRect(grLeft, mt, grRight, mb, cornerR, cornerR, columnBgPaint)
+
+        // Grid lines on both columns + dB labels BETWEEN columns (centered in gap)
+        for (db in listOf(0f, -10f, -20f, -30f)) {
+            val y = dbToY(db, h)
+            canvas.drawLine(ceilingLeft, y, ceilingRight, y, gridPaint)
+            canvas.drawLine(grLeft, y, grRight, y, gridPaint)
+            val label = if (db == 0f) "0" else "${db.toInt()}"
+            labelPaint.textAlign = Paint.Align.CENTER
+            labelPaint.textSize = 16f
+            canvas.drawText(label, labelCenterX, y + 5f, labelPaint)
+        }
+
+        // ── Input level in ceiling column (uses smoothed value) ──
+        val ceilingY = dbToY(ceilingDb, h)
+        val displayInput = smoothedInput.coerceIn(dbMin, 0f)
+        val inputY = dbToY(displayInput, h)
+
+        canvas.save()
+        canvas.clipRoundRect(ceilingLeft, mt, ceilingRight, mb, cornerR, cornerR)
+
+        if (displayInput > ceilingDb) {
+            inputBelowPaint.alpha = 50
+            canvas.drawRect(ceilingLeft, ceilingY, ceilingRight, mb, inputBelowPaint)
+            inputAbovePaint.alpha = 70
+            canvas.drawRect(ceilingLeft, inputY, ceilingRight, ceilingY, inputAbovePaint)
+        } else {
+            inputBelowPaint.alpha = 50
+            canvas.drawRect(ceilingLeft, inputY, ceilingRight, mb, inputBelowPaint)
+        }
+        canvas.restore()
+
+        // Ceiling line (draggable, clipped to column)
+        canvas.drawLine(ceilingLeft, ceilingY, ceilingRight, ceilingY, ceilingLinePaint)
+
+        // Triangle handle to the left of ceiling column (▼ pointing right)
+        val triR = 16f
+        val triCorner = 5f
+        val triX = ceilingLeft - 4f  // just left of column
+        val triPath = Path()
+        triPath.moveTo(triX, ceilingY)                          // tip pointing right at the line
+        triPath.lineTo(triX - triR * 1.5f, ceilingY - triR)    // top-left
+        triPath.lineTo(triX - triR * 1.5f, ceilingY + triR)    // bottom-left
+        triPath.close()
+
+        val triBgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = if (isLightTheme) 0xFFE6E6E6.toInt() else 0xFF1E1E1E.toInt(); style = Paint.Style.FILL
+            pathEffect = CornerPathEffect(triCorner)
+        }
+        val triOutlinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = if (isLightTheme) 0xFF585858.toInt() else 0xFFBBBBBB.toInt(); style = Paint.Style.STROKE; strokeWidth = 2f
+            pathEffect = CornerPathEffect(triCorner)
+        }
+        // Triangle halo when dragging
+        if (dragging) {
+            val triCenterX = triX - triR * 0.75f
+            val haloDp = 12f * resources.displayMetrics.density
+            canvas.drawCircle(triCenterX, ceilingY, haloDp, haloPaint)
+        }
+        canvas.drawPath(triPath, triBgPaint)
+        canvas.drawPath(triPath, triOutlinePaint)
+
+        // Peak hold line
+        if (displayInput > peakDb) {
+            peakDb = displayInput; peakHoldFrames = 0
+        } else {
+            peakHoldFrames++
+            if (peakHoldFrames > peakHoldMax) peakDb = (peakDb - 0.5f).coerceAtLeast(dbMin)
+        }
+        val peakY = dbToY(peakDb.coerceAtLeast(dbMin), h)
+        if (peakDb > dbMin + 1f) {
+            canvas.save()
+            canvas.clipRoundRect(ceilingLeft, mt, ceilingRight, mb, cornerR, cornerR)
+            canvas.drawLine(ceilingLeft + 2f, peakY, ceilingRight - 2f, peakY, peakLinePaint)
+            canvas.restore()
+        }
+
+        // Drag halo
+        if (dragging) {
+            canvas.drawRoundRect(
+                ceilingLeft + 2f, ceilingY - 20f,
+                ceilingRight - 2f, ceilingY + 20f,
+                10f, 10f, haloPaint
+            )
+        }
+
+        // ── GR fill (from top down — 0 to -40 dB, matching ceiling scale) ──
+        val grScaleMin = -40f
+        val displayGr = smoothedGr.coerceIn(grScaleMin, 0f)
+        fun grToY(gr: Float): Float {
+            val norm = (0f - gr) / (0f - grScaleMin)
+            return meterTop() + meterHeight(h) * norm.coerceIn(0f, 1f)
+        }
+        canvas.save()
+        canvas.clipRoundRect(grLeft, mt, grRight, mb, cornerR, cornerR)
+        if (displayGr < -0.1f) {
+            grFillPaint.alpha = 50
+            canvas.drawRect(grLeft, mt, grRight, grToY(displayGr), grFillPaint)
+        }
+
+        // GR peak hold line (tracks deepest GR, same 2-second hold + decay)
+        if (displayGr < grPeakDb) {
+            grPeakDb = displayGr; grPeakHoldFrames = 0
+        } else {
+            grPeakHoldFrames++
+            if (grPeakHoldFrames > peakHoldMax) {
+                grPeakDb = (grPeakDb + 0.5f).coerceAtMost(0f)
+            }
+        }
+        if (grPeakDb < -0.1f) {
+            val grPeakY = grToY(grPeakDb)
+            canvas.drawLine(grLeft + 2f, grPeakY, grRight - 2f, grPeakY, peakLinePaint)
+        }
+        canvas.restore()
+
+        // ── Titles ──
+        canvas.drawText(context.getString(R.string.lim_ceiling), (ceilingLeft + ceilingRight) / 2f, 32f, titlePaint)
+        canvas.drawText(context.getString(R.string.lim_gr), (grLeft + grRight) / 2f, 32f, titlePaint)
+
+        // ── Values at bottom ──
+        canvas.drawText(String.format("%.1f dB", ceilingDb), (ceilingLeft + ceilingRight) / 2f, h - 10f, valuePaint)
+        val grText = if (displayGr < -0.1f) String.format("%.1f dB", displayGr) else "0.0 dB"
+        canvas.drawText(grText, (grLeft + grRight) / 2f, h - 10f, grValuePaint)
+    }
+
+    private fun Canvas.clipRoundRect(l: Float, t: Float, r: Float, b: Float, rx: Float, ry: Float) {
+        val path = Path().apply { addRoundRect(l, t, r, b, rx, ry, Path.Direction.CW) }
+        clipPath(path)
+    }
+
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        val w = width.toFloat()
+        val gap = 36f
+        val colWidth = (w - sidePad * 2 - gap) / 2f * 0.7f
+        val totalWidth = colWidth * 2 + gap
+        val startX = (w - totalWidth) / 2f
+        val ceilingLeft = startX
+        val ceilingRight = ceilingLeft + colWidth
+
+        when (event.action) {
+            MotionEvent.ACTION_DOWN -> {
+                // Hit area includes triangle to the left (triR * 1.5 + margin)
+                if (event.x >= ceilingLeft - 40f && event.x <= ceilingRight + 10f) {
+                    val now = System.currentTimeMillis()
+                    if (now - lastTapTime < doubleTapTimeout) {
+                        ceilingDb = DEFAULT_CEILING
+                        onCeilingChanged?.invoke(ceilingDb)
+                        lastTapTime = 0L
+                        invalidate()
+                        return true
+                    }
+                    lastTapTime = now
+                    touchStartY = event.y
+                    hasDragged = false
+                    parent?.requestDisallowInterceptTouchEvent(true)
+                    return true
+                }
+            }
+            MotionEvent.ACTION_MOVE -> {
+                if (!hasDragged) {
+                    val dy = event.y - touchStartY
+                    if (dy * dy > 64f) { hasDragged = true; dragging = true }
+                }
+                if (dragging) {
+                    val newDb = yToDb(event.y, height.toFloat())
+                    val snapped = (Math.round(newDb * 2f) / 2f).coerceIn(dbMin, dbMax)
+                    ceilingDb = snapped
+                    onCeilingChanged?.invoke(snapped)
+                    invalidate()
+                    return true
+                }
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                parent?.requestDisallowInterceptTouchEvent(false)
+                dragging = false; invalidate()
+            }
+        }
+        return true
+    }
+}

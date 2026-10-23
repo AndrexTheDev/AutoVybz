@@ -1,0 +1,697 @@
+package com.bearinmind.equalizer314
+
+import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.ImageButton
+import android.widget.TextView
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.bearinmind.equalizer314.autoeq.AutoEqDatabase
+import com.bearinmind.equalizer314.autoeq.AutoEqEntry
+import com.bearinmind.equalizer314.autoeq.AutoEqParser
+import com.bearinmind.equalizer314.autoeq.AutoEqProfile
+import com.bearinmind.equalizer314.dsp.BiquadFilter
+import com.bearinmind.equalizer314.dsp.ParametricEqualizer
+import com.bearinmind.equalizer314.state.EqPreferencesManager
+import com.google.android.material.textfield.TextInputEditText
+
+class AutoEqActivity : AppCompatActivity() {
+
+    private lateinit var database: AutoEqDatabase
+    private lateinit var eqPrefs: EqPreferencesManager
+    private lateinit var recyclerView: RecyclerView
+    private lateinit var searchInput: TextInputEditText
+    private lateinit var resultCount: TextView
+    private lateinit var activeCard: View
+    private lateinit var activeName: TextView
+    private lateinit var activeSource: TextView
+    private lateinit var clearButton: ImageButton
+    private lateinit var adapter: HeadphoneAdapter
+
+    private var searchRunnable: Runnable? = null
+    private val handler = android.os.Handler(android.os.Looper.getMainLooper())
+
+    private val importLauncher = registerForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri == null) return@registerForActivityResult
+        try {
+            val text = contentResolver.openInputStream(uri)?.bufferedReader()?.readText() ?: return@registerForActivityResult
+            val fileName = contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) cursor.getString(0) else null
+            } ?: uri.lastPathSegment?.substringAfterLast("/") ?: "APO Import"
+            // Native .json / chain-carrying .txt hold more than an AutoEQ entry can —
+            // save those as full user presets so MBC & limiter survive (issue #78).
+            if (com.bearinmind.equalizer314.state.PresetFileIo.hasChainData(text)) {
+                val presetJson = com.bearinmind.equalizer314.state.PresetFileIo.parseImportedPreset(text)
+                if (presetJson != null) {
+                    val name = com.bearinmind.equalizer314.state.PresetFileIo.uniquePresetName(
+                        this, presetJson.optString("presetName").ifBlank { fileName.substringBeforeLast('.') })
+                    presetJson.remove("presetName")
+                    com.bearinmind.equalizer314.state.PresetFileIo.saveUserPreset(this, name, presetJson)
+                    Toast.makeText(this, getString(R.string.imported_to_user_presets, name), Toast.LENGTH_LONG).show()
+                    return@registerForActivityResult
+                }
+            }
+            val profile = AutoEqParser.parse(text)
+            if (profile == null || profile.filters.isEmpty()) {
+                Toast.makeText(this, getString(R.string.could_not_parse_apo_preset), Toast.LENGTH_LONG).show()
+                return@registerForActivityResult
+            }
+            eqPrefs.addImportedPreset(fileName, text)
+            // Imported successfully
+            performSearch(searchInput.text?.toString() ?: "")
+        } catch (e: Exception) {
+            Toast.makeText(this, getString(R.string.error_with_message, e.message), Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_autoeq)
+
+        database = AutoEqDatabase(this)
+        eqPrefs = EqPreferencesManager(this)
+
+        searchInput = findViewById(R.id.autoEqSearchInput)
+        resultCount = findViewById(R.id.autoEqResultCount)
+        recyclerView = findViewById(R.id.autoEqRecyclerView)
+        activeCard = findViewById(R.id.autoEqActiveCard)
+        activeName = findViewById(R.id.autoEqActiveName)
+        activeSource = findViewById(R.id.autoEqActiveSource)
+        // Tapping the active card saves the applied AutoEQ profile into custom presets
+        // (bindable to apps/devices, re-selectable). Same dialog as "Save Custom Preset".
+        activeCard.setOnClickListener { promptActivePresetSave() }
+        clearButton = findViewById(R.id.autoEqClearButton)
+
+        adapter = HeadphoneAdapter(
+            onItemClick = { entry -> onHeadphoneSelected(entry) },
+            onDeleteClick = { entry -> showDeleteDialog(entry.name) {
+                eqPrefs.removeImportedPreset(entry.name)
+                performSearch(searchInput.text?.toString() ?: "")
+            } },
+            profileLoader = { entry ->
+                if (entry.source == "Imported") {
+                    val text = eqPrefs.getImportedPresetText(entry.name)
+                    if (text != null) AutoEqParser.parse(text) else null
+                } else {
+                    database.loadProfile(entry)
+                }
+            },
+            isFavorite = { entry -> eqPrefs.isFavoritePreset(entry.name, entry.source) },
+            onFavoriteToggle = { entry -> toggleFavoritePreset(entry) }
+        )
+        recyclerView.layoutManager = LinearLayoutManager(this)
+        recyclerView.adapter = adapter
+
+        findViewById<ImageButton>(R.id.autoEqBackButton).setOnClickListener { finish() }
+
+        clearButton.setOnClickListener { clearAutoEq() }
+
+        findViewById<android.view.View>(R.id.autoEqImportButton).setOnClickListener {
+            importLauncher.launch("*/*")
+        }
+
+        updateActiveCard()
+        performSearch("")
+
+        searchInput.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                searchRunnable?.let { handler.removeCallbacks(it) }
+                searchRunnable = Runnable { performSearch(s?.toString() ?: "") }
+                handler.postDelayed(searchRunnable!!, 250)
+            }
+        })
+    }
+
+    private fun performSearch(query: String) {
+        val q = query.trim().lowercase()
+        val dbResults = database.search(query)
+        val imported = eqPrefs.getImportedPresets()
+        val importedEntries = imported
+            .filter { name -> q.isEmpty() || name.lowercase().contains(q) }
+            .map { AutoEqEntry(it, "Imported", "", "", "") }
+
+        // Pull starred entries to top (newest first); resolve each favorite back to
+        // its full AutoEqEntry from imports or db search by name+source.
+        val favs = eqPrefs.getFavoritePresets()
+        val favKeys = favs.map { (n, s) -> "$n|$s" }.toHashSet()
+        val favEntries = mutableListOf<AutoEqEntry>()
+        for ((favName, favSource) in favs) {
+            if (q.isNotEmpty() && !favName.lowercase().contains(q)) continue
+            val entry: AutoEqEntry? = if (favSource == "Imported") {
+                if (imported.contains(favName)) AutoEqEntry(favName, "Imported", "", "", "") else null
+            } else {
+                val candidates = database.search(favName)
+                candidates.firstOrNull { it.name == favName && it.source == favSource }
+                    ?: candidates.firstOrNull { it.name == favName }
+            }
+            if (entry != null) favEntries.add(entry)
+        }
+
+        // Drop already-favorited entries from the regular section so they
+        // don't appear twice.
+        val regularImported = importedEntries.filter { "${it.name}|${it.source}" !in favKeys }
+        val regularDb = dbResults.filter { "${it.name}|${it.source}" !in favKeys }
+
+        val results = favEntries + regularImported + regularDb
+        adapter.submitList(results)
+        resultCount.text = if (query.isBlank()) {
+            (database.totalCount() + imported.size).let { resources.getQuantityString(R.plurals.n_presets, it, it) }
+        } else {
+            resources.getQuantityString(R.plurals.n_presets, results.size, results.size)
+        }
+    }
+
+    private fun toggleFavoritePreset(entry: AutoEqEntry) {
+        if (eqPrefs.isFavoritePreset(entry.name, entry.source)) {
+            eqPrefs.removeFavoritePreset(entry.name, entry.source)
+        } else {
+            eqPrefs.addFavoritePreset(entry.name, entry.source)
+        }
+        // Re-sort the list so the toggled entry jumps to the top (or back
+        // to its natural position when un-favorited).
+        performSearch(searchInput.text?.toString() ?: "")
+    }
+
+    private fun onHeadphoneSelected(entry: AutoEqEntry) {
+        val profile = if (entry.source == "Imported") {
+            val text = eqPrefs.getImportedPresetText(entry.name)
+            if (text != null) AutoEqParser.parse(text) else null
+        } else {
+            database.loadProfile(entry)
+        }
+
+        if (profile == null) {
+            Toast.makeText(this, getString(R.string.failed_to_load_profile), Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        applyProfile(entry, profile)
+        lastAppliedProfile = profile
+        Toast.makeText(this, getString(R.string.applied_named, entry.name), Toast.LENGTH_SHORT).show()
+        updateActiveCard()
+    }
+
+    /** Open save-to-presets dialog for the active AutoEQ profile. Falls back to
+     *  reloading from db/imports when [lastAppliedProfile] is null (cold start);
+     *  no-op with a toast if nothing applied. */
+    private fun promptActivePresetSave() {
+        val name = eqPrefs.getAutoEqName()
+        if (name.isNullOrBlank()) {
+            Toast.makeText(this, getString(R.string.no_preset_applied_yet), Toast.LENGTH_SHORT).show()
+            return
+        }
+        var profile = lastAppliedProfile
+        if (profile == null) {
+            val source = eqPrefs.getAutoEqSource() ?: ""
+            profile = if (source == "Imported") {
+                val text = eqPrefs.getImportedPresetText(name)
+                if (text != null) AutoEqParser.parse(text) else null
+            } else {
+                val entries = database.search(name)
+                val entry = entries.firstOrNull { it.name == name && it.source == source }
+                    ?: entries.firstOrNull { it.name == name }
+                if (entry != null) database.loadProfile(entry) else null
+            }
+            lastAppliedProfile = profile
+        }
+        if (profile == null) {
+            Toast.makeText(this, getString(R.string.could_not_load_active_preset), Toast.LENGTH_SHORT).show()
+            return
+        }
+        promptSaveToPresets(name, profile)
+    }
+
+    /** Save-to-presets dialog matching MainActivity's "Save Custom Preset". Writes the
+     *  profile into shared `custom_presets` prefs with the same JSON shape
+     *  (preamp + bands + channelSideEqEnabled=false) so it appears in the main preset
+     *  list, Audio Output dropdowns, and Channel Input dropdowns. */
+    private fun promptSaveToPresets(defaultBaseName: String, profile: AutoEqProfile) {
+        val density = resources.displayMetrics.density
+        val customPrefs = getSharedPreferences("custom_presets", MODE_PRIVATE)
+        val existingNames = customPrefs.getStringSet("preset_names", emptySet()) ?: emptySet()
+
+        val dialogView = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding((24 * density).toInt(), (20 * density).toInt(), (24 * density).toInt(), (16 * density).toInt())
+        }
+        val title = android.widget.TextView(this).apply {
+            text = getString(R.string.save_custom_preset)
+            setTextColor(0xFFE2E2E2.toInt())
+            textSize = 20f
+            setPadding(0, 0, 0, (12 * density).toInt())
+        }
+        val inputBox = android.widget.FrameLayout(this).apply {
+            layoutParams = android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                bottomMargin = (16 * density).toInt()
+            }
+            background = android.graphics.drawable.GradientDrawable().apply {
+                setColor(0x00000000)
+                setStroke((1 * density).toInt(), 0xFF555555.toInt())
+                cornerRadius = 12 * density
+            }
+        }
+        val input = android.widget.EditText(this).apply {
+            setText(defaultBaseName)
+            hint = defaultBaseName
+            setTextColor(0xFFFFFFFF.toInt())
+            setHintTextColor(0xFF888888.toInt())
+            inputType = android.text.InputType.TYPE_CLASS_TEXT
+            background = null
+            val pad = (14 * density).toInt()
+            setPadding(pad, pad, pad, pad)
+            isSingleLine = true
+            setSelection(text.length)
+        }
+        inputBox.addView(input)
+        val divider = android.view.View(this).apply {
+            layoutParams = android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.MATCH_PARENT, (1 * density).toInt()).apply {
+                bottomMargin = (12 * density).toInt()
+            }
+            setBackgroundColor(0xFF444444.toInt())
+        }
+        val btnRow = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.HORIZONTAL
+            layoutParams = android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT)
+        }
+        val cancelBtn = com.google.android.material.button.MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
+            text = getString(R.string.cancel)
+            layoutParams = android.widget.LinearLayout.LayoutParams(0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                marginEnd = (3 * density).toInt()
+            }
+            cornerRadius = (12 * density).toInt()
+            setTextColor(0xFFEF9A9A.toInt())
+            strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt())
+            strokeWidth = (1 * density).toInt()
+            setBackgroundColor(0x00000000)
+            insetTop = 0; insetBottom = 0
+        }
+        val saveDialogBtn = com.google.android.material.button.MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
+            text = getString(R.string.ok)
+            layoutParams = android.widget.LinearLayout.LayoutParams(0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                marginStart = (3 * density).toInt()
+            }
+            cornerRadius = (12 * density).toInt()
+            setTextColor(0xFFDDDDDD.toInt())
+            setBackgroundColor(0x00000000)
+            strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt())
+            strokeWidth = (1 * density).toInt()
+            insetTop = 0; insetBottom = 0
+        }
+        btnRow.addView(cancelBtn)
+        btnRow.addView(saveDialogBtn)
+        dialogView.addView(title)
+        dialogView.addView(inputBox)
+        dialogView.addView(divider)
+        dialogView.addView(btnRow)
+
+        val dialog = android.app.AlertDialog.Builder(this, R.style.Theme_Equalizer314_Dialog)
+            .setView(dialogView)
+            .create()
+        cancelBtn.setOnClickListener { dialog.dismiss() }
+        saveDialogBtn.setOnClickListener {
+            val name = input.text.toString().trim().ifEmpty { defaultBaseName }
+            if (name.isNotEmpty()) {
+                val bands = org.json.JSONArray()
+                for (filter in profile.filters) {
+                    val ft = com.bearinmind.equalizer314.autoeq.apoTokenToFilterType(filter.filterType)
+                    bands.put(org.json.JSONObject().apply {
+                        put("frequency", filter.frequency)
+                        put("gain", filter.gain)
+                        put("q", filter.q.toDouble())
+                        put("filterType", ft.name)
+                        put("enabled", true)
+                    })
+                }
+                val json = org.json.JSONObject().apply {
+                    put("preamp", profile.preampDb)
+                    // AutoEQ profiles are single-channel — no CSE split.
+                    put("channelSideEqEnabled", false)
+                    put("bands", bands)
+                }
+                customPrefs.edit()
+                    .putString("preset_$name", json.toString())
+                    .putStringSet("preset_names", existingNames.toMutableSet() + name)
+                    .apply()
+                Toast.makeText(this, getString(R.string.saved_to_your_presets, name), Toast.LENGTH_SHORT).show()
+            }
+            dialog.dismiss()
+        }
+        dialog.show()
+    }
+
+    private fun applyProfile(entry: AutoEqEntry, profile: AutoEqProfile) {
+        val eq = ParametricEqualizer()
+        eq.clearBands()
+
+        for (filter in profile.filters) {
+            val filterType = com.bearinmind.equalizer314.autoeq.apoTokenToFilterType(filter.filterType)
+            eq.addBand(filter.frequency, filter.gain, filterType, filter.q.toDouble())
+        }
+        eq.isEnabled = true
+
+        // Sequential band slots: 0, 1, 2, 3, ...
+        val slots = (0 until eq.getBandCount()).toList()
+        eqPrefs.saveState(eq, slots)
+        eqPrefs.savePreampGain(profile.preampDb)
+        eqPrefs.saveAutoEqName(entry.name)
+        eqPrefs.saveAutoEqSource(entry.source)
+        eqPrefs.savePresetName("AutoEQ")
+        // AutoEQ profiles are single-channel — disable Channel Side EQ so MainActivity
+        // rebinds the graph to bothEq instead of a stale leftEq/rightEq view.
+        eqPrefs.saveChannelSideEqEnabled(false)
+        eqPrefs.clearLeftRightBands()
+
+        setResult(RESULT_OK)
+    }
+
+    private fun clearAutoEq() {
+        eqPrefs.saveAutoEqName("")
+        eqPrefs.saveAutoEqSource("")
+        updateActiveCard()
+        // Cleared
+    }
+
+    private var lastAppliedProfile: AutoEqProfile? = null
+
+    private fun updateActiveCard() {
+        val name = eqPrefs.getAutoEqName()
+        if (name.isNullOrBlank()) {
+            if (activeCard.visibility == View.VISIBLE) {
+                activeCard.animate().alpha(0f).setDuration(200).withEndAction {
+                    activeCard.visibility = View.GONE
+                }.start()
+            }
+        } else {
+            if (activeCard.visibility == View.VISIBLE) {
+                activeCard.animate().alpha(0f).setDuration(120).withEndAction {
+                    activeName.text = name
+                    activeSource.text = getString(R.string.by_source, eqPrefs.getAutoEqSource())
+                    updateActiveGraph()
+                    activeCard.animate().alpha(1f).setDuration(120).start()
+                }.start()
+            } else {
+                activeName.text = name
+                activeSource.text = getString(R.string.by_source, eqPrefs.getAutoEqSource())
+                updateActiveGraph()
+                activeCard.alpha = 0f
+                activeCard.visibility = View.VISIBLE
+                activeCard.animate().alpha(1f).setDuration(200).start()
+            }
+        }
+    }
+
+    private fun updateActiveGraph() {
+        val container = findViewById<android.widget.FrameLayout>(R.id.autoEqActiveGraph)
+        container.removeAllViews()
+        var profile = lastAppliedProfile
+        if (profile == null) {
+            // Reload from database/imports on cold start
+            val name = eqPrefs.getAutoEqName() ?: return
+            val source = eqPrefs.getAutoEqSource() ?: ""
+            profile = if (source == "Imported") {
+                val text = eqPrefs.getImportedPresetText(name)
+                if (text != null) AutoEqParser.parse(text) else null
+            } else {
+                val entries = database.search(name)
+                val entry = entries.firstOrNull { it.name == name && it.source == source }
+                    ?: entries.firstOrNull { it.name == name }
+                if (entry != null) database.loadProfile(entry) else null
+            }
+            lastAppliedProfile = profile
+        }
+        if (profile != null) {
+            val view = MiniEqView(this)
+            view.setProfile(profile)
+            container.addView(view, android.widget.FrameLayout.LayoutParams(
+                android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
+                android.widget.FrameLayout.LayoutParams.MATCH_PARENT))
+        }
+    }
+
+    private fun showDeleteDialog(name: String, onConfirm: () -> Unit) {
+        val density = resources.displayMetrics.density
+        val dialogView = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding((24 * density).toInt(), (20 * density).toInt(), (24 * density).toInt(), (16 * density).toInt())
+        }
+        val title = android.widget.TextView(this).apply {
+            text = getString(R.string.delete)
+            setTextColor(0xFFE2E2E2.toInt()); textSize = 20f
+            setPadding(0, 0, 0, (12 * density).toInt())
+        }
+        val message = android.widget.TextView(this).apply {
+            text = getString(R.string.delete_quoted_confirm, name)
+            setTextColor(0xFFAAAAAA.toInt()); textSize = 14f
+            setPadding(0, 0, 0, (16 * density).toInt())
+        }
+        val divider = android.view.View(this).apply {
+            layoutParams = android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.MATCH_PARENT, (1 * density).toInt()).apply {
+                bottomMargin = (12 * density).toInt()
+            }
+            setBackgroundColor(0xFF444444.toInt())
+        }
+        val btnRow = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.HORIZONTAL
+            layoutParams = android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.MATCH_PARENT, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT)
+        }
+        val deleteBtn = com.google.android.material.button.MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
+            text = getString(R.string.delete); layoutParams = android.widget.LinearLayout.LayoutParams(0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { marginEnd = (3 * density).toInt() }
+            cornerRadius = (12 * density).toInt(); setTextColor(0xFFEF9A9A.toInt())
+            strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt()); strokeWidth = (1 * density).toInt()
+            setBackgroundColor(0x00000000); insetTop = 0; insetBottom = 0
+        }
+        val cancelBtn = com.google.android.material.button.MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
+            text = getString(R.string.cancel); layoutParams = android.widget.LinearLayout.LayoutParams(0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { marginStart = (3 * density).toInt() }
+            cornerRadius = (12 * density).toInt(); setTextColor(0xFFDDDDDD.toInt())
+            setBackgroundColor(0x00000000); strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt()); strokeWidth = (1 * density).toInt()
+            insetTop = 0; insetBottom = 0
+        }
+        btnRow.addView(deleteBtn); btnRow.addView(cancelBtn)
+        dialogView.addView(title); dialogView.addView(message); dialogView.addView(divider); dialogView.addView(btnRow)
+        val dialog = android.app.AlertDialog.Builder(this, R.style.Theme_Equalizer314_Dialog).setView(dialogView).create()
+        cancelBtn.setOnClickListener { dialog.dismiss() }
+        deleteBtn.setOnClickListener { onConfirm(); dialog.dismiss() }
+        dialog.show()
+    }
+
+    override fun finish() {
+        super.finish()
+        overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
+    }
+
+    // ---- RecyclerView Adapter ----
+
+    private class HeadphoneAdapter(
+        private val onItemClick: (AutoEqEntry) -> Unit,
+        private val onDeleteClick: (AutoEqEntry) -> Unit,
+        private val profileLoader: (AutoEqEntry) -> AutoEqProfile?,
+        private val isFavorite: (AutoEqEntry) -> Boolean,
+        private val onFavoriteToggle: (AutoEqEntry) -> Unit
+    ) : RecyclerView.Adapter<HeadphoneAdapter.ViewHolder>() {
+
+        private var items = listOf<AutoEqEntry>()
+        private val profileCache = HashMap<String, AutoEqProfile?>()
+
+        fun submitList(list: List<AutoEqEntry>) {
+            items = list
+            notifyDataSetChanged()
+        }
+
+        override fun getItemCount() = items.size
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+            val ctx = parent.context
+            val density = ctx.resources.displayMetrics.density
+            val hPad = (16 * density).toInt()
+            val vPad = (10 * density).toInt()
+
+            val rippleAttr = android.util.TypedValue()
+            ctx.theme.resolveAttribute(android.R.attr.selectableItemBackground, rippleAttr, true)
+            val row = android.widget.LinearLayout(ctx).apply {
+                orientation = android.widget.LinearLayout.HORIZONTAL
+                gravity = android.view.Gravity.CENTER_VERTICAL
+                layoutParams = RecyclerView.LayoutParams(
+                    RecyclerView.LayoutParams.MATCH_PARENT,
+                    RecyclerView.LayoutParams.WRAP_CONTENT)
+                setPadding(hPad, vPad, hPad, vPad)
+                setBackgroundResource(rippleAttr.resourceId)
+                isClickable = true
+                isFocusable = true
+            }
+            // Left: text column
+            val textCol = android.widget.LinearLayout(ctx).apply {
+                orientation = android.widget.LinearLayout.VERTICAL
+                layoutParams = android.widget.LinearLayout.LayoutParams(0,
+                    android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            }
+            val text1 = TextView(ctx).apply { setTextColor(0xFFE2E2E2.toInt()); textSize = 14f; isSingleLine = true }
+            val text2 = TextView(ctx).apply { setTextColor(0xFF888888.toInt()); textSize = 12f; isSingleLine = true }
+            textCol.addView(text1)
+            textCol.addView(text2)
+            row.addView(textCol)
+
+            // Right: mini EQ thumbnail + filter count
+            val thumbW = (48 * density).toInt()
+            val thumbH = (24 * density).toInt()
+            val rightCol = android.widget.LinearLayout(ctx).apply {
+                orientation = android.widget.LinearLayout.VERTICAL
+                gravity = android.view.Gravity.CENTER_HORIZONTAL
+                layoutParams = android.widget.LinearLayout.LayoutParams(
+                    android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                    android.widget.LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                    marginStart = (8 * density).toInt()
+                }
+            }
+            val thumbView = MiniEqView(ctx).apply {
+                layoutParams = android.widget.LinearLayout.LayoutParams(thumbW, thumbH)
+            }
+            val filterText = TextView(ctx).apply {
+                setTextColor(0xFF888888.toInt()); textSize = 10f
+                gravity = android.view.Gravity.CENTER
+            }
+            val deleteBtn = android.widget.TextView(ctx).apply {
+                text = "×"
+                setTextColor(0xFFEF9A9A.toInt())
+                textSize = 18f
+                gravity = android.view.Gravity.CENTER
+                val btnSize = (30 * density).toInt()
+                layoutParams = android.widget.LinearLayout.LayoutParams(btnSize, btnSize).apply {
+                    marginStart = (4 * density).toInt()
+                    marginEnd = (4 * density).toInt()
+                }
+                background = android.graphics.drawable.GradientDrawable().apply {
+                    setColor(0x00000000)
+                    setStroke((1 * density).toInt(), 0xFF444444.toInt())
+                    cornerRadius = 10 * density
+                }
+                isClickable = true
+                isFocusable = true
+                contentDescription = context.getString(R.string.remove)
+            }
+            row.addView(deleteBtn)
+
+            // Star button — same 30dp box style as the × delete button.
+            val rippleBorderless = android.util.TypedValue()
+            ctx.theme.resolveAttribute(android.R.attr.selectableItemBackgroundBorderless, rippleBorderless, true)
+            val starBtn = android.widget.ImageButton(ctx).apply {
+                val btnSize = (30 * density).toInt()
+                layoutParams = android.widget.LinearLayout.LayoutParams(btnSize, btnSize).apply {
+                    marginStart = (4 * density).toInt()
+                    marginEnd = (4 * density).toInt()
+                }
+                setBackgroundResource(rippleBorderless.resourceId)
+                scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
+                val pad = (6 * density).toInt()
+                setPadding(pad, pad, pad, pad)
+                contentDescription = context.getString(R.string.favorite)
+                imageTintList = null
+                isClickable = true
+                isFocusable = true
+            }
+            row.addView(starBtn)
+
+            rightCol.addView(thumbView)
+            rightCol.addView(filterText)
+            row.addView(rightCol)
+
+            return ViewHolder(row, text1, text2, thumbView, filterText, deleteBtn, starBtn)
+        }
+
+        override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+            val entry = items[position]
+            holder.text1.text = entry.name
+            val parts = mutableListOf<String>()
+            parts.add(entry.source)
+            if (entry.rig.isNotBlank()) parts.add(entry.rig)
+            holder.text2.text = parts.joinToString(" \u00B7 ")
+            holder.itemView.setOnClickListener { onItemClick(entry) }
+
+            val isImported = entry.source == "Imported"
+            holder.deleteBtn.visibility = if (isImported) View.VISIBLE else View.GONE
+            holder.deleteBtn.setOnClickListener { onDeleteClick(entry) }
+
+            holder.starBtn.setImageResource(
+                if (isFavorite(entry)) R.drawable.ic_star_filled else R.drawable.ic_star_outline
+            )
+            holder.starBtn.setOnClickListener { onFavoriteToggle(entry) }
+
+            // Load profile for thumbnail (cached)
+            val cacheKey = entry.path.ifEmpty { entry.name }
+            val profile = profileCache.getOrPut(cacheKey) { profileLoader(entry) }
+            holder.filterText.text = holder.itemView.context.getString(R.string.n_filters_text, profile?.filters?.size?.toString() ?: "?")
+            holder.thumbView.setProfile(profile)
+        }
+
+        class ViewHolder(
+            view: View,
+            val text1: TextView,
+            val text2: TextView,
+            val thumbView: MiniEqView,
+            val filterText: TextView,
+            val deleteBtn: android.widget.TextView,
+            val starBtn: android.widget.ImageButton
+        ) : RecyclerView.ViewHolder(view)
+    }
+
+    class MiniEqView(context: android.content.Context) : View(context) {
+        private var profile: AutoEqProfile? = null
+        private val curvePaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFFAAAAAA.toInt()
+            strokeWidth = 0.5f * context.resources.displayMetrics.density
+            style = android.graphics.Paint.Style.STROKE
+        }
+        private val gridPaint = android.graphics.Paint().apply {
+            color = 0xFF6A6A6A.toInt(); strokeWidth = 1f
+        }
+
+        fun setProfile(p: AutoEqProfile?) {
+            profile = p
+            invalidate()
+        }
+
+        override fun onDraw(canvas: android.graphics.Canvas) {
+            super.onDraw(canvas)
+            val w = width.toFloat(); val h = height.toFloat()
+            if (w <= 0 || h <= 0) return
+
+            canvas.drawLine(0f, h / 2f, w, h / 2f, gridPaint)
+            canvas.drawLine(0f, 0f, 0f, h, gridPaint)
+
+            val prof = profile ?: return
+            val eq = ParametricEqualizer()
+            eq.clearBands()
+            for (f in prof.filters) {
+                val ft = com.bearinmind.equalizer314.autoeq.apoTokenToFilterType(f.filterType)
+                eq.addBand(f.frequency, f.gain, ft, f.q.toDouble())
+            }
+            val path = android.graphics.Path()
+            val maxDb = 15f; val steps = 50
+            for (s in 0..steps) {
+                val logF = 1.301f + (s.toFloat() / steps) * (4.342f - 1.301f)
+                val freq = Math.pow(10.0, logF.toDouble()).toFloat()
+                val db = eq.getFrequencyResponse(freq)
+                val x = w * s / steps
+                val y = (h / 2f - (db / maxDb) * (h / 2f)).coerceIn(0f, h)
+                if (s == 0) path.moveTo(x, y) else path.lineTo(x, y)
+            }
+            canvas.drawPath(path, curvePaint)
+        }
+    }
+}

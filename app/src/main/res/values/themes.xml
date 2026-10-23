@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Light theme palette — an exact mirror of the dark palette in
+         values-night/themes.xml: every grey sits at the same luminance
+         distance from its background as its dark counterpart, just
+         inverted (dark surface 0x0E + outline 0x44 = +54 steps → light
+         surface 0xF4 − 54 = 0xBE, etc.) so the two themes have the same
+         contrast relationships. The active palette is picked by
+         AppCompatDelegate night mode (see EqApp + the Settings toggle);
+         dark remains the default. -->
+    <style name="Theme.Equalizer314" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Primary (grey) -->
+        <item name="colorPrimary">#FF585858</item>
+        <item name="colorOnPrimary">#FFFFFFFF</item>
+        <item name="colorPrimaryContainer">#FFC8C8C8</item>
+        <item name="colorOnPrimaryContainer">#FF252525</item>
+
+        <!-- Secondary -->
+        <item name="colorSecondary">#FF696969</item>
+        <item name="colorOnSecondary">#FFFFFFFF</item>
+        <item name="colorSecondaryContainer">#FFCFCFCF</item>
+        <item name="colorOnSecondaryContainer">#FF252525</item>
+
+        <!-- Tertiary -->
+        <item name="colorTertiary">#FF474747</item>
+        <item name="colorOnTertiary">#FFFFFFFF</item>
+        <item name="colorTertiaryContainer">#FFC8C8C8</item>
+        <item name="colorOnTertiaryContainer">#FF252525</item>
+
+        <!-- Surface / background -->
+        <item name="colorSurface">#FFF4F4F4</item>
+        <item name="colorOnSurface">#FF202020</item>
+        <item name="colorSurfaceVariant">#FFE4E4E4</item>
+        <item name="colorOnSurfaceVariant">#FF474747</item>
+        <item name="colorSurfaceContainerLow">#FFECECEC</item>
+        <item name="colorSurfaceContainer">#FFE6E6E6</item>
+        <item name="colorSurfaceContainerHigh">#FFDDDDDD</item>
+
+        <!-- Outline -->
+        <item name="colorOutline">#FFBEBEBE</item>
+        <item name="colorOutlineVariant">#FFCFCFCF</item>
+
+        <!-- System bars -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+
+    <!-- Black (AMOLED) overlay: EqApp layers it on the dark theme when the Experimental toggle is on. -->
+    <style name="ThemeOverlay.Equalizer314.Amoled" parent="">
+        <item name="android:colorBackground">#FF000000</item>
+        <item name="android:windowBackground">#FF000000</item>
+        <item name="colorSurface">#FF000000</item>
+        <item name="colorSurfaceDim">#FF000000</item>
+        <item name="colorSurfaceBright">#FF1A1A1A</item>
+        <item name="colorSurfaceVariant">#FF0F0F0F</item>
+        <item name="colorSurfaceContainerLowest">#FF000000</item>
+        <item name="colorSurfaceContainerLow">#FF060606</item>
+        <item name="colorSurfaceContainer">#FF0C0C0C</item>
+        <item name="colorSurfaceContainerHigh">#FF141414</item>
+        <item name="colorSurfaceContainerHighest">#FF1A1A1A</item>
+    </style>
+
+    <!-- Rounded dialog -->
+    <style name="Theme.Equalizer314.Dialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="android:windowBackground">@drawable/bg_dialog_rounded</item>
+        <item name="android:backgroundDimAmount">0.6</item>
+        <item name="android:textColorPrimary">#FFE2E2E2</item>
+        <item name="android:textColorSecondary">#FFBBBBBB</item>
+        <item name="buttonBarPositiveButtonStyle">@style/Widget.Equalizer314.DialogButtonNegative</item>
+        <item name="buttonBarNegativeButtonStyle">@style/Widget.Equalizer314.DialogButtonReset</item>
+    </style>
+
+    <style name="Widget.Equalizer314.DialogButtonReset" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="android:textColor">#FFEF9A9A</item>
+        <item name="strokeColor">#FF444444</item>
+        <item name="strokeWidth">1dp</item>
+        <item name="cornerRadius">8dp</item>
+    </style>
+
+    <style name="Widget.Equalizer314.DialogButtonNegative" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="android:textColor">#FFDDDDDD</item>
+        <item name="strokeColor">#FF444444</item>
+        <item name="strokeWidth">1dp</item>
+        <item name="cornerRadius">8dp</item>
+    </style>
+
+    <!-- Suffix text matching input text -->
+    <style name="TextAppearance.Equalizer314.Suffix" parent="TextAppearance.Material3.BodySmall">
+        <item name="android:textSize">12sp</item>
+    </style>
+
+    <!-- Rounded FAB -->
+    <style name="ShapeAppearanceOverlay.Equalizer314.FAB" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">12dp</item>
+    </style>
+
+    <!-- Pill-shaped FAB (wider than tall) -->
+    <style name="ShapeAppearanceOverlay.Equalizer314.FAB.Pill" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">50%</item>
+    </style>
+
+    <!-- Spectrum button: all corners rounded, top-right extra to follow card curve -->
+    <style name="ShapeAppearance.SpectrumButton" parent="">
+        <item name="cornerSizeTopLeft">8dp</item>
+        <item name="cornerSizeTopRight">16dp</item>
+        <item name="cornerSizeBottomLeft">8dp</item>
+        <item name="cornerSizeBottomRight">8dp</item>
+    </style>
+
+    <!-- MBC EQ button: top-left rounded to follow card curve -->
+    <style name="ShapeAppearance.MbcEqButton" parent="">
+        <item name="cornerSizeTopLeft">16dp</item>
+        <item name="cornerSizeTopRight">8dp</item>
+        <item name="cornerSizeBottomLeft">8dp</item>
+        <item name="cornerSizeBottomRight">8dp</item>
+    </style>
+
+    <!-- MBC GR button: uniform rounding -->
+    <style name="ShapeAppearance.MbcGrButton" parent="">
+        <item name="cornerSize">8dp</item>
+    </style>
+
+    <!-- Reset button: no top-right rounding (sits left of spectrum button) -->
+    <style name="ShapeAppearance.ResetButton" parent="">
+        <item name="cornerSizeTopLeft">8dp</item>
+        <item name="cornerSizeTopRight">8dp</item>
+        <item name="cornerSizeBottomLeft">8dp</item>
+        <item name="cornerSizeBottomRight">8dp</item>
+    </style>
+</resources>
