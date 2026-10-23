@@ -40,3 +40,7 @@ target_link_libraries(eq314hrir m)
 target_link_options(eq314hrir PRIVATE -Wl,--build-id=none)
 # 16 KB page alignment: Android 15+ phones with 16 KB pages can't load a 4 KB-aligned library (NDK r27 defaults to 4 KB).
 target_link_options(eq314hrir PRIVATE -Wl,-z,max-page-size=16384)
+
+# --- AutoVybz: measurement engine (C++17, Oboe via prefab) ---
+enable_language(CXX)
+add_subdirectory(autovybz)

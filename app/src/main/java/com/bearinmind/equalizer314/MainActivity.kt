@@ -4872,6 +4872,8 @@ class  MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        // AutoVybz: a calibration was applied from the wizard while this screen was away -> reload graph + DP.
+        if (com.andrexthedev.autovybz.preset.AutoVybzPresetStore.consumePendingApply(this)) handlePresetReturn()
         updateDevicePresetStatus()
         // "Add more EQ bands" cap lowered while away: drop bands beyond it, then refresh toggles + graph (issue #31).
         if (stateManager.enforceBandCap()) {

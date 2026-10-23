@@ -20,6 +20,13 @@ android {
         versionName = "0.1.0-alpha"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        externalNativeBuild {
+            cmake {
+                // Oboe's prefab package is built against the shared C++ runtime.
+                arguments += "-DANDROID_STL=c++_shared"
+            }
+        }
     }
 
     signingConfigs {
