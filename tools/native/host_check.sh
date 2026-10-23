@@ -13,7 +13,18 @@ printf '#pragma once\n#define ANDROID_LOG_INFO 4\n#define ANDROID_LOG_WARN 5\nin
 g++ -std=c++17 -O2 -Wall -Wextra -I"$SRC" "$ROOT/tools/native/fft_host_test.cpp" "$SRC/avz_fft.cpp" -o "$WORK/fft_test"
 "$WORK/fft_test"
 git clone -q --depth 1 --branch 1.9.0 https://github.com/google/oboe.git "$WORK/oboe" 2>/dev/null
-JNI_INC=${JNI_INC:-$(dirname "$(find "${JAVA_HOME:-/usr/lib/jvm}" -name jni.h | head -1)")}
+# jni.h: explicit JNI_INC, else the JDK (JAVA_HOME may be a symlink → find -L), else the NDK sysroot
+find_jni() {
+  local d
+  for d in "${JAVA_HOME:-}" /usr/lib/jvm "${ANDROID_NDK_HOME:-}" "${ANDROID_HOME:-/nonexistent}/ndk"; do
+    [ -n "$d" ] && [ -d "$d" ] || continue
+    local h; h=$(find -L "$d" -name jni.h -print -quit 2>/dev/null || true)
+    if [ -n "$h" ]; then dirname "$h"; return; fi
+  done
+}
+JNI_INC=${JNI_INC:-$(find_jni)}
+[ -n "$JNI_INC" ] || { echo "jni.h not found (set JNI_INC)"; exit 1; }
+echo "using jni.h from $JNI_INC"
 for f in measurement_engine avz_jni; do
   g++ -std=c++17 -fsyntax-only -Wall -Wextra -I"$WORK" -I"$WORK/oboe/include" -I"$SRC" -I"$JNI_INC" -I"$JNI_INC/linux" "$SRC/$f.cpp"
   echo "$f.cpp: syntax OK"
