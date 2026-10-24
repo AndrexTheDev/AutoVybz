@@ -1,0 +1,210 @@
+{{include:head}}
+<body class="home">
+{{include:header}}
+<main id="main">
+
+<!-- ============ HERO ============ -->
+<section class="hero" id="top">
+  <div class="hero-glow" aria-hidden="true"></div>
+  <div class="wrap hero-grid">
+    <div class="hero-copy">
+      <span class="badge reveal">{{hero.badge}}</span>
+      <h1 class="reveal">
+        <span class="h1a">{{hero.h1_a}}</span>
+        <span class="h1b">{{hero.h1_b}} <span class="count" data-countdown>10</span> {{hero.h1_c}}</span>
+      </h1>
+      <p class="lead reveal">{{hero.sub}}</p>
+      <div class="cta-row reveal">
+        <a class="btn btn-gold btn-xl" href="#demo">{{hero.cta_demo}}</a>
+        <a class="btn btn-green btn-xl" href="#get">{{hero.cta_get}}</a>
+      </div>
+      <div class="trust reveal">
+        <a class="star-pill" href="{{repo}}" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.53-1.33-1.28-1.69-1.28-1.69-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.68 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.41-2.69 5.38-5.26 5.67.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5Z"/></svg>
+          <span>{{hero.cta_star}}</span><b>★ {{stars}}</b>
+        </a>
+        <span class="trust-text">{{hero.trust}}</span>
+      </div>
+    </div>
+
+    <div class="hero-phone reveal" aria-hidden="true">
+      <div class="phone">
+        <div class="phone-notch"></div>
+        <div class="phone-screen">
+          <div class="ph-head"><img src="{{base}}assets/img/logo-128.png" alt="" width="28" height="28"><span>AutoVybz</span></div>
+          <div class="ph-ring">
+            <span class="ring r1"></span><span class="ring r2"></span><span class="ring r3"></span>
+            <div class="ph-btn"><span class="ph-state" data-phone-state data-l1="{{a:phone.calibrate}}" data-l2="{{a:phone.measuring}}" data-l3="{{a:phone.done}}">{{phone.calibrate}}</span><small data-phone-timer>10 s</small></div>
+          </div>
+          <svg class="ph-curve" viewBox="0 0 300 120" preserveAspectRatio="none">
+            <line x1="0" y1="60" x2="300" y2="60" class="ph-grid"/>
+            <path class="ph-before" d="M0,70 C20,68 30,30 45,28 C60,26 62,58 80,62 C100,66 110,50 130,52 C150,54 160,72 180,70 C200,68 205,38 222,36 C240,34 250,66 265,78 C280,90 290,98 300,104"/>
+            <path class="ph-after" d="M0,52 C30,50 45,54 70,57 C100,60 140,60 180,60 C220,60 250,61 280,62 C290,63 296,66 300,70"/>
+          </svg>
+          <div class="ph-legend"><span class="lg-before">● {{phone.before}}</span><span class="lg-after">● {{phone.after}}</span><span>{{phone.target}}</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ticker" aria-hidden="true"><div class="ticker-track">{{list:ticker}}{{list:ticker}}</div></div>
+</section>
+
+<!-- ============ PROBLEM ============ -->
+<section class="section" id="problem">
+  <div class="wrap narrow center">
+    <span class="kicker reveal">{{problem.kicker}}</span>
+    <h2 class="reveal">{{problem.title}}</h2>
+    <p class="lead reveal">{{problem.text}}</p>
+  </div>
+  <div class="wrap facts">{{list:facts}}</div>
+</section>
+
+<!-- ============ DEMO ============ -->
+<section class="section section-alt" id="demo">
+  <div class="wrap narrow center">
+    <span class="kicker reveal">{{demo.kicker}}</span>
+    <h2 class="reveal">{{demo.title}}</h2>
+    <p class="lead reveal">{{demo.sub}}</p>
+  </div>
+  <div class="wrap">
+    <div class="demo reveal">
+      <canvas id="demo-canvas" width="1100" height="380" role="img" aria-label="{{a:demo.legend_raw}} / {{a:demo.legend_fix}}"></canvas>
+      <div class="demo-legend">
+        <span class="lg raw">{{demo.legend_raw}}</span>
+        <span class="lg fix">{{demo.legend_fix}}</span>
+        <span class="lg tgt">{{demo.legend_target}}</span>
+      </div>
+      <div class="demo-controls">
+        <button class="btn btn-gold btn-play" id="demo-play" data-play="{{a:demo.play}}" data-pause="{{a:demo.pause}}"><span class="ico">▶</span> <span class="lbl">{{demo.play}}</span></button>
+        <div class="ab-switch" role="group" aria-label="A/B">
+          <button class="ab" id="ab-off" aria-pressed="true">{{demo.off}}</button>
+          <button class="ab" id="ab-on" aria-pressed="false">{{demo.on}}</button>
+        </div>
+        <label class="vol">{{demo.volume}} <input type="range" id="demo-vol" min="0" max="100" value="45"></label>
+      </div>
+      <p class="hint">{{demo.hint}}</p>
+      <p class="fine">{{demo.disclaimer}}</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ HOW ============ -->
+<section class="section" id="how">
+  <div class="wrap narrow center">
+    <span class="kicker reveal">{{how.kicker}}</span>
+    <h2 class="reveal">{{how.title}}</h2>
+  </div>
+  <div class="wrap steps">{{list:steps}}</div>
+  <div class="wrap narrow">
+    <h3 class="center reveal">{{how.tl_title}}</h3>
+    <div class="timeline reveal">{{list:timeline}}<span class="tl-cursor"></span></div>
+    <div class="tl-scale"><span>0 s</span><span>2.5</span><span>5</span><span>7.5</span><span>10 s</span></div>
+    <p class="fine center">{{how.tl_caption}}</p>
+  </div>
+</section>
+
+<!-- ============ ROAST ============ -->
+<section class="section section-alt" id="roast">
+  <div class="wrap narrow center">
+    <span class="kicker reveal">{{roast.kicker}}</span>
+    <h2 class="reveal">{{roast.title}}</h2>
+    <p class="lead reveal">{{roast.sub}}</p>
+  </div>
+  <div class="wrap narrow">
+    <div class="roast reveal">
+      <p class="q">{{roast.q_type}}</p>
+      <div class="chips" data-group="type">{{list:roast_types}}</div>
+      <p class="q">{{roast.q_place}}</p>
+      <div class="chips" data-group="place">{{list:roast_places}}</div>
+      <button class="btn btn-gold btn-xl full" id="roast-go">{{roast.go}}</button>
+      <div class="roast-result" id="roast-result" hidden>
+        <div class="gauge"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" class="g-bg"/><circle cx="60" cy="60" r="52" class="g-fg" id="gauge-fg"/></svg><div class="g-num"><b id="roast-score">0</b><small>{{roast.score}}</small></div></div>
+        <div class="roast-text"><h3 id="roast-title"></h3><p id="roast-desc"></p></div>
+        <div class="cta-row">
+          <button class="btn btn-green" id="roast-share">{{roast.share}}</button>
+          <button class="btn btn-ghost" id="roast-card">{{roast.card}}</button>
+          <button class="btn btn-ghost" id="roast-again">{{roast.again}}</button>
+        </div>
+        <p class="fine">{{roast.fun}}</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FEATURES ============ -->
+<section class="section" id="features">
+  <div class="wrap narrow center">
+    <span class="kicker reveal">{{features.kicker}}</span>
+    <h2 class="reveal">{{features.title}}</h2>
+  </div>
+  <div class="wrap grid4">{{list:features}}</div>
+  <div class="wrap narrow">
+    <h3 class="center reveal">{{compare.title}}</h3>
+    <div class="table-wrap reveal"><table class="compare">{{list:compare}}</table></div>
+  </div>
+</section>
+
+<!-- ============ CHALLENGE + SHARE ============ -->
+<section class="section section-hot" id="challenge">
+  <div class="wrap narrow center">
+    <span class="kicker reveal">{{challenge.kicker}}</span>
+    <h2 class="reveal">{{challenge.title}}</h2>
+    <p class="lead reveal">{{challenge.text}}</p>
+    <ol class="challenge-steps reveal">{{list:challenge}}</ol>
+  </div>
+  <div class="wrap narrow center share-box reveal" id="share">
+    <h3>{{share.title}}</h3>
+    <p>{{share.sub}}</p>
+    <div class="share-buttons">{{list:share}}</div>
+    <div class="qr-row">
+      <img src="{{base}}assets/img/qr-site.svg" width="120" height="120" alt="QR code: {{site_url}}" loading="lazy">
+      <span>{{share.qr}}</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ GET ============ -->
+<section class="section" id="get">
+  <div class="wrap narrow center">
+    <img class="get-logo reveal" src="{{base}}assets/img/logo-256.png" alt="AutoVybz logo" width="128" height="128" loading="lazy">
+    <span class="kicker reveal">{{get.kicker}}</span>
+    <h2 class="reveal">{{get.title}}</h2>
+    <p class="lead reveal">{{get.text}}</p>
+    <div class="cta-row center reveal">
+      <a class="btn btn-green btn-xl" href="{{repo}}/releases" target="_blank" rel="noopener">⬇ {{get.releases}}</a>
+      <a class="btn btn-ghost btn-xl" href="{{repo}}/subscription" target="_blank" rel="noopener">👀 {{get.watch}}</a>
+    </div>
+    <p class="fine reveal">{{get.req}} · <a href="{{repo}}#building" target="_blank" rel="noopener">{{get.source}}</a></p>
+  </div>
+</section>
+
+<!-- ============ FAQ ============ -->
+<section class="section section-alt" id="faq">
+  <div class="wrap narrow">
+    <h2 class="center reveal">{{faq.title}}</h2>
+    <div class="faq">{{list:faq}}</div>
+  </div>
+</section>
+
+<!-- ============ DONATE ============ -->
+<section class="section" id="donate">
+  <div class="wrap narrow center">
+    <span class="kicker reveal">{{donate.kicker}}</span>
+    <h2 class="reveal">{{donate.title}}</h2>
+    <p class="lead reveal">{{donate.text}}</p>
+  </div>
+  <div class="wrap wallets">{{list:wallets}}</div>
+  <p class="wrap narrow fine center">{{donate.note}}</p>
+</section>
+
+</main>
+
+<a class="sticky-cta" href="#get">{{hero.cta_get}} →</a>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<canvas id="confetti" aria-hidden="true"></canvas>
+{{include:footer}}
+<script id="i18n" type="application/json">{{json:js_bundle}}</script>
+<script src="{{base}}assets/app.js?v={{asset_v}}" defer></script>
+</body>
+</html>

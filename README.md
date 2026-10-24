@@ -2,6 +2,12 @@
 
 **One tap. 10 seconds. Your speaker, tuned to your room.**
 
+🌐 **[andrexthedev.github.io/AutoVybz](https://andrexthedev.github.io/AutoVybz/)** – hear the interactive before/after demo & roast your speaker 🔥
+
+[![CI](https://github.com/AndrexTheDev/AutoVybz/actions/workflows/ci.yml/badge.svg)](https://github.com/AndrexTheDev/AutoVybz/actions/workflows/ci.yml)
+[![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-009B3A)](LICENSE)
+[![Android 9+](https://img.shields.io/badge/Android-9%2B-FED100)](#building)
+
 AutoVybz is a free, 100 % open-source (GPL-3.0) Android app that **automatically calibrates external
 loudspeakers** (Bluetooth, AUX, USB, HDMI) to your room with the phone's microphone — and then runs the
 correction system-wide through the proven [Equalizer314](https://github.com/bearinmindcat/Equalizer314)
@@ -73,6 +79,7 @@ app/src/main/java/com/andrexthedev/autovybz/
   ui/                 Jetpack Compose: wizard, pro, help, about/donate, theme
 app/src/main/cpp/autovybz/   C++17 Oboe full-duplex engine + FFT + JNI
 app/src/main/java/com/bearinmind/equalizer314/   upstream Equalizer314 (classic Views)
+site/                landing page (GitHub Pages, see site/README.md)
 ```
 
 ## Credits & license

@@ -18,3 +18,7 @@ ClaudeWebHelp/
 
 # Local working notes — not published
 docs/
+
+# landing page build output / local screenshots
+site/_site/
+site/_shots/

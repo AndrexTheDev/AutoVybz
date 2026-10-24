@@ -1,0 +1,412 @@
+{
+  "lang": "en",
+  "locale": "en_US",
+  "lang_name": "English",
+  "meta": {
+    "title": "AutoVybz – Your speaker, tuned to your room in 10 seconds",
+    "description": "Free & open-source Android app: measures your Bluetooth or wired speaker in your room with your phone's mic and auto-tunes a 10-band EQ. One tap, 10 seconds, no ads, no account.",
+    "og_title": "Your speaker sounds wrong. AutoVybz fixes it in 10 seconds.",
+    "og_desc": "One tap. Your phone measures your speaker in your room and tunes it automatically. Free, open source, no ads.",
+    "keywords": "speaker calibration, room correction, android equalizer, bluetooth speaker eq, auto eq, room eq app, open source equalizer"
+  },
+  "nav": {
+    "demo": "Demo",
+    "how": "How it works",
+    "roast": "Speaker Roast",
+    "features": "Features",
+    "faq": "FAQ",
+    "get": "Get AutoVybz",
+    "skip": "Skip to content",
+    "lang": "Language"
+  },
+  "hero": {
+    "badge": "🇯🇲 Free · Open source · Android",
+    "h1_a": "Your speaker sounds wrong.",
+    "h1_b": "Fixed in",
+    "h1_c": "seconds.",
+    "sub": "AutoVybz listens to your speaker <b>in your room</b> through your phone's microphone and tunes it automatically. One tap. No knowledge needed. No ads. No account. Free forever.",
+    "cta_demo": "▶ Hear the difference",
+    "cta_get": "Get AutoVybz",
+    "cta_star": "Star on GitHub",
+    "trust": "GPL-3.0 · No tracking · No cookies · Built on Equalizer314",
+    "stars": "stars"
+  },
+  "phone": {
+    "calibrate": "Calibrate speaker",
+    "measuring": "Measuring…",
+    "done": "Tuned ✓",
+    "target": "Target: Smart",
+    "before": "before",
+    "after": "after"
+  },
+  "ticker": [
+    "🔊 1 tap",
+    "⏱ 10 seconds",
+    "🎯 10-band parametric EQ",
+    "🆓 Free forever",
+    "🔓 100 % open source",
+    "🚫 No ads, no tracking",
+    "📶 Works with Bluetooth",
+    "🎛 Pro mode inside",
+    "📤 Export to Equalizer APO & REW",
+    "🇯🇲 Jamaica vibes"
+  ],
+  "problem": {
+    "kicker": "The dirty secret of every speaker",
+    "title": "Your room is ruining your music.",
+    "text": "Walls, corners, shelves and tables bend the sound before it reaches your ears. Bass booms on one note and vanishes on the next, vocals get boxy, cymbals get harsh. Studios fix this with expensive measurement gear. You now fix it with the phone in your pocket.",
+    "facts": [
+      {
+        "n": "±10",
+        "u": "dB",
+        "t": "Typical bass swing caused by room resonances at the listening spot"
+      },
+      {
+        "n": "10",
+        "u": "s",
+        "t": "Time AutoVybz needs to measure your speaker"
+      },
+      {
+        "n": "0",
+        "u": "€",
+        "t": "Price. Today, tomorrow, forever"
+      },
+      {
+        "n": "0",
+        "u": "",
+        "t": "Ads, trackers and accounts"
+      }
+    ]
+  },
+  "demo": {
+    "kicker": "Interactive demo",
+    "title": "Hear it. Right now. In your browser.",
+    "sub": "Press play and flip the switch. This simulates a typical small speaker in a typical room – boomy bass, boxy mids, harsh highs – and what an AutoVybz correction does to it.",
+    "play": "Play demo riddim",
+    "pause": "Pause",
+    "off": "Raw speaker",
+    "on": "AutoVybz ON",
+    "volume": "Volume",
+    "hint": "🎧 Tip: use headphones for this browser demo – ironically. The app itself is made for speakers. Press <b>A</b> to flip instantly.",
+    "legend_raw": "Speaker in room (simulated)",
+    "legend_fix": "With AutoVybz",
+    "legend_target": "Target",
+    "disclaimer": "Simulation for illustration, level-matched for a fair comparison. Real results depend on your speaker, room and phone. Music is generated live in your browser – nothing is uploaded."
+  },
+  "how": {
+    "kicker": "How it works",
+    "title": "Three steps. Ten seconds. Zero knowledge.",
+    "steps": [
+      {
+        "i": "🔌",
+        "t": "Connect your speaker",
+        "d": "Bluetooth box, soundbar, desktop or party speaker – AUX, USB and HDMI work too."
+      },
+      {
+        "i": "📱",
+        "t": "Put your phone where you listen",
+        "d": "Ear height, bottom mic pointing at the speaker, not in your hand. The in-app guide shows you how."
+      },
+      {
+        "i": "👆",
+        "t": "Tap once",
+        "d": "AutoVybz plays a 10-second test, measures, compensates your phone's mic and saves a perfectly fitted EQ preset."
+      }
+    ],
+    "tl_title": "What happens in those 10 seconds",
+    "timeline": [
+      {
+        "w": 7.5,
+        "c": "silence",
+        "t": "Room noise"
+      },
+      {
+        "w": 27.5,
+        "c": "pink",
+        "t": "Pink noise"
+      },
+      {
+        "w": 5,
+        "c": "silence",
+        "t": ""
+      },
+      {
+        "w": 50,
+        "c": "sweep",
+        "t": "Sine sweep 20 Hz → 20 kHz"
+      },
+      {
+        "w": 10,
+        "c": "silence",
+        "t": "Echo"
+      }
+    ],
+    "tl_caption": "Two independent measurements cross-check each other. Latency is detected automatically, so even laggy Bluetooth speakers measure correctly."
+  },
+  "features": {
+    "kicker": "Under the hood",
+    "title": "Lab-grade tricks, one big button.",
+    "items": [
+      {
+        "i": "🎯",
+        "t": "Smart target curves",
+        "d": "Smart (gentle bass lift), Neutral, Bass Boost, Harman-style Loudness or your own custom curve."
+      },
+      {
+        "i": "🎚",
+        "t": "10-band parametric EQ",
+        "d": "Fits up to 10 precise filters (or 5 for a lighter touch) and runs them system-wide on every app."
+      },
+      {
+        "i": "🛡",
+        "t": "Speaker protection",
+        "d": "Never boosts bass your speaker can't play. Automatic pre-gain and limiter prevent clipping."
+      },
+      {
+        "i": "🎙",
+        "t": "Mic compensation",
+        "d": "Profiles for popular phones correct the built-in mic. Pro: plug in a USB measurement mic with its calibration file."
+      },
+      {
+        "i": "⚡",
+        "t": "Native C++ engine",
+        "d": "Oboe full-duplex audio with raw, unprocessed mic input and a fast native FFT."
+      },
+      {
+        "i": "📶",
+        "t": "Bluetooth-proof",
+        "d": "Automatic latency detection – up to hundreds of milliseconds of Bluetooth lag are no problem."
+      },
+      {
+        "i": "📤",
+        "t": "Export everything",
+        "d": "Equalizer APO / Peace / AutoEq text, JSON, CSV for REW and the native AutoVybz format."
+      },
+      {
+        "i": "🎛",
+        "t": "Pro mode included",
+        "d": "Full Equalizer314 engine: parametric EQ graph, multiband compressor, limiter, presets, AutoEQ for headphones."
+      }
+    ]
+  },
+  "compare": {
+    "title": "Why not just drag some EQ sliders?",
+    "cols": [
+      "",
+      "Guessing with EQ sliders",
+      "Typical paid room correction",
+      "AutoVybz"
+    ],
+    "rows": [
+      [
+        "Price",
+        "free",
+        "often €€ – €€€",
+        "<b>free</b>"
+      ],
+      [
+        "Time",
+        "forever",
+        "10 – 30 min",
+        "<b>10 s</b>"
+      ],
+      [
+        "Measures your real room",
+        "✗ by ear",
+        "✓",
+        "<b>✓</b>"
+      ],
+      [
+        "Works system-wide on Android",
+        "depends",
+        "rarely",
+        "<b>✓</b>"
+      ],
+      [
+        "Open source",
+        "–",
+        "rarely",
+        "<b>✓ GPL-3.0</b>"
+      ],
+      [
+        "Account / tracking",
+        "–",
+        "sometimes",
+        "<b>never</b>"
+      ]
+    ]
+  },
+  "roast": {
+    "kicker": "Speaker Roast 🔥",
+    "title": "What's wrong with YOUR speaker?",
+    "sub": "Two taps. Brutally honest diagnosis. Share it and roast your friends' speakers.",
+    "q_type": "Your speaker is a…",
+    "q_place": "…and it lives…",
+    "types": {
+      "bt": "Bluetooth box",
+      "bar": "Soundbar",
+      "desk": "Desktop speakers",
+      "party": "Party speaker",
+      "hifi": "Hi-fi / bookshelf"
+    },
+    "places": {
+      "corner": "in a corner",
+      "wall": "against a wall",
+      "shelf": "in a shelf",
+      "table": "on a table/desk",
+      "floor": "on the floor",
+      "free": "free-standing"
+    },
+    "go": "Roast my speaker 🔥",
+    "score": "Vybz score",
+    "again": "Try another",
+    "share": "Share my roast",
+    "card": "Download card",
+    "fun": "Just for fun – based on typical room acoustics. The real numbers come from a real AutoVybz measurement."
+  },
+  "challenge": {
+    "kicker": "#10SecondVybz",
+    "title": "Take the 10-second challenge.",
+    "text": "Film your speaker playing your favourite track. Tap calibrate. Play it again. Post the before/after with <b>#10SecondVybz</b> and <b>#AutoVybz</b> – and tag the friend whose speaker needs it most.",
+    "steps": [
+      "🎬 Record \"before\"",
+      "👆 Tap calibrate",
+      "🎬 Record \"after\"",
+      "📣 Post with #10SecondVybz"
+    ]
+  },
+  "share": {
+    "title": "Spread the vybz 🇯🇲",
+    "sub": "AutoVybz has no ad budget – just you. One share helps more than you think.",
+    "text": "My speaker just got tuned to my room in 10 seconds 🔊🇯🇲 Free & open source: AutoVybz",
+    "tags": "#AutoVybz #10SecondVybz",
+    "native": "Share…",
+    "copy": "Copy link",
+    "qr": "Open on your phone"
+  },
+  "get": {
+    "kicker": "Get it",
+    "title": "Ready to fix your sound?",
+    "text": "AutoVybz is in <b>alpha</b>. Signed APKs are published on GitHub Releases. Star and watch the repo to be first when a new build drops.",
+    "releases": "Download from GitHub Releases",
+    "watch": "Watch for releases",
+    "source": "Build from source",
+    "req": "Android 9+ · external speaker · 10 seconds of quiet"
+  },
+  "faq": {
+    "title": "Questions? Answers.",
+    "items": [
+      {
+        "q": "Is it really free?",
+        "a": "Yes. AutoVybz is 100 % open source under the GPL-3.0. No ads, no in-app purchases, no account, no subscription. If you like it, you can donate – completely voluntary."
+      },
+      {
+        "q": "Why only speakers and not headphones?",
+        "a": "A phone mic can't measure what reaches your eardrum inside headphones, and the phone's own speaker sits right next to its mic. For headphones, the Pro area includes Equalizer314's AutoEQ with thousands of headphone profiles."
+      },
+      {
+        "q": "Does it work with Bluetooth speakers?",
+        "a": "Yes. AutoVybz detects the Bluetooth delay automatically, so the measurement stays accurate even with laggy speakers."
+      },
+      {
+        "q": "Which phones are supported?",
+        "a": "Android 9 or newer (system-wide EQ uses Android's DynamicsProcessing). Popular phones get a matching mic profile, all others a generic one. For maximum accuracy, plug in a USB measurement microphone."
+      },
+      {
+        "q": "Is my audio recorded or uploaded?",
+        "a": "The ~11 seconds of microphone audio are analysed in memory on your phone and discarded immediately. Nothing is saved as audio and the app makes no internet requests."
+      },
+      {
+        "q": "Is there an iPhone version?",
+        "a": "No. iOS does not allow apps to process the audio of other apps system-wide, so a real system-wide EQ isn't possible there."
+      },
+      {
+        "q": "Can it damage my speaker or my ears?",
+        "a": "The test runs at a moderate level after a safety confirmation, and AutoVybz never boosts deep bass below your speaker's limit. Pre-gain and a limiter prevent clipping. Still: start at a low volume and turn up slowly."
+      },
+      {
+        "q": "How accurate can a phone mic be?",
+        "a": "Accurate enough for the biggest problem by far: room bass. Above roughly 8 kHz phone mics differ, which is what the compensation profiles and the optional USB mic are for."
+      },
+      {
+        "q": "Who is behind AutoVybz?",
+        "a": "AndrexTheDev. AutoVybz is built on the excellent open-source Equalizer314 by bearinmindcat – huge respect and thanks."
+      }
+    ]
+  },
+  "donate": {
+    "kicker": "Donationware",
+    "title": "Keep the vybz free.",
+    "text": "No investors, no ads, no data selling. If AutoVybz made your speaker sound better, buy the developer a coffee in crypto.",
+    "copy": "Copy",
+    "note": "Always double-check the address after pasting. Donations are voluntary gifts without any consideration and cannot be refunded."
+  },
+  "footer": {
+    "tagline": "Your speaker, tuned to your room.",
+    "made": "Made with 💚💛 by AndrexTheDev · Based on Equalizer314 by bearinmindcat",
+    "contact": "Contact",
+    "source": "Source code",
+    "license": "License (GPL-3.0)",
+    "app_privacy": "App privacy policy",
+    "nocookie": "🍪 No cookie banner – because there are no cookies.",
+    "tm": "Android is a trademark of Google LLC. Harman is a trademark of Harman International. Dolby is a trademark of Dolby Laboratories. AutoVybz is an independent project and not affiliated with or endorsed by them."
+  },
+  "legal": {
+    "imprint": "Legal notice",
+    "privacy": "Privacy policy",
+    "terms": "Terms of use",
+    "disclaimer": "Disclaimer",
+    "updated": "Last updated",
+    "back": "← Back to AutoVybz"
+  },
+  "notfound": {
+    "title": "404 – this page is out of tune",
+    "text": "Even AutoVybz can't calibrate a page that doesn't exist.",
+    "back": "Back to the good vybz"
+  },
+  "js": {
+    "copied": "Copied ✓",
+    "copy_fail": "Copy failed – please select manually",
+    "link_copied": "Link copied – now paste it everywhere 😄",
+    "tab_away": "🔊 Come back – your speaker misses you",
+    "bass_mode": "🇯🇲 Bass mode unlocked! Respect.",
+    "audio_fail": "Your browser blocked audio – tap play again.",
+    "roast_share": "My speaker got roasted 🔥 Vybz score {score}/100 – \"{title}\". Fix it in 10 s:",
+    "roast_pick": "Pick both first 😉",
+    "card_url": "andrexthedev.github.io/AutoVybz",
+    "card_fix": "Fix it in 10 seconds",
+    "diag": {
+      "corner": {
+        "t": "The Boom Monster",
+        "d": "Corners pile up bass: expect up to +9 dB of one-note boom around 60–120 Hz that drowns everything else."
+      },
+      "wall": {
+        "t": "The Wall Hugger",
+        "d": "The wall right behind it adds a few dB of bass and smears the midrange with early reflections."
+      },
+      "shelf": {
+        "t": "The Box Rattler",
+        "d": "Shelves act like a resonating box: boxy, honky mids around 150–300 Hz and muddy vocals."
+      },
+      "table": {
+        "t": "The Comb-Filter Kid",
+        "d": "The table reflects sound into your ears a split second late, carving notches into vocals between 300 Hz and 1 kHz."
+      },
+      "floor": {
+        "t": "The Basement Boomer",
+        "d": "The floor boosts the lows and points the tweeter at your ankles – boomy bass, dull highs."
+      },
+      "free": {
+        "t": "The Almost Angel",
+        "d": "Great placement! But room resonances still swing your bass by several dB from note to note."
+      }
+    },
+    "types": {
+      "bt": "Plus: small drivers fake bass with a hump near 120 Hz and simply stop below ~70 Hz.",
+      "bar": "Plus: soundbars love an aggressive 'dialogue' bump around 2–4 kHz that gets harsh at volume.",
+      "desk": "Plus: little desktop drivers sound thin and the monitor reflections don't help.",
+      "party": "Plus: party speakers ship with a 'smiley face' EQ – boom and sizzle, no middle.",
+      "hifi": "Plus: honestly, good bones! The room is the bottleneck, not your speaker."
+    }
+  }
+}
