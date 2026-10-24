@@ -16,8 +16,12 @@ local.properties
 CLAUDE.md
 ClaudeWebHelp/
 
-# Local working notes — not published
-docs/
+# Local working notes — not published (published docs are whitelisted explicitly)
+docs/*
+!docs/OUTDOOR.md
+!docs/MIC_PROFILES.md
+!docs/UPSTREAM_README.md
+!docs/upstream_changelogs/
 
 # landing page build output / local screenshots
 site/_site/
