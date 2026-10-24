@@ -20,6 +20,21 @@ data class AutoEqSettings(
     /** Extra safety margin on top of the max filter boost for the pre-gain. */
     val headroomDb: Double = 0.5,
     val sampleRate: Double = BiquadMath.DEFAULT_SAMPLE_RATE,
+    /**
+     * SNR gating (only when an SNR curve is passed to [AutoEqRenderer.render]): below [minSnrDb] the
+     * measurement is dominated by background noise and is not corrected at all; full correction from
+     * [fullSnrDb] on, linear in between.
+     */
+    val minSnrDb: Double = 10.0,
+    val fullSnrDb: Double = 16.0,
+    /**
+     * "Cut narrow, boost broad": if set, boosts are limited to the deficit of the response smoothed over
+     * this many octaves. Narrow dips (ground-reflection / interference notches - position-dependent and
+     * unfillable) get no boost, while broad deficits and all peaks are still corrected.
+     */
+    val broadBoostOctaves: Double? = null,
+    /** Width of the boost ramp above the bass roll-off (excursion guard), octaves. */
+    val excursionGuardOctaves: Double = 1.0,
 ) {
     init {
         require(bandCount in 1..16)
@@ -44,6 +59,8 @@ class AutoEqResult(
     val rmsErrorBeforeDb: Double,
     val rmsErrorAfterDb: Double,
     val maxFilterBoostDb: Double,
+    /** Frequency ranges (Hz) inside the correction range that were skipped because of background noise. */
+    val noiseGatedRanges: List<Pair<Double, Double>> = emptyList(),
 )
 
 /**
@@ -68,8 +85,11 @@ object AutoEqRenderer {
         settings: AutoEqSettings = AutoEqSettings(),
         /** Less smoothed curve (1/3 oct) for roll-off detection; defaults to [measuredDb]. */
         rollOffDb: DoubleArray = measuredDb,
+        /** Per-frequency signal-to-noise ratio of the measurement (dB); enables SNR gating. */
+        snrDb: DoubleArray? = null,
     ): AutoEqResult {
         require(frequencies.size == measuredDb.size && frequencies.size > 8 && rollOffDb.size == measuredDb.size)
+        require(snrDb == null || snrDb.size == measuredDb.size)
         val targetDb = target.sample(frequencies)
 
         val lowLimit = if (settings.autoLowLimit) detectLowLimit(frequencies, rollOffDb)
@@ -77,13 +97,19 @@ object AutoEqRenderer {
         val highLimit = settings.highLimitHz.coerceIn(2000.0, 20000.0)
 
         val inRange = DoubleArray(frequencies.size) { rangeWeight(frequencies[it], lowLimit, highLimit) }
-        val desired = DoubleArray(frequencies.size) { i ->
-            val boostCap = settings.maxBoostDb * excursionGuard(frequencies[i], lowLimit)
-            val d = (targetDb[i] - measuredDb[i]).coerceIn(-settings.maxCutDb, boostCap)
-            d * inRange[i]
+        val reliable = DoubleArray(frequencies.size) { i ->
+            snrDb?.let { reliability(it[i], settings.minSnrDb, settings.fullSnrDb) } ?: 1.0
         }
-        // Outside the range we still ask for "0 dB" (keeps filters from acting there), just with less weight.
-        val weights = DoubleArray(frequencies.size) { 0.3 + 0.7 * inRange[it] }
+        val broad = settings.broadBoostOctaves?.let { medianLog(frequencies, measuredDb, it) }
+        val desired = DoubleArray(frequencies.size) { i ->
+            val boostCap = settings.maxBoostDb * excursionGuard(frequencies[i], lowLimit, settings.excursionGuardOctaves)
+            var raw = targetDb[i] - measuredDb[i]
+            if (broad != null && raw > 0) raw = minOf(raw, maxOf(0.0, targetDb[i] - broad[i]))
+            raw.coerceIn(-settings.maxCutDb, boostCap) * inRange[i] * reliable[i]
+        }
+        // Outside the range (and where noise hides the speaker) we still ask for "0 dB" - keeps filters
+        // from acting there - just with less weight.
+        val weights = DoubleArray(frequencies.size) { 0.3 + 0.7 * inRange[it] * reliable[it] }
 
         val grid = BiquadMath.Grid(frequencies, settings.sampleRate)
         val constraints = FitConstraints(
@@ -119,7 +145,44 @@ object AutoEqRenderer {
             rmsErrorBeforeDb = rmsDeviation(frequencies, measuredDb, targetDb, lowLimit, highLimit),
             rmsErrorAfterDb = rmsDeviation(frequencies, predicted, targetDb, lowLimit, highLimit),
             maxFilterBoostDb = maxBoost,
+            noiseGatedRanges = gatedRanges(frequencies, reliable, lowLimit, highLimit),
         )
+    }
+
+    internal fun reliability(snr: Double, min: Double, full: Double): Double =
+        ((snr - min) / (full - min).coerceAtLeast(1e-6)).coerceIn(0.0, 1.0)
+
+    /**
+     * Running median in dB over +-octaves/2 on a log grid. Unlike a mean, a median ignores notches
+     * narrower than half the window completely (they cannot shift it), while broad deficits pass through.
+     */
+    internal fun medianLog(f: DoubleArray, v: DoubleArray, octaves: Double): DoubleArray {
+        val factor = Math.pow(2.0, octaves / 2.0)
+        var lo = 0
+        var hi = 0
+        return DoubleArray(v.size) { i ->
+            while (lo < f.size && f[lo] < f[i] / factor) lo++
+            while (hi < f.size && f[hi] <= f[i] * factor) hi++
+            val window = v.copyOfRange(lo, maxOf(hi, lo + 1)).sorted()
+            val m = window.size
+            if (m % 2 == 1) window[m / 2] else (window[m / 2 - 1] + window[m / 2]) / 2
+        }
+    }
+
+    /** Contiguous ranges inside [lo, hi] with reliability < 0.5, at least 1/6 octave wide. */
+    private fun gatedRanges(f: DoubleArray, reliable: DoubleArray, lo: Double, hi: Double): List<Pair<Double, Double>> {
+        val out = mutableListOf<Pair<Double, Double>>()
+        var start = -1
+        for (i in f.indices) {
+            val gated = f[i] in lo..hi && reliable[i] < 0.5
+            if (gated && start < 0) start = i
+            if ((!gated || i == f.lastIndex) && start >= 0) {
+                val end = if (gated) i else i - 1
+                if (ln(f[end] / f[start]) / ln(2.0) >= 1.0 / 6.0) out += f[start] to f[end]
+                start = -1
+            }
+        }
+        return out
     }
 
     /**
@@ -142,10 +205,10 @@ object AutoEqRenderer {
     /**
      * Excursion guard: boosts just above the speaker's roll-off cost a lot of
      * cone excursion for little gain. The allowed boost ramps from 0 at the
-     * low limit to 100 % one octave above it (cuts are always allowed).
+     * low limit to 100 % one octave (outdoors / party: 1.5) above it (cuts are always allowed).
      */
-    internal fun excursionGuard(f: Double, lowLimit: Double): Double =
-        (ln(f / lowLimit) / ln(2.0)).coerceIn(0.0, 1.0)
+    internal fun excursionGuard(f: Double, lowLimit: Double, octaves: Double = 1.0): Double =
+        (ln(f / lowLimit) / ln(2.0) / octaves.coerceAtLeast(0.1)).coerceIn(0.0, 1.0)
 
     /** 1 inside [lo, hi], raised-cosine fade to 0 over half an octave outside. */
     internal fun rangeWeight(f: Double, lo: Double, hi: Double): Double {

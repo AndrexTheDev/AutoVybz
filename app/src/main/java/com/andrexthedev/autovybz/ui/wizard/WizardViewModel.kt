@@ -5,6 +5,8 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.andrexthedev.autovybz.export.PresetNaming
+import com.andrexthedev.autovybz.measurement.EnvironmentTuning
+import com.andrexthedev.autovybz.measurement.ListeningEnvironment
 import com.andrexthedev.autovybz.measurement.MeasurementController
 import com.andrexthedev.autovybz.measurement.MeasurementOutcome
 import com.andrexthedev.autovybz.measurement.MeasurementProgress
@@ -68,6 +70,7 @@ data class WizardUiState(
     val bandCount: Int = 10,
     /** 1 = quick, 3 = precise (multi-position average). */
     val positions: Int = 1,
+    val environment: ListeningEnvironment = ListeningEnvironment.INDOOR,
 )
 
 class WizardViewModel(app: Application) : AndroidViewModel(app) {
@@ -83,6 +86,7 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
             target = settings.target,
             bandCount = settings.bandCount,
             positions = settings.positions,
+            environment = settings.environment,
         ),
     )
     val state: StateFlow<WizardUiState> = _state.asStateFlow()
@@ -101,6 +105,15 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
         settings.bandCount = count
         _state.update { it.copy(bandCount = settings.bandCount) }
         refitIfShowingResult()
+    }
+
+    /** Outdoors a single spot can't tell ground-reflection notches from the speaker → suggest 3 positions. */
+    fun onEnvironmentChanged(environment: ListeningEnvironment) {
+        if (environment == _state.value.environment) return
+        settings.environment = environment
+        val recommended = EnvironmentTuning.of(environment).recommendedPositions
+        if (recommended > settings.positions) settings.positions = recommended
+        _state.update { it.copy(environment = environment, positions = settings.positions) }
     }
 
     fun onPositionsChanged(count: Int) {
@@ -159,6 +172,13 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
         measureNextPosition()
     }
 
+    /** Multi-position: discard the last (disturbed) measurement and measure that position again. */
+    fun onRepeatLastPosition() {
+        if (job?.isActive == true || activeRequest == null || partial.isEmpty()) return
+        partial.removeAt(partial.lastIndex)
+        measureNextPosition()
+    }
+
     /** Multi-position: stop early and use the positions measured so far. */
     fun onFinishWithMeasured() {
         if (job?.isActive == true || partial.isEmpty()) return
@@ -181,7 +201,9 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
                     }
                 }
                 partial += outcome
-                if (partial.size < total) {
+                // A disturbed last position (gust, dropout, …) gets the chance to be repeated before averaging.
+                val disturbed = outcome.result.warnings.any { it != MeasurementWarning.HIGH_LATENCY }
+                if (partial.size < total || (total > 1 && disturbed)) {
                     setStep(WizardStep.MovePhone(partial.size, total, outcome.result.warnings))
                 } else {
                     finish()
@@ -254,7 +276,9 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
         val preset = MeasurementController.buildPreset(name, step.outcome)
         val app = getApplication<Application>()
         AutoVybzPresetStore.save(app, preset)
-        if (apply) AutoVybzPresetStore.apply(app, preset, settings.enableLimiterOnApply)
+        // Outdoor / party calibrations always arm the limiter (party volume).
+        val limiter = settings.enableLimiterOnApply || step.outcome.request.tuning.forceLimiter
+        if (apply) AutoVybzPresetStore.apply(app, preset, limiter)
         setStep(WizardStep.Saved(name, apply, step.outcome))
     }
 

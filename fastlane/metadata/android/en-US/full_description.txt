@@ -12,6 +12,7 @@ AutoVybz automatically calibrates your external loudspeaker (Bluetooth, AUX, USB
 <li>Up to 10 parametric filters fitted to your target, without boosting bass your speaker can't play</li>
 <li>Automatic pre-gain and limiter against clipping</li>
 <li>Optional precise mode: 3 positions, power-averaged – ignores dips that exist only at one spot</li>
+<li>Outdoor / party mode: max +3 dB boost to keep the loudness, ignores ground reflections and noisy ranges (wind, traffic, birds), detects wind and Bluetooth dropouts, limiter always on, full screen brightness in sunlight</li>
 </ul>
 
 <b>Targets</b>: Smart (gentle bass boost), Neutral/Flat, Bass Boost, Harman/Loudness, Custom.

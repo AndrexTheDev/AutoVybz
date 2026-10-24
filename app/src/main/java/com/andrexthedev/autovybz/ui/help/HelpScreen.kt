@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -36,6 +37,7 @@ fun HelpScreen() {
         Triple(Icons.Filled.Warning, R.string.avz_help_s4_title, R.string.avz_help_s4_body),
         Triple(Icons.Filled.Settings, R.string.avz_help_s5_title, R.string.avz_help_s5_body),
         Triple(Icons.Filled.Phone, R.string.avz_help_s6_title, R.string.avz_help_s6_body),
+        Triple(Icons.Filled.Star, R.string.avz_help_out_title, R.string.avz_help_out_body),
         Triple(Icons.Filled.Build, R.string.avz_help_s7_title, R.string.avz_help_s7_body),
         Triple(Icons.Filled.Info, R.string.avz_help_s8_title, R.string.avz_help_s8_body),
     )

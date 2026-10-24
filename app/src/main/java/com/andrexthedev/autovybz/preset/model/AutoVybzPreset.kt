@@ -23,6 +23,10 @@ class MeasurementSnapshot(
     val latencyMs: Double,
     val medianSnrDb: Double,
     val warnings: List<String>,
+    /** [com.andrexthedev.autovybz.measurement.ListeningEnvironment] name; INDOOR for older presets. */
+    val environment: String = "INDOOR",
+    /** Number of averaged measurement positions. */
+    val positions: Int = 1,
 ) {
     init {
         val n = frequencies.size
@@ -124,6 +128,8 @@ data class AutoVybzPreset(
             append("    \"latencyMs\": ").append(num(m.latencyMs)).append(",\n")
             append("    \"medianSnrDb\": ").append(num(m.medianSnrDb)).append(",\n")
             append("    \"warnings\": [").append(m.warnings.joinToString(", ") { PresetExporters.jsonString(it) }).append("],\n")
+            append("    \"environment\": ").append(PresetExporters.jsonString(m.environment)).append(",\n")
+            append("    \"positions\": ").append(m.positions).append(",\n")
             arr("frequencies", m.frequencies, ",\n")
             arr("rawDb", m.rawDb, ",\n")
             arr("smoothedDb", m.smoothedDb, ",\n")

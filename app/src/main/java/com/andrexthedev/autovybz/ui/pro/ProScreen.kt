@@ -57,6 +57,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.andrexthedev.autovybz.measurement.ListeningEnvironment
 import com.andrexthedev.autovybz.measurement.audio.InputSourceResolver
 import com.andrexthedev.autovybz.measurement.mic.MicProfileDatabase
 import com.andrexthedev.autovybz.preset.AutoVybzPresetStore
@@ -153,13 +154,15 @@ private fun CalibrationList() {
             Text(p.name, style = MaterialTheme.typography.titleMedium)
             Text(
                 "${df.format(Date(p.createdAtMillis))} · ${p.target.name} · ${p.bands.size} PEQ · " +
-                    String.format(Locale.US, "%.1f dB", p.preampDb),
+                    String.format(Locale.US, "%.1f dB", p.preampDb) +
+                    (if (p.measurement?.environment == ListeningEnvironment.OUTDOOR.name) " · " + stringResource(R.string.avz_env_outdoor_short) else ""),
                 style = MaterialTheme.typography.bodySmall,
                 color = AutoVybzColors.OnDarkMuted,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Button(onClick = {
-                    AutoVybzPresetStore.apply(context, p, AutoVybzSettings(context).enableLimiterOnApply)
+                    val outdoor = p.measurement?.environment == ListeningEnvironment.OUTDOOR.name
+                    AutoVybzPresetStore.apply(context, p, AutoVybzSettings(context).enableLimiterOnApply || outdoor)
                     reload++
                 }) { Text(stringResource(R.string.avz_apply)) }
                 ExportButton(preset = { p })

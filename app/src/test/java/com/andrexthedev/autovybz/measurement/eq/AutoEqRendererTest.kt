@@ -92,4 +92,57 @@ class AutoEqRendererTest {
         val mid = AutoEqRenderer.rangeWeight(50.0 / Math.pow(2.0, 0.25), 50.0, 16000.0)
         assertEquals(0.5, mid, 1e-9)
     }
+
+    /** Normalised curve with a dip/bump of [gain] dB at [fc] (peaking, [q]). */
+    private fun curve(fc: Double, gain: Double, q: Double): DoubleArray {
+        val v = DoubleArray(grid.size) { BiquadMath.magnitudeDb(PeqBand(PeqType.PEAK, fc, gain, q), grid[it]) }
+        val m = FrequencyGrid.bandMean(grid, v, 300.0, 3000.0)
+        return DoubleArray(v.size) { v[it] - m }
+    }
+
+    private fun boostAt(r: AutoEqResult, hz: Double) = r.filterResponseDb[grid.indexOfFirst { it >= hz }]
+
+    @Test
+    fun snrGatingSkipsNoiseDominatedFrequencies() {
+        val dip = curve(5000.0, -8.0, 1.0)
+        val goodSnr = DoubleArray(grid.size) { 40.0 }
+        val birdSnr = DoubleArray(grid.size) { if (grid[it] in 3000.0..8000.0) 4.0 else 40.0 }
+        val clean = AutoEqRenderer.render(grid, dip, TargetCurve(TargetType.FLAT), snrDb = goodSnr)
+        val noisy = AutoEqRenderer.render(grid, dip, TargetCurve(TargetType.FLAT), snrDb = birdSnr)
+        assertTrue("clean boost ${boostAt(clean, 5000.0)}", boostAt(clean, 5000.0) > 3.0)
+        assertTrue("gated boost ${boostAt(noisy, 5000.0)}", abs(boostAt(noisy, 5000.0)) < 1.0)
+        assertTrue(clean.noiseGatedRanges.isEmpty())
+        val g = noisy.noiseGatedRanges.single()
+        assertTrue("range $g", g.first in 2800.0..3300.0 && g.second in 7500.0..8500.0)
+    }
+
+    @Test
+    fun broadBoostIgnoresNarrowNotchesButKeepsBroadDeficits() {
+        val notch = curve(800.0, -10.0, 6.0)      // ground-reflection style notch
+        val narrow = AutoEqRenderer.render(grid, notch, TargetCurve(TargetType.FLAT), AutoEqSettings(broadBoostOctaves = 1.0))
+        val classic = AutoEqRenderer.render(grid, notch, TargetCurve(TargetType.FLAT))
+        assertTrue("classic fills the notch: ${boostAt(classic, 800.0)}", boostAt(classic, 800.0) > 3.0)
+        assertTrue("broad mode: ${boostAt(narrow, 800.0)}", boostAt(narrow, 800.0) < 1.5)
+
+        val wide = curve(2500.0, -5.0, 0.7)       // real, broad speaker deficit
+        val w = AutoEqRenderer.render(grid, wide, TargetCurve(TargetType.FLAT), AutoEqSettings(broadBoostOctaves = 1.0))
+        val wc = AutoEqRenderer.render(grid, wide, TargetCurve(TargetType.FLAT))
+        assertTrue("broad deficit still corrected: ${boostAt(w, 2500.0)} vs ${boostAt(wc, 2500.0)}",
+            boostAt(w, 2500.0) > 2.0 && boostAt(w, 2500.0) > 0.75 * boostAt(wc, 2500.0))
+
+        val peak = curve(800.0, 8.0, 6.0)         // narrow peaks are still cut
+        val p = AutoEqRenderer.render(grid, peak, TargetCurve(TargetType.FLAT), AutoEqSettings(broadBoostOctaves = 1.0))
+        assertTrue("narrow peak cut: ${boostAt(p, 800.0)}", boostAt(p, 800.0) < -4.0)
+    }
+
+    @Test
+    fun widerExcursionGuardRampsSlower() {
+        assertEquals(0.5, AutoEqRenderer.excursionGuard(2 * 50.0, 50.0, 2.0), 1e-12)
+        assertEquals(1.0, AutoEqRenderer.excursionGuard(2 * 50.0, 50.0, 1.0), 1e-12)
+        val flat = DoubleArray(grid.size)
+        assertTrue(AutoEqRenderer.medianLog(grid, flat, 1.0).all { it == 0.0 })
+        // a 1/8-octave notch does not move a 1-octave median at all
+        val notch = DoubleArray(grid.size) { if (grid[it] in 950.0..1050.0) -12.0 else 0.0 }
+        assertEquals(0.0, AutoEqRenderer.medianLog(grid, notch, 1.0)[grid.indexOfFirst { it >= 1000.0 }], 1e-12)
+    }
 }

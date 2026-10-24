@@ -12,6 +12,7 @@ AutoVybz calibra automáticamente tu altavoz externo (Bluetooth, AUX, USB, HDMI)
 <li>Hasta 10 filtros paramétricos ajustados a tu objetivo, sin realzar graves que tu altavoz no puede reproducir</li>
 <li>Pre-ganancia automática y limitador contra la saturación</li>
 <li>Modo preciso opcional: 3 posiciones promediadas en potencia; ignora los huecos que solo existen en un punto</li>
+<li>Modo exterior / fiesta: realce máx. +3 dB para conservar el volumen, ignora las reflexiones del suelo y los rangos con ruido (viento, tráfico, pájaros), detecta viento y cortes de Bluetooth, limitador siempre activo, brillo máximo al sol</li>
 </ul>
 
 <b>Objetivos</b>: Smart (realce suave de graves), Neutro/Plano, Bass Boost, Harman/Loudness, Personalizado.

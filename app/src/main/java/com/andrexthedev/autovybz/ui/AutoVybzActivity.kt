@@ -31,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import com.andrexthedev.autovybz.measurement.ListeningEnvironment
 import com.andrexthedev.autovybz.measurement.audio.EqBypass
 import com.andrexthedev.autovybz.ui.about.AboutScreen
 import com.andrexthedev.autovybz.ui.components.AutoVybzHeader
@@ -66,6 +67,17 @@ class AutoVybzActivity : ComponentActivity() {
                 LaunchedEffect(busy) {
                     if (busy) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                     else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                }
+                // Sunlight mode: full screen brightness while calibrating outdoors (only for this window,
+                // the system setting is untouched and restored automatically).
+                val sunlight = state.environment == ListeningEnvironment.OUTDOOR && state.step.let {
+                    it is WizardStep.ConfirmSafety || it is WizardStep.Preparing || it is WizardStep.Measuring ||
+                        it is WizardStep.MovePhone || it is WizardStep.Analyzing || it is WizardStep.Result
+                }
+                LaunchedEffect(sunlight) {
+                    window.attributes = window.attributes.apply {
+                        screenBrightness = if (sunlight) 1f else WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
+                    }
                 }
                 AutoVybzApp(
                     wizardContent = { openHelp ->

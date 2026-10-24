@@ -15,6 +15,15 @@ enum class MeasurementWarning {
     SWEEP_NOISE_MISMATCH,
     /** Very high output latency (typical for Bluetooth) - informational. */
     HIGH_LATENCY,
+    /**
+     * Strong low-frequency background noise (wind on the microphone, traffic, generator) that masks the
+     * speaker in the bass. The affected range is excluded from the correction.
+     */
+    LOW_FREQ_NOISE,
+    /** Background noise changed a lot during the measurement (gusts, passing cars, voices). */
+    NOISE_UNSTEADY,
+    /** The signal dropped out for a moment (typical: Bluetooth out of range). Measure again. */
+    DROPOUT,
 }
 
 class MeasurementException(val reason: Reason, message: String) : Exception(message) {
@@ -113,8 +122,16 @@ class MeasurementAnalyzer(private val fft: FftEngine = KotlinFft) {
             val ps = fft.powerSpectrum(recording, analysisStart + p * period, period, period)
             for (k in ps.indices) signalPower[k] += ps[k] / periods
         }
+        // Noise floor: one snapshot in the lead silence and - if the recording is long enough - one at the
+        // very end, well after the sweep's impulse response has decayed. Outdoors, noise is rarely
+        // stationary (gusts, traffic), so the SNR uses the louder of the two (conservative) and the noise
+        // subtraction their mean.
         val noiseStart = (0.05 * fs).roundToInt()
-        val noisePower = fft.powerSpectrum(recording, noiseStart, period, period)
+        val noiseHead = fft.powerSpectrum(recording, noiseStart, period, period)
+        val tailStart = recording.size - period
+        val tailEarliest = plan.sweepStart + plan.sweepLength + latency + (config.irPostSeconds * fs).roundToInt()
+        val noiseTail = if (tailStart >= tailEarliest) fft.powerSpectrum(recording, tailStart, period, period) else null
+        val noisePower = if (noiseTail == null) noiseHead else DoubleArray(noiseHead.size) { (noiseHead[it] + noiseTail[it]) / 2 }
         val pinkTransfer = DoubleArray(signalPower.size) { k ->
             val ref = stimulus.pinkPeriodPower[k]
             val f = k * pinkBinHz
@@ -135,8 +152,10 @@ class MeasurementAnalyzer(private val fft: FftEngine = KotlinFft) {
         val pinkThirdDb = pinkGrid(SmoothingProfile.THIRD_OCTAVE)
         val third = SmoothingProfile.THIRD_OCTAVE
         val sigThird = SpectrumBinning.toGrid(signalPower, pinkBinHz, grid, third, fLo, fHi)
-        val noiseThird = SpectrumBinning.toGrid(noisePower, pinkBinHz, grid, third, fLo, fHi)
-        val snr = DoubleArray(grid.size) { powerToDb(sigThird[it]) - powerToDb(noiseThird[it]) }
+        val noiseHeadDb = SpectrumBinning.toGrid(noiseHead, pinkBinHz, grid, third, fLo, fHi).powerToDb()
+        val noiseTailDb = noiseTail?.let { SpectrumBinning.toGrid(it, pinkBinHz, grid, third, fLo, fHi).powerToDb() }
+        val noiseDb = DoubleArray(grid.size) { i -> noiseTailDb?.let { max(it[i], noiseHeadDb[i]) } ?: noiseHeadDb[i] }
+        val snr = DoubleArray(grid.size) { powerToDb(sigThird[it]) - noiseDb[it] }
 
         // ---- 4. Combine (dB domain); fall back to sweep where pink SNR is poor ----
         fun combine(sweep: DoubleArray, pink: DoubleArray) = DoubleArray(grid.size) { i ->
@@ -167,6 +186,13 @@ class MeasurementAnalyzer(private val fft: FftEngine = KotlinFft) {
         if (mismatch > 3.0) warnings += MeasurementWarning.SWEEP_NOISE_MISMATCH
         val latencyMs = latency * 1000.0 / fs
         if (latencyMs > 400.0) warnings += MeasurementWarning.HIGH_LATENCY
+        if (NoiseChecks.isLowFrequencyNoise(grid, noiseDb, snr)) warnings += MeasurementWarning.LOW_FREQ_NOISE
+        if (noiseTailDb != null && NoiseChecks.isUnsteady(grid, noiseHeadDb, noiseTailDb, medianSnr)) {
+            warnings += MeasurementWarning.NOISE_UNSTEADY
+        }
+        val dropStart = plan.pinkStart + latency + plan.fadeInSamples
+        val dropEnd = minOf(plan.pinkStart + plan.pinkLength - plan.fadeInSamples + latency, recording.size)
+        if (NoiseChecks.hasDropout(recording, dropStart, dropEnd, fs)) warnings += MeasurementWarning.DROPOUT
 
         return MeasurementResult(
             sampleRate = fs,

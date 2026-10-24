@@ -39,6 +39,11 @@ engine (DynamicsProcessing, 10-band PEQ, multiband compressor, limiter). Donatio
   internal `.avz.json` (curves + filters + metadata).
 - **Pro area**: Equalizer314 10-band PEQ graph, multiband compressor, limiter, measurement & mic settings,
   saved calibrations.
+- **Outdoor / party mode** – one tap in the wizard: max +3 dB boost (preserves loudness), ground-reflection
+  notches ignored (1-octave median rule), per-frequency SNR gating (wind, traffic, birds are not "corrected"),
+  wind / unsteady-noise / Bluetooth-dropout detection with "repeat this position", 3 positions recommended,
+  limiter always on, full screen brightness for sunlight. Full failure-mode analysis with simulation numbers:
+  [docs/OUTDOOR.md](docs/OUTDOOR.md).
 - **Help** with step-by-step phone placement guide; **About** with credits and crypto donate dialog.
 - Design: deep charcoal `#121212`, Jamaica green `#009B3A` + gold `#FED100`.
 
@@ -48,6 +53,9 @@ engine (DynamicsProcessing, 10-band PEQ, multiband compressor, limiter). Donatio
 2. Phone at the listening position, ear height, bottom mic towards the speaker, 1–2 m away, not hand-held.
 3. Normal listening level on the speaker; AutoVybz sets media volume to ~70 % (restored afterwards).
 4. Quiet room; disable Dolby Atmos / sound effects / speaker-app EQ. The AutoVybz EQ pauses itself.
+5. Outdoors / party: choose **Outdoors · Party**, party level but not maximum, phone 2–4 m away at ear height
+   (not on the ground), mic out of the wind, 3 positions spread over the dance area – see
+   [docs/OUTDOOR.md](docs/OUTDOOR.md).
 
 ## Building
 

@@ -192,7 +192,7 @@
     <string name="avz_move_text">Bewege das Handy jetzt um etwa 30–50 cm – zur Seite, nach vorn oder hinten oder etwas höher oder tiefer.</string>
     <string name="avz_move_tip_1">Bleib in der Nähe deines Hörplatzes und halte das Handy auf Ohrhöhe.</string>
     <string name="avz_move_tip_2">Mikrofon zum Lautsprecher, während der Messung stillhalten und leise sein.</string>
-    <string name="avz_move_warn">Die letzte Messung hatte eine Warnung (zu laut oder zu leise). Du kannst weitermachen oder abbrechen und die Lautstärke anpassen.</string>
+    <string name="avz_move_warn">Wiederhole diese Messung am besten – oder mach trotzdem weiter.</string>
     <string name="avz_move_continue">Position %1$d messen</string>
     <string name="avz_move_finish">Mit %1$d fertigstellen</string>
     <string name="avz_result_positions">Gemittelt über %1$d Positionen · Streuung ±%2$s dB</string>
@@ -207,4 +207,31 @@
     <string name="avz_share_card_filters">%1$d Filter · Preamp %2$s dB</string>
     <string name="avz_share_card_positions">%1$d Positionen</string>
     <string name="avz_share_card_free">kostenlos · Open Source · werbefrei</string>
+
+    <!-- Outdoor / party mode -->
+    <string name="avz_env_label">Wo spielst du?</string>
+    <string name="avz_env_indoor">Drinnen</string>
+    <string name="avz_env_outdoor">Draußen · Party</string>
+    <string name="avz_env_outdoor_short">Draußen</string>
+    <string name="avz_env_indoor_desc">Wohnzimmer, Büro, Partykeller – Raumresonanzen werden gezielt korrigiert.</string>
+    <string name="avz_env_outdoor_desc">Garten, Terrasse, Strand, Park: auf Lautstärke optimiert (max. +3 dB Anhebung), ignoriert Bodenreflexionen und verrauschte Bereiche, erkennt Wind und Bluetooth-Aussetzer, Limiter immer an. 3 Positionen empfohlen.</string>
+    <string name="avz_out_check_title">Outdoor-Check</string>
+    <string name="avz_out_check_1">Lautsprecher kräftig einstellen – so laut wie zum Feiern, aber nicht auf Maximum.</string>
+    <string name="avz_out_check_2">Handy 2–4 m vor die Box auf Ohrhöhe legen (Stuhl, Tisch, Rucksack) – nicht auf den Boden.</string>
+    <string name="avz_out_check_3">Wind: Mikrofonöffnung (meist unten) aus dem Wind drehen, ein dünnes Tuch darüber hilft. Auf eine ruhige Phase warten.</string>
+    <string name="avz_out_check_4">Wind, Störgeräusche und Bluetooth-Aussetzer werden automatisch erkannt.</string>
+    <string name="avz_move_text_outdoor">Geh jetzt 1–2 m weiter: Verteile die Positionen über den Bereich, in dem später getanzt und zugehört wird.</string>
+    <string name="avz_move_tip_1_outdoor">Gleiche Höhe (Ohrhöhe), Mikrofon zum Lautsprecher – nicht auf den Boden legen.</string>
+    <string name="avz_move_repeat">Messung %1$d wiederholen</string>
+    <string name="avz_warn_lf_noise">Starkes Bass-Störgeräusch (Wind am Mikrofon, Verkehr, Generator). Der betroffene Bereich wird nicht korrigiert. Bei Wind: Mikrofon abschirmen und neu messen.</string>
+    <string name="avz_warn_unsteady">Die Umgebungsgeräusche haben stark geschwankt (Böen, Autos, Stimmen). Falls das Ergebnis seltsam aussieht, miss in einem ruhigeren Moment neu.</string>
+    <string name="avz_warn_dropout">Das Signal ist kurz ausgefallen – typisch für Bluetooth am Rand der Reichweite. Geh mit dem Handy näher an die Box und miss neu.</string>
+    <string name="avz_result_gated">Wegen Störgeräuschen nicht korrigiert: %1$s</string>
+    <string name="avz_out_result_title">Outdoor-Modus</string>
+    <string name="avz_out_result_loudness">Vorabsenkung (Preamp) nur %1$s dB: Draußen hebt AutoVybz höchstens 3 dB an und senkt lieber ab – so bleibt dir die Lautstärke für die Party.</string>
+    <string name="avz_out_result_limiter">Der Limiter wird beim Aktivieren automatisch eingeschaltet und schützt die Box bei Party-Lautstärke.</string>
+    <string name="avz_out_party_tip">Party-Tipp: Mehr Bass gibt es gratis durch die Aufstellung – Box auf den Boden (bis +6 dB) oder nah an eine Wand. Danach neu messen.</string>
+    <string name="avz_out_single_position">Draußen ist eine einzelne Position unsicher (Bodenreflexion). Mit 3 Positionen wird das Ergebnis deutlich genauer.</string>
+    <string name="avz_help_out_title">Draußen &amp; Party</string>
+    <string name="avz_help_out_body">Draußen fehlen die Wände – das verändert die Akustik grundlegend. Wähle im Assistenten „Draußen · Party“:\n• Weniger Bass: In Räumen heben die Wände den Bass um etwa 4–8 dB an, draußen fehlt das. Per EQ nachzuhelfen kostet genauso viel Lautstärke und belastet die Membran. Deshalb hebt der Outdoor-Modus höchstens 3 dB an und senkt lieber ab. Mehr Bass gibt es gratis durch die Aufstellung: Box auf den Boden (bis +6 dB), nah an eine Wand oder Hausecke (noch mehr).\n• Bodenreflexion: Der vom Boden zurückgeworfene Schall löscht je nach Standort einzelne Frequenzen aus. Diese Löcher kann kein EQ füllen – AutoVybz ignoriert sie und mittelt über 3 Positionen. Verteile sie 1–2 m auseinander über den Bereich, in dem die Leute stehen.\n• Wind &amp; Lärm: Wind auf dem Mikrofon erzeugt starkes Bassrauschen. Dreh die Mikrofonöffnung aus dem Wind, leg ein dünnes Tuch darüber und warte auf eine ruhige Phase. Frequenzen, in denen Wind, Verkehr, Vögel oder Zikaden lauter sind als die Box, werden automatisch nicht korrigiert – das Ergebnis zeigt dir, welche.\n• Abstand &amp; Pegel: Miss 2–4 m vor der Box, kräftig aufgedreht (Party-Lautstärke, aber nicht Maximum – viele Party-Boxen regeln dort ihren Bass herunter).\n• Bluetooth-Reichweite: Draußen werfen keine Wände das Signal zurück. Bleib mit dem Handy in der Nähe der Box; Aussetzer werden erkannt.\n• Zwei Boxen / Party-Modus: Miss jede Box einzeln oder stell sie nah zusammen – zwei weit auseinanderstehende Boxen erzeugen draußen starke Interferenzen.\n• Sonne: Im Outdoor-Modus dreht AutoVybz die Bildschirmhelligkeit während der Kalibrierung hoch. Der Limiter wird beim Aktivieren immer eingeschaltet.</string>
 </resources>

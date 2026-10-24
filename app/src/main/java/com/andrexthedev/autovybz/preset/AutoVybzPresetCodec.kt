@@ -36,6 +36,8 @@ object AutoVybzPresetCodec {
                 latencyMs = mo.optDouble("latencyMs", 0.0),
                 medianSnrDb = mo.optDouble("medianSnrDb", 0.0),
                 warnings = mo.optJSONArray("warnings")?.let { w -> (0 until w.length()).map { w.getString(it) } } ?: emptyList(),
+                environment = mo.optString("environment", "INDOOR").ifEmpty { "INDOOR" },
+                positions = mo.optInt("positions", 1),
             )
         }
         return AutoVybzPreset(

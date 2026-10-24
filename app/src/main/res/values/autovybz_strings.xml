@@ -192,7 +192,7 @@
     <string name="avz_move_text">Now move the phone about 30–50 cm – to the side, forward or back, or a little up or down.</string>
     <string name="avz_move_tip_1">Stay around your listening spot and keep the phone at ear height.</string>
     <string name="avz_move_tip_2">Microphone towards the speaker, hold still and stay quiet during the measurement.</string>
-    <string name="avz_move_warn">The last measurement had a warning (too loud or too quiet). You can continue, or cancel and adjust the volume.</string>
+    <string name="avz_move_warn">Best repeat this measurement – or continue anyway.</string>
     <string name="avz_move_continue">Measure position %1$d</string>
     <string name="avz_move_finish">Finish with %1$d</string>
     <string name="avz_result_positions">Averaged over %1$d positions · spread ±%2$s dB</string>
@@ -207,4 +207,31 @@
     <string name="avz_share_card_filters">%1$d filters · preamp %2$s dB</string>
     <string name="avz_share_card_positions">%1$d positions</string>
     <string name="avz_share_card_free">free · open source · no ads</string>
+
+    <!-- Outdoor / party mode -->
+    <string name="avz_env_label">Where do you play?</string>
+    <string name="avz_env_indoor">Indoors</string>
+    <string name="avz_env_outdoor">Outdoors · Party</string>
+    <string name="avz_env_outdoor_short">Outdoors</string>
+    <string name="avz_env_indoor_desc">Living room, office, party basement – room resonances are corrected precisely.</string>
+    <string name="avz_env_outdoor_desc">Garden, terrace, beach, park: optimised for loudness (max. +3 dB boost), ignores ground reflections and noisy ranges, detects wind and Bluetooth dropouts, limiter always on. 3 positions recommended.</string>
+    <string name="avz_out_check_title">Outdoor check</string>
+    <string name="avz_out_check_1">Turn the speaker up properly – as loud as for the party, but not to maximum.</string>
+    <string name="avz_out_check_2">Put the phone 2–4 m in front of the speaker at ear height (chair, table, backpack) – not on the ground.</string>
+    <string name="avz_out_check_3">Wind: turn the microphone opening (usually at the bottom) away from the wind; a thin cloth over it helps. Wait for a calm moment.</string>
+    <string name="avz_out_check_4">Wind, background noise and Bluetooth dropouts are detected automatically.</string>
+    <string name="avz_move_text_outdoor">Now walk 1–2 m further: spread the positions over the area where people will dance and listen.</string>
+    <string name="avz_move_tip_1_outdoor">Same height (ear height), microphone towards the speaker – don\'t put the phone on the ground.</string>
+    <string name="avz_move_repeat">Repeat measurement %1$d</string>
+    <string name="avz_warn_lf_noise">Strong low-frequency noise (wind on the microphone, traffic, generator). The affected range is not corrected. With wind: shield the microphone and measure again.</string>
+    <string name="avz_warn_unsteady">Background noise changed a lot (gusts, cars, voices). If the result looks odd, measure again at a quieter moment.</string>
+    <string name="avz_warn_dropout">The signal dropped out briefly – typical for Bluetooth at the edge of its range. Move the phone closer to the speaker and measure again.</string>
+    <string name="avz_result_gated">Not corrected because of background noise: %1$s</string>
+    <string name="avz_out_result_title">Outdoor mode</string>
+    <string name="avz_out_result_loudness">Pre-gain only %1$s dB: outdoors AutoVybz boosts by 3 dB at most and prefers cutting – so you keep the loudness for the party.</string>
+    <string name="avz_out_result_limiter">The limiter is switched on automatically when you activate this calibration and protects the speaker at party volume.</string>
+    <string name="avz_out_party_tip">Party tip: extra bass comes free with placement – put the speaker on the ground (up to +6 dB) or close to a wall. Then measure again.</string>
+    <string name="avz_out_single_position">Outdoors a single position is unreliable (ground reflection). With 3 positions the result gets much more accurate.</string>
+    <string name="avz_help_out_title">Outdoors &amp; party</string>
+    <string name="avz_help_out_body">Outdoors there are no walls – that changes the acoustics completely. Choose „Outdoors · Party“ in the wizard:\n• Less bass: indoors the walls lift the bass by about 4–8 dB; outdoors that is missing. Making up for it with EQ costs exactly as much loudness and strains the woofer. That is why outdoor mode boosts by 3 dB at most and prefers cutting. Extra bass comes free with placement: speaker on the ground (up to +6 dB), close to a wall or a house corner (even more).\n• Ground reflection: sound bouncing off the ground cancels single frequencies, depending on where you stand. No EQ can fill these holes – AutoVybz ignores them and averages 3 positions. Spread them 1–2 m apart over the area where people will be.\n• Wind &amp; noise: wind on the microphone causes strong bass rumble. Turn the microphone opening away from the wind, put a thin cloth over it and wait for a calm moment. Frequencies where wind, traffic, birds or cicadas are louder than the speaker are automatically left uncorrected – the result shows which ones.\n• Distance &amp; level: measure 2–4 m in front of the speaker, turned up properly (party level, but not maximum – many party speakers turn their bass down there).\n• Bluetooth range: outdoors no walls reflect the signal. Keep the phone near the speaker; dropouts are detected.\n• Two speakers / party mode: measure each speaker on its own or put them close together – two speakers far apart cause strong interference outdoors.\n• Sun: in outdoor mode AutoVybz turns the screen brightness up during the calibration. The limiter is always switched on when activating.</string>
 </resources>

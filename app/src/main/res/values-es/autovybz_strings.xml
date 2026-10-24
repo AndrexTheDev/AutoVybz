@@ -190,7 +190,7 @@
     <string name="avz_move_text">Ahora mueve el móvil unos 30–50 cm: hacia un lado, adelante o atrás, o un poco más arriba o abajo.</string>
     <string name="avz_move_tip_1">Quédate cerca de tu posición de escucha y mantén el móvil a la altura de los oídos.</string>
     <string name="avz_move_tip_2">Micrófono hacia el altavoz; quieto y en silencio durante la medición.</string>
-    <string name="avz_move_warn">La última medición tuvo un aviso (demasiado alto o demasiado bajo). Puedes continuar, o cancelar y ajustar el volumen.</string>
+    <string name="avz_move_warn">Lo mejor es repetir esta medición, o continuar de todos modos.</string>
     <string name="avz_move_continue">Medir posición %1$d</string>
     <string name="avz_move_finish">Terminar con %1$d</string>
     <string name="avz_result_positions">Promedio de %1$d posiciones · dispersión ±%2$s dB</string>
@@ -205,4 +205,31 @@
     <string name="avz_share_card_filters">%1$d filtros · preamp %2$s dB</string>
     <string name="avz_share_card_positions">%1$d posiciones</string>
     <string name="avz_share_card_free">gratis · código abierto · sin anuncios</string>
+
+    <!-- Outdoor / party mode -->
+    <string name="avz_env_label">¿Dónde vas a sonar?</string>
+    <string name="avz_env_indoor">Interior</string>
+    <string name="avz_env_outdoor">Exterior · Fiesta</string>
+    <string name="avz_env_outdoor_short">Exterior</string>
+    <string name="avz_env_indoor_desc">Salón, oficina, sótano de fiestas: las resonancias de la sala se corrigen con precisión.</string>
+    <string name="avz_env_outdoor_desc">Jardín, terraza, playa, parque: optimizado para el volumen (máx. +3 dB de realce), ignora las reflexiones del suelo y los rangos con ruido, detecta viento y cortes de Bluetooth, limitador siempre activo. Se recomiendan 3 posiciones.</string>
+    <string name="avz_out_check_title">Control en exterior</string>
+    <string name="avz_out_check_1">Sube bien el altavoz: tan alto como para la fiesta, pero no al máximo.</string>
+    <string name="avz_out_check_2">Coloca el móvil a 2–4 m del altavoz, a la altura de los oídos (silla, mesa, mochila), no en el suelo.</string>
+    <string name="avz_out_check_3">Viento: gira la abertura del micrófono (normalmente abajo) para protegerla del viento; un paño fino encima ayuda. Espera un momento de calma.</string>
+    <string name="avz_out_check_4">El viento, el ruido de fondo y los cortes de Bluetooth se detectan automáticamente.</string>
+    <string name="avz_move_text_outdoor">Ahora muévete 1–2 m: reparte las posiciones por la zona donde la gente bailará y escuchará.</string>
+    <string name="avz_move_tip_1_outdoor">Misma altura (la de los oídos), micrófono hacia el altavoz; no pongas el móvil en el suelo.</string>
+    <string name="avz_move_repeat">Repetir medición %1$d</string>
+    <string name="avz_warn_lf_noise">Fuerte ruido de baja frecuencia (viento en el micrófono, tráfico, generador). El rango afectado no se corrige. Con viento: protege el micrófono y vuelve a medir.</string>
+    <string name="avz_warn_unsteady">El ruido de fondo ha variado mucho (ráfagas, coches, voces). Si el resultado parece extraño, mide de nuevo en un momento más tranquilo.</string>
+    <string name="avz_warn_dropout">La señal se cortó un momento, algo típico del Bluetooth al límite de su alcance. Acerca el móvil al altavoz y vuelve a medir.</string>
+    <string name="avz_result_gated">No corregido por el ruido de fondo: %1$s</string>
+    <string name="avz_out_result_title">Modo exterior</string>
+    <string name="avz_out_result_loudness">Pre-ganancia de solo %1$s dB: en exterior AutoVybz realza como máximo 3 dB y prefiere recortar, así conservas el volumen para la fiesta.</string>
+    <string name="avz_out_result_limiter">El limitador se activa automáticamente al aplicar esta calibración y protege el altavoz a volumen de fiesta.</string>
+    <string name="avz_out_party_tip">Consejo de fiesta: más graves gratis con la colocación: pon el altavoz en el suelo (hasta +6 dB) o cerca de una pared. Después vuelve a medir.</string>
+    <string name="avz_out_single_position">En exterior una sola posición es poco fiable (reflexión del suelo). Con 3 posiciones el resultado es mucho más preciso.</string>
+    <string name="avz_help_out_title">Exterior y fiestas</string>
+    <string name="avz_help_out_body">En exterior no hay paredes, y eso cambia la acústica por completo. Elige «Exterior · Fiesta» en el asistente:\n• Menos graves: en interiores las paredes realzan los graves unos 4–8 dB; fuera eso falta. Compensarlo con EQ cuesta exactamente el mismo volumen y fuerza el woofer. Por eso el modo exterior realza como máximo 3 dB y prefiere recortar. Más graves gratis con la colocación: altavoz en el suelo (hasta +6 dB), cerca de una pared o de una esquina de la casa (aún más).\n• Reflexión del suelo: el sonido que rebota en el suelo anula frecuencias concretas según dónde estés. Ningún EQ puede rellenar esos huecos: AutoVybz los ignora y promedia 3 posiciones. Repártelas a 1–2 m entre sí por la zona donde estará la gente.\n• Viento y ruido: el viento en el micrófono produce un fuerte retumbe en los graves. Gira la abertura del micrófono para protegerla del viento, ponle un paño fino encima y espera un momento de calma. Las frecuencias en las que el viento, el tráfico, los pájaros o las cigarras suenan más que el altavoz se dejan sin corregir automáticamente; el resultado te muestra cuáles.\n• Distancia y nivel: mide a 2–4 m del altavoz, con buen volumen (nivel de fiesta, pero no al máximo: muchos altavoces de fiesta reducen ahí sus graves).\n• Alcance del Bluetooth: fuera no hay paredes que reflejen la señal. Mantén el móvil cerca del altavoz; los cortes se detectan.\n• Dos altavoces / modo fiesta: mide cada altavoz por separado o colócalos juntos; dos altavoces muy separados provocan fuertes interferencias en exterior.\n• Sol: en modo exterior AutoVybz sube el brillo de la pantalla durante la calibración. El limitador se activa siempre al aplicar.</string>
 </resources>

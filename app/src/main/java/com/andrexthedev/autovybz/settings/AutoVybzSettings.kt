@@ -1,6 +1,7 @@
 package com.andrexthedev.autovybz.settings
 
 import android.content.Context
+import com.andrexthedev.autovybz.measurement.ListeningEnvironment
 import com.andrexthedev.autovybz.measurement.MeasurementRequest
 import com.andrexthedev.autovybz.measurement.dsp.SmoothingProfile
 import com.andrexthedev.autovybz.measurement.eq.CustomTarget
@@ -33,6 +34,12 @@ class AutoVybzSettings(context: Context) {
     var positions: Int
         get() = if (prefs.getInt("positions", 1) == 3) 3 else 1
         set(v) = prefs.edit().putInt("positions", if (v == 3) 3 else 1).apply()
+
+    /** Indoor (default) or outdoor / party. */
+    var environment: ListeningEnvironment
+        get() = runCatching { ListeningEnvironment.valueOf(prefs.getString("environment", null) ?: "") }
+            .getOrDefault(ListeningEnvironment.INDOOR)
+        set(v) = prefs.edit().putString("environment", v.name).apply()
 
     var smoothing: SmoothingChoice
         get() = runCatching { SmoothingChoice.valueOf(prefs.getString("smoothing", null) ?: "") }.getOrDefault(SmoothingChoice.DYNAMIC)
@@ -108,5 +115,6 @@ class AutoVybzSettings(context: Context) {
         usbCalibration = loadCurve(usbCalibrationFile),
         userMicOffset = loadCurve(userOffsetFile),
         micProfileOverrideId = micProfileOverrideId,
+        environment = environment,
     )
 }

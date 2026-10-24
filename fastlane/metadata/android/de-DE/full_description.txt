@@ -12,6 +12,7 @@ AutoVybz misst deinen externen Lautsprecher (Bluetooth, AUX, USB, HDMI) mit dem 
 <li>Bis zu 10 parametrische Filter passend zu deinem Ziel – ohne Bass zu verstärken, den dein Lautsprecher nicht spielen kann</li>
 <li>Automatischer Pre-Gain und Limiter gegen Übersteuerung</li>
 <li>Optionaler Präzisionsmodus: 3 Positionen, leistungsgemittelt – ignoriert Senken, die es nur an einer Stelle gibt</li>
+<li>Outdoor-/Party-Modus: max. +3 dB Anhebung für volle Lautstärke, ignoriert Bodenreflexionen und verrauschte Bereiche (Wind, Verkehr, Vögel), erkennt Wind und Bluetooth-Aussetzer, Limiter immer an, volle Bildschirmhelligkeit in der Sonne</li>
 </ul>
 
 <b>Ziele</b>: Smart (sanfter Bass-Boost), Neutral/Flat, Bass Boost, Harman/Loudness, Eigenes Ziel.

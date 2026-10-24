@@ -31,11 +31,13 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -70,6 +72,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import com.andrexthedev.autovybz.measurement.ListeningEnvironment
 import com.andrexthedev.autovybz.measurement.MeasurementProgress
 import com.andrexthedev.autovybz.measurement.audio.RouteClassifier
 import com.andrexthedev.autovybz.measurement.dsp.MeasurementWarning
@@ -113,10 +116,12 @@ fun WizardScreen(
                 when (val step = shown) {
                     WizardStep.Idle -> IdleStep(state, vm, startMeasurement, onOpenHelp)
                     is WizardStep.RouteBlocked -> RouteBlockedStep(step, onRetry = startMeasurement, onBack = vm::onReset)
-                    is WizardStep.ConfirmSafety -> SafetyStep(step, vm)
+                    is WizardStep.ConfirmSafety -> SafetyStep(step, state.environment, vm)
                     WizardStep.Preparing -> BusyStep(stringResource(R.string.avz_preparing), null)
                     is WizardStep.Measuring -> MeasuringStep(step, vm::onCancel)
-                    is WizardStep.MovePhone -> MovePhoneStep(step, vm::onNextPosition, vm::onFinishWithMeasured, vm::onCancel)
+                    is WizardStep.MovePhone -> MovePhoneStep(
+                        step, state.environment, vm::onNextPosition, vm::onRepeatLastPosition, vm::onFinishWithMeasured, vm::onCancel,
+                    )
                     WizardStep.Analyzing -> BusyStep(stringResource(R.string.avz_analyzing), null)
                     is WizardStep.Result -> ResultStep(step, state, vm)
                     is WizardStep.Saved -> SavedStep(step, onOpenProEq, vm::onReset)
@@ -157,6 +162,33 @@ private fun IdleStep(state: WizardUiState, vm: WizardViewModel, onStart: () -> U
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
         colors = avzTextFieldColors(),
         modifier = Modifier.fillMaxWidth(),
+    )
+
+    SectionTitle(stringResource(R.string.avz_env_label))
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        for ((env, label) in listOf(
+            ListeningEnvironment.INDOOR to R.string.avz_env_indoor,
+            ListeningEnvironment.OUTDOOR to R.string.avz_env_outdoor,
+        )) {
+            FilterChip(
+                selected = state.environment == env,
+                onClick = { vm.onEnvironmentChanged(env) },
+                label = { Text(stringResource(label)) },
+                leadingIcon = {
+                    Icon(if (env == ListeningEnvironment.OUTDOOR) Icons.Filled.Star else Icons.Filled.Home, null, Modifier.size(18.dp))
+                },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = AutoVybzColors.GreenContainer,
+                    selectedLabelColor = AutoVybzColors.GreenBright,
+                    selectedLeadingIconColor = AutoVybzColors.Gold,
+                ),
+            )
+        }
+    }
+    Text(
+        stringResource(if (state.environment == ListeningEnvironment.OUTDOOR) R.string.avz_env_outdoor_desc else R.string.avz_env_indoor_desc),
+        style = MaterialTheme.typography.bodySmall,
+        color = AutoVybzColors.OnDarkMuted,
     )
 
     SectionTitle(stringResource(R.string.avz_target_label))
@@ -290,7 +322,7 @@ private fun RouteBlockedStep(step: WizardStep.RouteBlocked, onRetry: () -> Unit,
 /* ---------------------------------------------------------------- safety -- */
 
 @Composable
-private fun SafetyStep(step: WizardStep.ConfirmSafety, vm: WizardViewModel) {
+private fun SafetyStep(step: WizardStep.ConfirmSafety, environment: ListeningEnvironment, vm: WizardViewModel) {
     var readWarning by remember { mutableStateOf(false) }
     var isSpeaker by remember { mutableStateOf(!step.needsSpeakerConfirmation) }
 
@@ -306,6 +338,20 @@ private fun SafetyStep(step: WizardStep.ConfirmSafety, vm: WizardViewModel) {
         Bullet(stringResource(R.string.avz_safety_b3))
         Text(stringResource(R.string.avz_safety_effects), style = MaterialTheme.typography.bodySmall, color = AutoVybzColors.OnDarkMuted)
         step.routeName?.let { Text(stringResource(R.string.avz_safety_route, it), color = AutoVybzColors.GreenBright) }
+    }
+
+    if (environment == ListeningEnvironment.OUTDOOR) {
+        AvzCard(accent = AutoVybzColors.Green) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.Star, contentDescription = null, tint = AutoVybzColors.Gold)
+                Spacer(Modifier.width(10.dp))
+                Text(stringResource(R.string.avz_out_check_title), style = MaterialTheme.typography.titleMedium)
+            }
+            Bullet(stringResource(R.string.avz_out_check_1))
+            Bullet(stringResource(R.string.avz_out_check_2))
+            Bullet(stringResource(R.string.avz_out_check_3))
+            Bullet(stringResource(R.string.avz_out_check_4))
+        }
     }
 
     AvzCard {
@@ -411,7 +457,16 @@ private fun MeasuringStep(step: WizardStep.Measuring, onCancel: () -> Unit) {
 
 /** Between two positions of a multi-position calibration. */
 @Composable
-private fun MovePhoneStep(step: WizardStep.MovePhone, onContinue: () -> Unit, onFinish: () -> Unit, onCancel: () -> Unit) {
+private fun MovePhoneStep(
+    step: WizardStep.MovePhone,
+    environment: ListeningEnvironment,
+    onContinue: () -> Unit,
+    onRepeat: () -> Unit,
+    onFinish: () -> Unit,
+    onCancel: () -> Unit,
+) {
+    val outdoor = environment == ListeningEnvironment.OUTDOOR
+    val disturbed = step.lastWarnings.any { it != MeasurementWarning.HIGH_LATENCY }
     Column(Modifier.fillMaxWidth().padding(top = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             for (i in 1..step.total) {
@@ -430,31 +485,49 @@ private fun MovePhoneStep(step: WizardStep.MovePhone, onContinue: () -> Unit, on
             textAlign = TextAlign.Center,
         )
     }
-    AvzCard {
-        Text(stringResource(R.string.avz_move_text), style = MaterialTheme.typography.bodyLarge)
-        Bullet(stringResource(R.string.avz_move_tip_1))
-        Bullet(stringResource(R.string.avz_move_tip_2))
+    if (step.completed < step.total) {
+        AvzCard {
+            Text(stringResource(if (outdoor) R.string.avz_move_text_outdoor else R.string.avz_move_text), style = MaterialTheme.typography.bodyLarge)
+            Bullet(stringResource(if (outdoor) R.string.avz_move_tip_1_outdoor else R.string.avz_move_tip_1))
+            Bullet(stringResource(R.string.avz_move_tip_2))
+        }
     }
-    if (step.lastWarnings.any { it == MeasurementWarning.CLIPPING || it == MeasurementWarning.LOW_SNR }) {
+    if (disturbed) {
         Row(
             Modifier.fillMaxWidth().clip(MaterialTheme.shapes.small).background(AutoVybzColors.GoldContainer).padding(12.dp),
         ) {
             Icon(Icons.Filled.Warning, contentDescription = null, tint = AutoVybzColors.Gold)
             Spacer(Modifier.width(10.dp))
-            Text(stringResource(R.string.avz_move_warn), style = MaterialTheme.typography.bodyMedium)
+            Column {
+                for (w in step.lastWarnings.filter { it != MeasurementWarning.HIGH_LATENCY }) {
+                    Text(warningText(w, 0.0), style = MaterialTheme.typography.bodyMedium)
+                }
+                Text(stringResource(R.string.avz_move_warn), style = MaterialTheme.typography.bodySmall, color = AutoVybzColors.OnDarkMuted)
+            }
+        }
+        OutlinedButton(onClick = onRepeat, modifier = Modifier.fillMaxWidth(), border = BorderStroke(1.dp, AutoVybzColors.Gold)) {
+            Icon(Icons.Filled.Refresh, contentDescription = null, tint = AutoVybzColors.Gold)
+            Text("  " + stringResource(R.string.avz_move_repeat, step.completed), color = AutoVybzColors.Gold)
         }
     }
+    val allMeasured = step.completed >= step.total
     Button(
-        onClick = onContinue,
+        onClick = if (allMeasured) onFinish else onContinue,
         colors = ButtonDefaults.buttonColors(containerColor = AutoVybzColors.Green),
         modifier = Modifier.fillMaxWidth().height(56.dp),
     ) {
-        Icon(Icons.Filled.PlayArrow, contentDescription = null)
-        Text("  " + stringResource(R.string.avz_move_continue, step.completed + 1), style = MaterialTheme.typography.titleMedium)
+        Icon(if (allMeasured) Icons.Filled.CheckCircle else Icons.Filled.PlayArrow, contentDescription = null)
+        Text(
+            "  " + if (allMeasured) stringResource(R.string.avz_move_finish, step.completed)
+            else stringResource(R.string.avz_move_continue, step.completed + 1),
+            style = MaterialTheme.typography.titleMedium,
+        )
     }
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
         OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.avz_cancel)) }
-        OutlinedButton(onClick = onFinish, modifier = Modifier.weight(1.6f)) { Text(stringResource(R.string.avz_move_finish, step.completed)) }
+        if (!allMeasured) {
+            OutlinedButton(onClick = onFinish, modifier = Modifier.weight(1.6f)) { Text(stringResource(R.string.avz_move_finish, step.completed)) }
+        }
     }
 }
 
@@ -518,13 +591,8 @@ private fun ResultStep(step: WizardStep.Result, state: WizardUiState, vm: Wizard
 
     // Warnings
     for (w in r.warnings) {
-        val text = when (w) {
-            MeasurementWarning.CLIPPING -> stringResource(R.string.avz_warn_clipping)
-            MeasurementWarning.LOW_SNR -> stringResource(R.string.avz_warn_low_snr)
-            MeasurementWarning.SWEEP_NOISE_MISMATCH -> stringResource(R.string.avz_warn_mismatch)
-            MeasurementWarning.HIGH_LATENCY -> stringResource(R.string.avz_warn_latency, r.latencyMs.roundToInt())
-        }
-        val severe = w == MeasurementWarning.CLIPPING || w == MeasurementWarning.LOW_SNR
+        val text = warningText(w, r.latencyMs)
+        val severe = w == MeasurementWarning.CLIPPING || w == MeasurementWarning.LOW_SNR || w == MeasurementWarning.DROPOUT
         Row(
             Modifier.fillMaxWidth().clip(MaterialTheme.shapes.small)
                 .background(if (severe) AutoVybzColors.GoldContainer else AutoVybzColors.SurfaceHigh).padding(12.dp),
@@ -532,6 +600,35 @@ private fun ResultStep(step: WizardStep.Result, state: WizardUiState, vm: Wizard
             Icon(if (severe) Icons.Filled.Warning else Icons.Filled.Info, contentDescription = null, tint = AutoVybzColors.Gold)
             Spacer(Modifier.width(10.dp))
             Text(text, style = MaterialTheme.typography.bodyMedium)
+        }
+    }
+
+    if (e.noiseGatedRanges.isNotEmpty()) {
+        Row(
+            Modifier.fillMaxWidth().clip(MaterialTheme.shapes.small).background(AutoVybzColors.SurfaceHigh).padding(12.dp),
+        ) {
+            Icon(Icons.Filled.Info, contentDescription = null, tint = AutoVybzColors.Gold)
+            Spacer(Modifier.width(10.dp))
+            Text(
+                stringResource(R.string.avz_result_gated, e.noiseGatedRanges.joinToString(", ") { formatRange(it.first, it.second) }),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
+    }
+
+    if (o.request.environment == ListeningEnvironment.OUTDOOR) {
+        AvzCard(accent = AutoVybzColors.Green) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.Star, contentDescription = null, tint = AutoVybzColors.Gold)
+                Spacer(Modifier.width(10.dp))
+                Text(stringResource(R.string.avz_out_result_title), style = MaterialTheme.typography.titleMedium)
+            }
+            Text(stringResource(R.string.avz_out_result_loudness, fmt1(e.preampDb)), style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(R.string.avz_out_result_limiter), style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(R.string.avz_out_party_tip), style = MaterialTheme.typography.bodyMedium, color = AutoVybzColors.GreenBright)
+            if (o.positions < 2) {
+                Text(stringResource(R.string.avz_out_single_position), style = MaterialTheme.typography.bodySmall, color = AutoVybzColors.Gold)
+            }
         }
     }
 
@@ -690,6 +787,24 @@ internal fun avzTextFieldColors() = OutlinedTextFieldDefaults.colors(
     focusedLabelColor = AutoVybzColors.GreenBright,
     cursorColor = AutoVybzColors.Gold,
 )
+
+@Composable
+private fun warningText(w: MeasurementWarning, latencyMs: Double): String = when (w) {
+    MeasurementWarning.CLIPPING -> stringResource(R.string.avz_warn_clipping)
+    MeasurementWarning.LOW_SNR -> stringResource(R.string.avz_warn_low_snr)
+    MeasurementWarning.SWEEP_NOISE_MISMATCH -> stringResource(R.string.avz_warn_mismatch)
+    MeasurementWarning.HIGH_LATENCY -> stringResource(R.string.avz_warn_latency, latencyMs.roundToInt())
+    MeasurementWarning.LOW_FREQ_NOISE -> stringResource(R.string.avz_warn_lf_noise)
+    MeasurementWarning.NOISE_UNSTEADY -> stringResource(R.string.avz_warn_unsteady)
+    MeasurementWarning.DROPOUT -> stringResource(R.string.avz_warn_dropout)
+}
+
+/** "41–320 Hz" / "3.0–8.0 kHz". */
+private fun formatRange(lo: Double, hi: Double): String {
+    fun f(v: Double) = if (v >= 1000.0) String.format(Locale.getDefault(), "%.1f", v / 1000.0) else v.roundToInt().toString()
+    val unit = if (hi >= 1000.0) "kHz" else "Hz"
+    return if (lo >= 1000.0 || hi < 1000.0) "${f(lo)}–${f(hi)} $unit" else "${f(lo)} Hz–${f(hi)} kHz"
+}
 
 /** Above this RMS disagreement between positions the result gets a gentle hint. */
 private const val HIGH_POSITION_SPREAD_DB = 4.0

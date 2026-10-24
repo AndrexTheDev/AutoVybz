@@ -77,7 +77,7 @@
       { "i": "🛡", "t": "Lautsprecherschutz", "d": "Hebt nie Bass an, den dein Lautsprecher nicht spielen kann. Automatische Vorabsenkung und Limiter verhindern Übersteuerung." },
       { "i": "🎙", "t": "Mikrofon-Ausgleich", "d": "Profile für beliebte Handys korrigieren das eingebaute Mikro. Pro: USB-Messmikrofon mit Kalibrierdatei anschließen." },
       { "i": "⚡", "t": "Native C++-Engine", "d": "Oboe-Full-Duplex-Audio mit rohem, unbearbeitetem Mikrofonsignal und schneller nativer FFT." },
-      { "i": "📶", "t": "Bluetooth-fest", "d": "Automatische Latenzerkennung – auch Hunderte Millisekunden Bluetooth-Verzögerung sind kein Problem." },
+      { "i": "🎉", "t": "Draußen & Party", "d": "Garten, Strand, Park: max. +3 dB Anhebung erhält die Lautstärke, Wind und Lärm werden ignoriert, Bluetooth-Verzögerung und -Aussetzer erkannt, Limiter immer an." },
       { "i": "📤", "t": "Alles exportieren", "d": "Text für Equalizer APO / Peace / AutoEq, JSON, CSV für REW und das native AutoVybz-Format." },
       { "i": "🎛", "t": "Pro-Modus inklusive", "d": "Komplette Equalizer314-Engine: parametrischer EQ mit Graph, Multiband-Kompressor, Limiter, Presets, AutoEQ für Kopfhörer." }
     ]

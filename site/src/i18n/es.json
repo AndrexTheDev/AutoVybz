@@ -77,7 +77,7 @@
       { "i": "🛡", "t": "Protección del altavoz", "d": "Nunca realza graves que tu altavoz no puede reproducir. La preganancia automática y el limitador evitan la saturación." },
       { "i": "🎙", "t": "Compensación del micrófono", "d": "Perfiles para móviles populares corrigen el micrófono integrado. Pro: conecta un micrófono de medición USB con su archivo de calibración." },
       { "i": "⚡", "t": "Motor nativo en C++", "d": "Audio full-duplex con Oboe, entrada de micrófono sin procesar y una FFT nativa rápida." },
-      { "i": "📶", "t": "A prueba de Bluetooth", "d": "Detección automática de latencia – cientos de milisegundos de retardo Bluetooth no son problema." },
+      { "i": "🎉", "t": "Exterior y fiestas", "d": "Jardín, playa, parque: realce máx. +3 dB para conservar el volumen, ignora viento y ruido, detecta retardo y cortes de Bluetooth, limitador siempre activo." },
       { "i": "📤", "t": "Exporta todo", "d": "Texto para Equalizer APO / Peace / AutoEq, JSON, CSV para REW y el formato nativo de AutoVybz." },
       { "i": "🎛", "t": "Modo Pro incluido", "d": "Motor completo de Equalizer314: gráfico de EQ paramétrico, compresor multibanda, limitador, presets y AutoEQ para auriculares." }
     ]
