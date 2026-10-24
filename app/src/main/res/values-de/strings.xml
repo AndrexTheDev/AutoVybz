@@ -94,7 +94,7 @@
     <string name="control_this_app_from_another_device">Diese App von einem anderen Gerät im Netzwerk steuern.</string>
     <string name="off">Aus</string>
     <string name="tv">TV</string>
-    <string name="remote">Fernbedienung</string>
+    <string name="remote">Remote</string>
     <string name="experimental_dp_engine">Experimentelle DP-Engine</string>
     <string name="s_32_bands_time_resolution_fft_vs">32 Bänder + zeitaufgelöste FFT (statt bisher 128 Bänder + frequenzaufgelöst). Soll Dröhnbass und dünne Höhen beheben. Umschalten startet die Audio-Engine neu.</string>
     <string name="limiter">Limiter</string>
@@ -102,7 +102,7 @@
     <string name="ratio_x_1">Ratio (X:1)</string>
     <string name="attack_ms">Attack (ms)</string>
     <string name="release_ms">Release (ms)</string>
-    <string name="post_gain_db">Nachverstärkung (dB)</string>
+    <string name="post_gain_db">Post-Gain (dB)</string>
     <string name="reset_to_defaults">Auf Standard zurücksetzen</string>
     <string name="toggle_visualizer">Spektrum ein/aus</string>
     <string name="parametric">Parametrisch</string>
@@ -145,10 +145,10 @@
     <string name="multiband_compression">Mehrband-Kompressor</string>
     <string name="band_1">Band 1</string>
     <string name="u2014">\u2014</string>
-    <string name="cutoff_hz">Trennfrequenz (Hz)</string>
+    <string name="cutoff_hz">Frequenz (Hz)</string>
     <string name="s_1000">1000</string>
-    <string name="pre_gain_db">Vorverstärkung (dB)</string>
-    <string name="post_gain_db_2">Nachverstärkung (dB)</string>
+    <string name="pre_gain_db">Pre-Gain (dB)</string>
+    <string name="post_gain_db_2">Post-Gain (dB)</string>
     <string name="range_db">Bereich (dB)</string>
     <string name="s_12_0">-12.0</string>
     <string name="range_visual_only_nto_achieve_this">Bereich (nur Anzeige)\nUm diesen Bereich zu erreichen, Schwelle und Ratio entsprechend einstellen</string>

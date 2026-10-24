@@ -1,6 +1,7 @@
 package com.andrexthedev.autovybz.ui.wizard
 
 import android.app.Application
+import android.os.Looper
 import android.util.Log
 import com.andrexthedev.autovybz.AutoVybzServices
 import androidx.lifecycle.AndroidViewModel
@@ -112,6 +113,20 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
     val state: StateFlow<WizardUiState> = _state.asStateFlow()
 
     private fun setStep(step: WizardStep) = _state.update { it.copy(step = step) }
+
+    /**
+     * Progress arrives on the audio worker thread (capture loop). UI state is only written on the main thread:
+     * under the Compose test clock a collector resumed from a worker re-laid out views off the main thread
+     * (CalledFromWrongThreadException on API 28, campaign 9). A late "measuring 80 %" must never overwrite a step
+     * that already moved on (Analyzing, Result, an error), so posted updates only apply while still measuring.
+     */
+    private fun setStepFromProgress(next: WizardStep) {
+        if (Looper.myLooper() == Looper.getMainLooper()) { setStep(next); return }
+        viewModelScope.launch {
+            val current = _state.value.step
+            if (current is WizardStep.Preparing || current is WizardStep.Measuring) setStep(next)
+        }
+    }
 
     /** The Pro tab edits the same preferences - pick up changes when the wizard becomes visible again. */
     fun reloadSettings() = _state.update {
@@ -238,12 +253,12 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
                 }
                 setStep(WizardStep.Preparing)
                 val outcome = controller.run(request) { p ->
-                    when (p) {
-                        MeasurementProgress.Preparing -> setStep(WizardStep.Preparing)
-                        is MeasurementProgress.Measuring ->
-                            setStep(WizardStep.Measuring(p.fraction, p.inputPeak, p.phase, position, total))
-                        MeasurementProgress.Analyzing -> setStep(WizardStep.Analyzing)
+                    val next = when (p) {
+                        MeasurementProgress.Preparing -> WizardStep.Preparing
+                        is MeasurementProgress.Measuring -> WizardStep.Measuring(p.fraction, p.inputPeak, p.phase, position, total)
+                        MeasurementProgress.Analyzing -> WizardStep.Analyzing
                     }
+                    setStepFromProgress(next)
                 }
                 partial += outcome
                 // A disturbed last position (gust, dropout, ...) gets the chance to be repeated before averaging.
