@@ -9,6 +9,15 @@ import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.BorderStroke
@@ -77,33 +86,48 @@ import kotlin.math.ln
 /* ------------------------------------------------------------- header -- */
 
 @Composable
-fun AutoVybzHeader(subtitle: String, modifier: Modifier = Modifier, compact: Boolean = false) {
+fun AutoVybzHeader(
+    subtitle: String,
+    modifier: Modifier = Modifier,
+    compact: Boolean = false,
+    /** Optional action on the right (e.g. the info button). */
+    action: (@Composable () -> Unit)? = null,
+) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .background(
-                Brush.verticalGradient(listOf(AutoVybzColors.BackgroundDeep, AutoVybzColors.Background)),
-            )
+            .background(Brush.verticalGradient(listOf(AutoVybzColors.BackgroundDeep, AutoVybzColors.Background)))
             // edge-to-edge: the gradient runs under the status bar, the content stays below it / beside a cutout
             .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal))
-            .padding(horizontal = 20.dp, vertical = if (compact) 6.dp else 14.dp),
+            .padding(start = 16.dp, end = 8.dp, top = if (compact) 4.dp else 10.dp, bottom = if (compact) 4.dp else 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Image(
             painter = painterResource(R.drawable.autovybz_logo),
             contentDescription = null,
-            modifier = Modifier.size(if (compact) 32.dp else 44.dp).clip(RoundedCornerShape(12.dp)),
+            modifier = Modifier.size(if (compact) 34.dp else 46.dp),
         )
-        Spacer(Modifier.width(14.dp))
-        Column {
-            Row(Modifier.clearAndSetSemantics { contentDescription = "AutoVybz" }) { // read as one word
-                Text("Auto", style = MaterialTheme.typography.titleLarge, color = AutoVybzColors.OnDark)
-                Text("Vybz", style = MaterialTheme.typography.titleLarge, color = AutoVybzColors.Gold)
+        Spacer(Modifier.width(10.dp))
+        Column(Modifier.weight(1f)) {
+            VybzWordmark(if (compact) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineSmall)
+            if (!compact) {
+                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = AutoVybzColors.OnDarkMuted)
             }
-            if (!compact) Text(subtitle, style = MaterialTheme.typography.bodySmall, color = AutoVybzColors.OnDarkMuted)
         }
-        Spacer(Modifier.weight(1f))
-        JamaicaStripe(Modifier.width(36.dp).height(4.dp))
+        if (action != null) action() else Spacer(Modifier.width(8.dp))
+    }
+}
+
+/** The word mark: "Auto" light, "Vybz" in neon green with a gold dot - read as one word by TalkBack. */
+@Composable
+fun VybzWordmark(style: TextStyle, modifier: Modifier = Modifier) {
+    Row(modifier.clearAndSetSemantics { contentDescription = "AutoVybz" }, verticalAlignment = Alignment.Bottom) {
+        Text("Auto", style = style.copy(fontWeight = FontWeight.Medium), color = AutoVybzColors.OnDark)
+        Text("Vybz", style = style.copy(fontWeight = FontWeight.Bold), color = AutoVybzColors.Green)
+        Box(
+            Modifier.padding(start = 2.dp, bottom = (style.fontSize.value * 0.22f).dp)
+                .size((style.fontSize.value * 0.22f).dp).clip(CircleShape).background(AutoVybzColors.Gold),
+        )
     }
 }
 
@@ -127,14 +151,84 @@ fun AdaptiveButtonRow(spacing: Dp = 8.dp, content: @Composable AdaptiveButtonSco
     }
 }
 
-/** Thin green-gold-green accent bar. */
+/** Thin neon-green → gold accent bar (the two logo rings). */
 @Composable
-fun JamaicaStripe(modifier: Modifier = Modifier) {
+fun VybzStripe(modifier: Modifier = Modifier) {
     Box(
         modifier
             .clip(RoundedCornerShape(2.dp))
-            .background(Brush.horizontalGradient(listOf(AutoVybzColors.Green, AutoVybzColors.Gold, AutoVybzColors.Green))),
+            .background(Brush.horizontalGradient(listOf(AutoVybzColors.Green, AutoVybzColors.Gold))),
     )
+}
+
+/**
+ * The brand sign: an outer neon-green ring and an inner gold ring, like the logo. [progress] (0..1) draws the outer
+ * ring as a sweep (countdown, measuring); [pulse] (0..1) adds a soft glow ring that breathes outwards.
+ */
+@Composable
+fun VybzRings(
+    modifier: Modifier = Modifier,
+    progress: Float? = null,
+    pulse: Float = 0f,
+    outer: Color = AutoVybzColors.Green,
+    inner: Color = AutoVybzColors.Gold,
+    strokeWidth: Dp = 6.dp,
+) {
+    Canvas(modifier) {
+        val stroke = strokeWidth.toPx()
+        val radius = size.minDimension / 2f - stroke * 1.5f
+        val center = Offset(size.width / 2f, size.height / 2f)
+        if (pulse > 0f) {
+            drawCircle(
+                outer.copy(alpha = 0.28f * (1f - pulse)), radius = radius + stroke * (1f + 4f * pulse), center = center,
+                style = Stroke(width = stroke * (1f - 0.5f * pulse)),
+            )
+        }
+        val outerRadius = radius
+        val innerRadius = radius - stroke * 2.2f
+        if (progress == null) {
+            drawCircle(outer, radius = outerRadius, center = center, style = Stroke(width = stroke))
+        } else {
+            drawCircle(outer.copy(alpha = 0.18f), radius = outerRadius, center = center, style = Stroke(width = stroke))
+            drawArc(
+                outer, startAngle = -90f, sweepAngle = 360f * progress.coerceIn(0f, 1f), useCenter = false,
+                topLeft = Offset(center.x - outerRadius, center.y - outerRadius),
+                size = androidx.compose.ui.geometry.Size(outerRadius * 2f, outerRadius * 2f),
+                style = Stroke(width = stroke, cap = StrokeCap.Round),
+            )
+        }
+        drawCircle(inner, radius = innerRadius, center = center, style = Stroke(width = stroke * 0.8f))
+    }
+}
+
+/** Infinite 0..1 breathing value for [VybzRings] - static (0) when the system has animations switched off. */
+@Composable
+fun rememberPulse(periodMs: Int = 2_400): Float {
+    if (!animationsEnabled()) return 0f
+    val transition = rememberInfiniteTransition(label = "pulse")
+    val v by transition.animateFloat(
+        initialValue = 0f, targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(periodMs, easing = LinearEasing), RepeatMode.Restart),
+        label = "pulse",
+    )
+    return v
+}
+
+/** False when the user (or a test device) removed animations - decorative motion then stays still. */
+@Composable
+fun animationsEnabled(): Boolean = remember { android.animation.ValueAnimator.areAnimatorsEnabled() }
+
+/**
+ * One-line explanation with an info icon - the app explains itself where a decision is made instead of hiding
+ * it in the help. Muted, never louder than the control it belongs to.
+ */
+@Composable
+fun HintRow(text: String, modifier: Modifier = Modifier, icon: ImageVector = Icons.Outlined.Info) {
+    Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
+        Icon(icon, contentDescription = null, tint = AutoVybzColors.OnDarkMuted, modifier = Modifier.padding(top = 1.dp).size(16.dp))
+        Spacer(Modifier.width(8.dp))
+        Text(text, style = MaterialTheme.typography.bodySmall, color = AutoVybzColors.OnDarkMuted)
+    }
 }
 
 /* -------------------------------------------------------------- cards -- */
@@ -144,10 +238,15 @@ fun AvzCard(modifier: Modifier = Modifier, accent: Color? = null, content: @Comp
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(containerColor = AutoVybzColors.Surface, contentColor = AutoVybzColors.OnDark),
-        border = BorderStroke(1.dp, accent ?: AutoVybzColors.Outline.copy(alpha = 0.6f)),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent, contentColor = AutoVybzColors.OnDark),
+        border = BorderStroke(1.dp, accent ?: AutoVybzColors.Outline.copy(alpha = 0.35f)),
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp), content = content)
+        Column(
+            Modifier.fillMaxWidth()
+                .background(Brush.verticalGradient(listOf(AutoVybzColors.CardTop, AutoVybzColors.CardBottom)))
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp), content = content,
+        )
     }
 }
 
@@ -166,7 +265,7 @@ fun CollapsibleCard(
         modifier = modifier.fillMaxWidth().animateContentSize(),
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(containerColor = AutoVybzColors.Surface, contentColor = AutoVybzColors.OnDark),
-        border = BorderStroke(1.dp, if (expanded) AutoVybzColors.Green.copy(alpha = 0.7f) else AutoVybzColors.Outline.copy(alpha = 0.6f)),
+        border = BorderStroke(1.dp, if (expanded) AutoVybzColors.Green.copy(alpha = 0.6f) else AutoVybzColors.Outline.copy(alpha = 0.35f)),
     ) {
         Row(
             Modifier.fillMaxWidth()

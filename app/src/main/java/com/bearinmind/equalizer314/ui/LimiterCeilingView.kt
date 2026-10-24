@@ -60,33 +60,33 @@ class LimiterCeilingView @JvmOverloads constructor(
     }
 
     private val bgPaint = Paint().apply { color = 0x00000000 }  // transparent — waveform shows through
-    private val columnBgPaint = Paint().apply { color = 0xCC2A2A2A.toInt() }  // semi-transparent columns
-    private val inputBelowPaint = Paint().apply { color = 0xFFBBBBBB.toInt() } // grey
-    private val inputAbovePaint = Paint().apply { color = 0xFFBBBBBB.toInt() } // same grey
+    private val columnBgPaint = Paint().apply { color = 0xCC35414C.toInt() }  // semi-transparent columns
+    private val inputBelowPaint = Paint().apply { color = 0xFFBAC3CB.toInt() } // grey
+    private val inputAbovePaint = Paint().apply { color = 0xFFBAC3CB.toInt() } // same grey
     private val ceilingLinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFFBBBBBB.toInt(); strokeWidth = 2f
+        color = 0xFFBAC3CB.toInt(); strokeWidth = 2f
         pathEffect = DashPathEffect(floatArrayOf(8f, 5f), 0f)
     }
-    private val grFillPaint = Paint().apply { color = 0xFFBBBBBB.toInt() }
+    private val grFillPaint = Paint().apply { color = 0xFFBAC3CB.toInt() }
     private val gridPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFF3A3A3A.toInt(); strokeWidth = 1f
+        color = 0xFF43505C.toInt(); strokeWidth = 1f
     }
     private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFF888888.toInt(); textSize = 20f; textAlign = Paint.Align.CENTER
+        color = 0xFF8E9AA5.toInt(); textSize = 20f; textAlign = Paint.Align.CENTER
     }
     private val titlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFFAAAAAA.toInt(); textSize = 22f; textAlign = Paint.Align.CENTER
+        color = 0xFFA9B4BE.toInt(); textSize = 22f; textAlign = Paint.Align.CENTER
     }
     private val valuePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFFDDDDDD.toInt(); textSize = 24f; textAlign = Paint.Align.CENTER
+        color = 0xFFDDE3E7.toInt(); textSize = 24f; textAlign = Paint.Align.CENTER
         typeface = Typeface.DEFAULT_BOLD
     }
     private val grValuePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFFBBBBBB.toInt(); textSize = 24f; textAlign = Paint.Align.CENTER
+        color = 0xFFBAC3CB.toInt(); textSize = 24f; textAlign = Paint.Align.CENTER
         typeface = Typeface.DEFAULT_BOLD
     }
     private val peakLinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFFBBBBBB.toInt(); strokeWidth = 2f  // same grey as graph input trace
+        color = 0xFFBAC3CB.toInt(); strokeWidth = 2f  // same grey as graph input trace
     }
     private val haloPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = 0x30FFFFFF.toInt(); style = Paint.Style.FILL
@@ -102,17 +102,17 @@ class LimiterCeilingView @JvmOverloads constructor(
     // so its dark columns/halo and light-grey traces flip.
     init {
         if (isLightTheme) {
-            columnBgPaint.color = 0xCCD0D0D0.toInt()
-            inputBelowPaint.color = 0xFF585858.toInt()
-            inputAbovePaint.color = 0xFF585858.toInt()
-            ceilingLinePaint.color = 0xFF585858.toInt()
-            grFillPaint.color = 0xFF585858.toInt()
-            gridPaint.color = 0xFFCFCFCF.toInt()
-            labelPaint.color = 0xFF6A6A6A.toInt()
-            titlePaint.color = 0xFF585858.toInt()
-            valuePaint.color = 0xFF252525.toInt()
-            grValuePaint.color = 0xFF585858.toInt()
-            peakLinePaint.color = 0xFF585858.toInt()
+            columnBgPaint.color = 0xCCD0D7DD.toInt()
+            inputBelowPaint.color = 0xFF616F7C.toInt()
+            inputAbovePaint.color = 0xFF616F7C.toInt()
+            ceilingLinePaint.color = 0xFF616F7C.toInt()
+            grFillPaint.color = 0xFF616F7C.toInt()
+            gridPaint.color = 0xFFCFD6DC.toInt()
+            labelPaint.color = 0xFF75828E.toInt()
+            titlePaint.color = 0xFF616F7C.toInt()
+            valuePaint.color = 0xFF333E49.toInt()
+            grValuePaint.color = 0xFF616F7C.toInt()
+            peakLinePaint.color = 0xFF616F7C.toInt()
             haloPaint.color = 0x30000000
         }
     }
@@ -212,11 +212,11 @@ class LimiterCeilingView @JvmOverloads constructor(
         triPath.close()
 
         val triBgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = if (isLightTheme) 0xFFE6E6E6.toInt() else 0xFF1E1E1E.toInt(); style = Paint.Style.FILL
+            color = if (isLightTheme) 0xFFE7EBEF.toInt() else 0xFF2D3742.toInt(); style = Paint.Style.FILL
             pathEffect = CornerPathEffect(triCorner)
         }
         val triOutlinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = if (isLightTheme) 0xFF585858.toInt() else 0xFFBBBBBB.toInt(); style = Paint.Style.STROKE; strokeWidth = 2f
+            color = if (isLightTheme) 0xFF616F7C.toInt() else 0xFFBAC3CB.toInt(); style = Paint.Style.STROKE; strokeWidth = 2f
             pathEffect = CornerPathEffect(triCorner)
         }
         // Triangle halo when dragging

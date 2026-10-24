@@ -98,7 +98,7 @@
                     app:iconPadding="0dp"
                     app:iconTint="@null"
                     app:shapeAppearanceOverlay="@style/ShapeAppearance.MbcEqButton"
-                    app:strokeColor="#FF444444"
+                    app:strokeColor="#FF4C5A67"
                     app:strokeWidth="1dp"
                     android:contentDescription="@string/frequency_view" />
 
@@ -119,7 +119,7 @@
                     app:iconPadding="0dp"
                     app:iconTint="@null"
                     app:shapeAppearanceOverlay="@style/ShapeAppearance.MbcGrButton"
-                    app:strokeColor="#FF444444"
+                    app:strokeColor="#FF4C5A67"
                     app:strokeWidth="1dp"
                     android:contentDescription="@string/gr_trace_view" />
             </LinearLayout>
@@ -141,7 +141,7 @@
                 app:iconPadding="0dp"
                 app:iconTint="@null"
                 app:shapeAppearanceOverlay="@style/ShapeAppearance.ResetButton"
-                app:strokeColor="#FF444444"
+                app:strokeColor="#FF4C5A67"
                 app:strokeWidth="1dp"
                 android:contentDescription="@string/reset_to_defaults" />
 
@@ -161,7 +161,7 @@
                 app:iconPadding="0dp"
                 app:iconTint="@null"
                 app:shapeAppearanceOverlay="@style/ShapeAppearance.SpectrumButton"
-                app:strokeColor="#FF444444"
+                app:strokeColor="#FF4C5A67"
                 app:strokeWidth="1dp"
                 android:contentDescription="@string/toggle_visualizer" />
         </FrameLayout>
@@ -399,7 +399,7 @@
                             app:cardCornerRadius="8dp"
                             app:cardElevation="0dp"
                             app:strokeWidth="0dp"
-                            app:rippleColor="#33AAAAAA">
+                            app:rippleColor="#33A9B4BE">
 
                             <TextView
                                 android:layout_width="match_parent"
@@ -463,7 +463,7 @@
                         <com.google.android.material.card.MaterialCardView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            app:cardBackgroundColor="#1A333333"
+                            app:cardBackgroundColor="#1A3D4955"
                             app:cardCornerRadius="8dp"
                             app:cardElevation="0dp"
                             app:strokeColor="?attr/colorOutlineVariant"

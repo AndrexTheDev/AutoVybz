@@ -1,5 +1,6 @@
 package com.andrexthedev.autovybz.ui.help
 
+import com.andrexthedev.autovybz.ui.components.VybzIcons
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.platform.testTag
@@ -40,6 +41,7 @@ fun HelpScreen() {
         Triple(Icons.Filled.Warning, R.string.avz_help_s4_title, R.string.avz_help_s4_body),
         Triple(Icons.Filled.Settings, R.string.avz_help_s5_title, R.string.avz_help_s5_body),
         Triple(Icons.Filled.Phone, R.string.avz_help_s6_title, R.string.avz_help_s6_body),
+        Triple(VybzIcons.Sound, R.string.avz_help_styles_title, R.string.avz_help_styles_body),
         Triple(Icons.Filled.Star, R.string.avz_help_out_title, R.string.avz_help_out_body),
         Triple(Icons.Filled.Build, R.string.avz_help_s7_title, R.string.avz_help_s7_body),
         Triple(Icons.Filled.Info, R.string.avz_help_s8_title, R.string.avz_help_s8_body),

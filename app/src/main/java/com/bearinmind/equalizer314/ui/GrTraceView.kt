@@ -62,8 +62,8 @@ class GrTraceView @JvmOverloads constructor(
     var crossoverFreqs: FloatArray? = null
 
     private val defaultBandColors = intArrayOf(
-        0xFFAAAAAA.toInt(), 0xFFAAAAAA.toInt(), 0xFFAAAAAA.toInt(),
-        0xFFAAAAAA.toInt(), 0xFFAAAAAA.toInt(), 0xFFAAAAAA.toInt()
+        0xFFA9B4BE.toInt(), 0xFFA9B4BE.toInt(), 0xFFA9B4BE.toInt(),
+        0xFFA9B4BE.toInt(), 0xFFA9B4BE.toInt(), 0xFFA9B4BE.toInt()
     )
 
     // User-selected colors per band (0 = use default)
@@ -91,15 +91,15 @@ class GrTraceView @JvmOverloads constructor(
     private val vPad = 80f
 
     // Paints
-    private val bgPaint = Paint().apply { color = 0xFF1A1A1A.toInt() }
+    private val bgPaint = Paint().apply { color = 0xFF28323D.toInt() }
     private val gridPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFF2A2A2A.toInt(); strokeWidth = 1f
+        color = 0xFF35414C.toInt(); strokeWidth = 1f
     }
     private val gridTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFF444444.toInt(); textSize = 16f
+        color = 0xFF4C5A67.toInt(); textSize = 16f
     }
     private val crossoverPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xAABBBBBB.toInt(); strokeWidth = 2f
+        color = 0xAABAC3CB.toInt(); strokeWidth = 2f
         pathEffect = DashPathEffect(floatArrayOf(8f, 6f), 0f)
     }
     private val threshLinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -134,10 +134,10 @@ class GrTraceView @JvmOverloads constructor(
             canvas.drawLine(0f, y, w, y, gridPaint)
         }
 
-        // Hz grid (matching EqGraphView: color 0xFF888888, textSize 24f, centered, 30px below graph)
+        // Hz grid (matching EqGraphView: color 0xFF8E9AA5, textSize 24f, centered, 30px below graph)
         val gBottom = h - vPad
         val hzTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = 0xFF888888.toInt(); textSize = 24f
+            color = 0xFF8E9AA5.toInt(); textSize = 24f
         }
         for (freq in listOf(100f, 1000f, 10000f)) {
             val x = freqToX(freq, w)
@@ -149,7 +149,7 @@ class GrTraceView @JvmOverloads constructor(
 
         // dB labels — draw before crossover check so they always show
         val dbTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = 0xFF888888.toInt(); textSize = 24f
+            color = 0xFF8E9AA5.toInt(); textSize = 24f
         }
         for (db in listOf(0f, -10f, -20f, -30f, -40f, -50f, -60f, -70f)) {
             val y = dbToY(db, h)
@@ -283,7 +283,7 @@ class GrTraceView @JvmOverloads constructor(
 
         // Threshold lines with centered dB label (line breaks around text)
         val threshTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = 0xFFAAAAAA.toInt(); textSize = 20f; textAlign = Paint.Align.CENTER
+            color = 0xFFA9B4BE.toInt(); textSize = 20f; textAlign = Paint.Align.CENTER
         }
         for (b in 0 until numBands.coerceAtMost(xovers.size + 1)) {
             val leftFreq = if (b == 0) freqMin else xovers[b - 1]
@@ -308,7 +308,7 @@ class GrTraceView @JvmOverloads constructor(
             if (gapRight < rightX) canvas.drawLine(gapRight, threshY, rightX, threshY, threshLinePaint)
 
             // Draw text centered on the line
-            threshTextPaint.color = 0xFFAAAAAA.toInt()
+            threshTextPaint.color = 0xFFA9B4BE.toInt()
             threshTextPaint.alpha = if (b == selectedBand || b == draggingThresholdBand) 255 else 120
             canvas.drawText(text, centerX, threshY + 7f, threshTextPaint)
         }
@@ -321,7 +321,7 @@ class GrTraceView @JvmOverloads constructor(
 
             if (i == draggingCrossover) {
                 val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                    color = 0xFFBBBBBB.toInt(); alpha = 40; style = Paint.Style.FILL
+                    color = 0xFFBAC3CB.toInt(); alpha = 40; style = Paint.Style.FILL
                 }
                 val glowPad = 24f
                 val cornerR = 10f

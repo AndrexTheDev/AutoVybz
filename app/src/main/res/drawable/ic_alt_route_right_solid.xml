@@ -10,7 +10,7 @@
     <group android:pivotX="480" android:pivotY="480" android:rotation="90">
         <group android:translateY="960">
             <path
-                android:fillColor="#e3e3e3"
+                android:fillColor="#E4E9EC"
                 android:pathData="M440,-80v-200q0,-56 -17,-83t-45,-53l57,-57q12,11 23,23.5t22,26.5q14,-19 28.5,-33.5T538,-485q38,-35 69,-81t33,-161l-63,63 -57,-56 160,-160 160,160 -56,56 -64,-63q-2,143 -44,203.5T592,-425q-32,29 -52,56.5T520,-280v200h-80Z" />
         </group>
     </group>

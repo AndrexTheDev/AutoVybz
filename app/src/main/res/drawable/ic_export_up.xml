@@ -6,14 +6,14 @@
     <group android:translateY="960">
         <!-- Baseline bar stays at the bottom -->
         <path
-            android:fillColor="#FFE3E3E3"
+            android:fillColor="#FFE4E9EC"
             android:pathData="M160,-80v-80h640v80H160Z" />
         <!-- Arrow only, flipped to point up -->
         <group
             android:scaleY="-1"
             android:pivotY="-560">
             <path
-                android:fillColor="#FFE3E3E3"
+                android:fillColor="#FFE4E9EC"
                 android:pathData="M480,-240L200,-600h160v-280h240v280h160L480,-240ZM480,-370l116,-150h-76v-280h-80v280h-76l116,150ZM480,-520Z" />
         </group>
     </group>

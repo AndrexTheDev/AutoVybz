@@ -41,46 +41,46 @@ class DiffusionDensityView @JvmOverloads constructor(
 
     // Background matches the main EQ graph + MBC graph (#1E1E1E),
     // with the same darker grid line color (#3A3A3A).
-    private val plotBgPaint = Paint().apply { color = 0xFF1E1E1E.toInt() }
+    private val plotBgPaint = Paint().apply { color = 0xFF2D3742.toInt() }
     private val gridPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFF3A3A3A.toInt(); strokeWidth = 1f
+        color = 0xFF43505C.toInt(); strokeWidth = 1f
     }
     // Same as the main EQ / MBC grid labels (#888888, 24 px); drawn into the
     // gridline gap so the line doesn't cut through the digit.
     private val gridLabelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFF888888.toInt(); textSize = 24f
+        color = 0xFF8E9AA5.toInt(); textSize = 24f
     }
 
     // Rounded "axis pill" labels — same paint trio as EqGraphView's band pill.
     private val axisPillTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFFAAAAAA.toInt(); textSize = 20f
+        color = 0xFFA9B4BE.toInt(); textSize = 20f
     }
     private val axisPillBgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFF1C1C1C.toInt(); style = Paint.Style.FILL
+        color = 0xFF2B353F.toInt(); style = Paint.Style.FILL
     }
     private val axisPillStrokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFF444444.toInt(); style = Paint.Style.STROKE
+        color = 0xFF4C5A67.toInt(); style = Paint.Style.STROKE
         strokeWidth = 2f
     }
     // Dot matches MBC's gate/compressor curves: dark graph-color fill punches
     // through gridlines, light-grey ring on top.
     private val dotBgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFF1E1E1E.toInt(); style = Paint.Style.FILL
+        color = 0xFF2D3742.toInt(); style = Paint.Style.FILL
     }
     private val dotRingPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFFDDDDDD.toInt(); strokeWidth = 2.5f; style = Paint.Style.STROKE
+        color = 0xFFDDE3E7.toInt(); strokeWidth = 2.5f; style = Paint.Style.STROKE
     }
     // Mini dots drawn INSIDE the X/Y dot to visualize what the
     // density (count) and diffusion (jitter) values are doing.
     private val miniDotPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFFAAAAAA.toInt(); style = Paint.Style.FILL
+        color = 0xFFA9B4BE.toInt(); style = Paint.Style.FILL
     }
     private val haloPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0x38AAAAAA.toInt(); style = Paint.Style.FILL
+        color = 0x38A9B4BE.toInt(); style = Paint.Style.FILL
     }
     // Dotted crosshair, same dash style the limiter ceiling line uses.
     private val crosshairPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0x66BBBBBB.toInt(); strokeWidth = 1f * density
+        color = 0x66BAC3CB.toInt(); strokeWidth = 1f * density
         style = Paint.Style.STROKE
         pathEffect = android.graphics.DashPathEffect(floatArrayOf(8f, 5f), 0f)
     }

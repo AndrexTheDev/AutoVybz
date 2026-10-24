@@ -125,11 +125,11 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
-                app:cardBackgroundColor="#FF1A1A1A"
+                app:cardBackgroundColor="#FF28323D"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="0dp"
                 app:strokeWidth="1dp"
-                app:strokeColor="#FF333333">
+                app:strokeColor="#FF3D4955">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -152,11 +152,11 @@
                     <com.google.android.material.card.MaterialCardView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        app:cardBackgroundColor="#FF1A1A1A"
+                        app:cardBackgroundColor="#FF28323D"
                         app:cardCornerRadius="14dp"
                         app:cardElevation="0dp"
                         app:strokeWidth="1dp"
-                        app:strokeColor="#FF333333">
+                        app:strokeColor="#FF3D4955">
 
                         <LinearLayout
                             android:layout_width="match_parent"
@@ -183,7 +183,7 @@
                             android:layout_weight="1"
                             android:text="@string/reverb_parameters"
                             android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
-                            android:textColor="#FFCCCCCC" />
+                            android:textColor="#FFCCD3DA" />
 
                         <ImageView
                             android:id="@+id/graphParamsChevron"
@@ -192,7 +192,7 @@
                             android:src="@drawable/ic_chevron_right"
                             android:rotation="90"
                             android:contentDescription="@string/expand_reverb_parameters"
-                            app:tint="#FFCCCCCC" />
+                            app:tint="#FFCCD3DA" />
                     </LinearLayout>
 
                     <LinearLayout
@@ -211,7 +211,7 @@
                             android:orientation="horizontal" android:gravity="center_vertical" android:paddingBottom="4dp">
                             <TextView android:layout_width="120dp" android:layout_height="wrap_content"
                                 android:text="@string/pre_delay_ms" android:textAppearance="@style/TextAppearance.Material3.LabelMedium"
-                                android:textColor="#FFAAAAAA" />
+                                android:textColor="#FFA9B4BE" />
                             <com.google.android.material.slider.Slider android:id="@+id/reverbReflectDelaySlider"
                                 android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
                                 android:valueFrom="0" android:valueTo="300" android:value="7"
@@ -238,7 +238,7 @@
                             android:orientation="horizontal" android:gravity="center_vertical" android:paddingBottom="4dp">
                             <TextView android:layout_width="120dp" android:layout_height="wrap_content"
                                 android:text="@string/early_reflect_level_db" android:textAppearance="@style/TextAppearance.Material3.LabelMedium"
-                                android:textColor="#FFAAAAAA" />
+                                android:textColor="#FFA9B4BE" />
                             <com.google.android.material.slider.Slider android:id="@+id/reverbReflectLevelSlider"
                                 android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
                                 android:valueFrom="-90" android:valueTo="10" android:value="-10"
@@ -261,7 +261,7 @@
                             android:orientation="horizontal" android:gravity="center_vertical" android:paddingBottom="4dp">
                             <TextView android:layout_width="120dp" android:layout_height="wrap_content"
                                 android:text="@string/reverb_delay_ms" android:textAppearance="@style/TextAppearance.Material3.LabelMedium"
-                                android:textColor="#FFAAAAAA" />
+                                android:textColor="#FFA9B4BE" />
                             <com.google.android.material.slider.Slider android:id="@+id/reverbDelaySlider"
                                 android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
                                 android:valueFrom="0" android:valueTo="100" android:value="11"
@@ -285,7 +285,7 @@
                             android:orientation="horizontal" android:gravity="center_vertical">
                             <TextView android:layout_width="120dp" android:layout_height="wrap_content"
                                 android:text="@string/reverb_decay_ms" android:textAppearance="@style/TextAppearance.Material3.LabelMedium"
-                                android:textColor="#FFAAAAAA" />
+                                android:textColor="#FFA9B4BE" />
                             <com.google.android.material.slider.Slider android:id="@+id/reverbDecayTimeSlider"
                                 android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
                                 android:valueFrom="100" android:valueTo="7000" android:value="1490" app:labelBehavior="gone" />
@@ -304,7 +304,7 @@
                                         android:gravity="center" android:imeOptions="actionDone" />
                                 </com.google.android.material.textfield.TextInputLayout>
                                 <View android:layout_width="2dp" android:layout_height="6dp"
-                                    android:layout_gravity="center_horizontal" android:background="#FF666666" />
+                                    android:layout_gravity="center_horizontal" android:background="#FF717E8A" />
                             </LinearLayout>
                         </LinearLayout>
 
@@ -312,7 +312,7 @@
                             android:orientation="horizontal" android:gravity="center_vertical" android:paddingBottom="4dp">
                             <TextView android:layout_width="120dp" android:layout_height="wrap_content"
                                 android:text="@string/reverb_level_db" android:textAppearance="@style/TextAppearance.Material3.LabelMedium"
-                                android:textColor="#FFAAAAAA" />
+                                android:textColor="#FFA9B4BE" />
                             <com.google.android.material.slider.Slider android:id="@+id/reverbLevelSlider"
                                 android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
                                 android:valueFrom="-90" android:valueTo="20" android:value="16"
@@ -321,7 +321,7 @@
                                 android:layout_gravity="top"
                                 android:layout_marginStart="4dp" android:orientation="vertical">
                                 <View android:layout_width="2dp" android:layout_height="6dp"
-                                    android:layout_gravity="center_horizontal" android:background="#FF666666" />
+                                    android:layout_gravity="center_horizontal" android:background="#FF717E8A" />
                                 <com.google.android.material.textfield.TextInputLayout android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
                                     app:hintEnabled="false"
@@ -342,7 +342,7 @@
                             android:orientation="horizontal" android:gravity="center_vertical" android:paddingBottom="4dp">
                             <TextView android:layout_width="120dp" android:layout_height="wrap_content"
                                 android:text="@string/hf_level_db" android:textAppearance="@style/TextAppearance.Material3.LabelMedium"
-                                android:textColor="#FFAAAAAA" />
+                                android:textColor="#FFA9B4BE" />
                             <com.google.android.material.slider.Slider android:id="@+id/reverbRoomHFLevelSlider"
                                 android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
                                 android:valueFrom="-90" android:valueTo="0" android:value="0"
@@ -364,7 +364,7 @@
                             android:orientation="horizontal" android:gravity="center_vertical">
                             <TextView android:layout_width="120dp" android:layout_height="wrap_content"
                                 android:text="@string/hf_damping" android:textAppearance="@style/TextAppearance.Material3.LabelMedium"
-                                android:textColor="#FFAAAAAA" />
+                                android:textColor="#FFA9B4BE" />
                             <com.google.android.material.slider.Slider android:id="@+id/reverbDecayHfSlider"
                                 android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
                                 android:valueFrom="0.10" android:valueTo="2.00" android:value="0.83"
@@ -388,7 +388,7 @@
                             android:layout_marginTop="10dp"
                             android:text="@string/pre_delay_early_reflect_level_and"
                             android:textAppearance="@style/TextAppearance.Material3.LabelSmall"
-                            android:textColor="#FF888888"
+                            android:textColor="#FF8E9AA5"
                             android:visibility="gone" />
                     </LinearLayout>
                         </LinearLayout>
@@ -410,11 +410,11 @@
                     android:layout_height="220dp"
                     android:layout_weight="0.7"
                     android:layout_marginEnd="6dp"
-                    app:cardBackgroundColor="#FF1A1A1A"
+                    app:cardBackgroundColor="#FF28323D"
                     app:cardCornerRadius="16dp"
                     app:cardElevation="0dp"
                     app:strokeWidth="1dp"
-                    app:strokeColor="#FF333333">
+                    app:strokeColor="#FF3D4955">
 
                     <com.bearinmind.equalizer314.ui.DiffusionDensityView
                         android:id="@+id/reverbDiffusionDensity"
@@ -427,11 +427,11 @@
                     android:layout_height="220dp"
                     android:layout_weight="0.3"
                     android:layout_marginStart="6dp"
-                    app:cardBackgroundColor="#FF1A1A1A"
+                    app:cardBackgroundColor="#FF28323D"
                     app:cardCornerRadius="16dp"
                     app:cardElevation="0dp"
                     app:strokeWidth="1dp"
-                    app:strokeColor="#FF333333">
+                    app:strokeColor="#FF3D4955">
 
                     <com.bearinmind.equalizer314.ui.DiffusionDensityColumnsView
                         android:id="@+id/reverbDiffusionDensityColumns"

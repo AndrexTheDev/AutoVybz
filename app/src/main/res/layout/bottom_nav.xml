@@ -42,7 +42,7 @@
                     android:layout_height="wrap_content"
                     android:text="@string/on"
                     android:textSize="8sp"
-                    android:textColor="#FF888888" />
+                    android:textColor="#FF8E9AA5" />
             </LinearLayout>
 
             <LinearLayout
@@ -65,7 +65,7 @@
                     android:layout_height="wrap_content"
                     android:text="@string/off_2"
                     android:textSize="8sp"
-                    android:textColor="#FF888888" />
+                    android:textColor="#FF8E9AA5" />
             </LinearLayout>
         </LinearLayout>
 
@@ -109,7 +109,7 @@
                     android:layout_height="wrap_content"
                     android:text="@string/on"
                     android:textSize="8sp"
-                    android:textColor="#FF888888" />
+                    android:textColor="#FF8E9AA5" />
             </LinearLayout>
 
             <LinearLayout

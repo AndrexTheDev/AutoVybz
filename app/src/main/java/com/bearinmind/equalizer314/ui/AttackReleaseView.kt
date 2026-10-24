@@ -33,26 +33,26 @@ class AttackReleaseView @JvmOverloads constructor(
     }
 
     private val bgPaint = Paint().apply {
-        color = 0xFF1E1E1E.toInt(); style = Paint.Style.FILL
+        color = 0xFF2D3742.toInt(); style = Paint.Style.FILL
     }
     private val gridPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFF333333.toInt(); strokeWidth = 1f; style = Paint.Style.STROKE
+        color = 0xFF3D4955.toInt(); strokeWidth = 1f; style = Paint.Style.STROKE
     }
     private val linePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFFDDDDDD.toInt(); strokeWidth = 2.5f; style = Paint.Style.STROKE
+        color = 0xFFDDE3E7.toInt(); strokeWidth = 2.5f; style = Paint.Style.STROKE
         strokeJoin = Paint.Join.ROUND; strokeCap = Paint.Cap.ROUND
     }
     private val haloPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0x38AAAAAA.toInt(); style = Paint.Style.FILL
+        color = 0x38A9B4BE.toInt(); style = Paint.Style.FILL
     }
     private val markerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFF555555.toInt(); textSize = 14f; textAlign = Paint.Align.CENTER
+        color = 0xFF5E6C79.toInt(); textSize = 14f; textAlign = Paint.Align.CENTER
     }
     private val dotBgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFF1E1E1E.toInt(); style = Paint.Style.FILL
+        color = 0xFF2D3742.toInt(); style = Paint.Style.FILL
     }
     private val dotRingPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFFAAAAAA.toInt(); strokeWidth = 2f; style = Paint.Style.STROKE
+        color = 0xFFA9B4BE.toInt(); strokeWidth = 2f; style = Paint.Style.STROKE
     }
     private val dotTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = 0xFFFFFFFF.toInt(); textSize = 14f
@@ -149,7 +149,7 @@ class AttackReleaseView @JvmOverloads constructor(
         // Halos when dragging
         val haloDp = 24f * resources.displayMetrics.density
         val haloStrokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = 0x38AAAAAA.toInt(); strokeWidth = haloDp * 2f
+            color = 0x38A9B4BE.toInt(); strokeWidth = haloDp * 2f
             style = Paint.Style.STROKE; strokeCap = Paint.Cap.ROUND
         }
         if (draggingAttack) {

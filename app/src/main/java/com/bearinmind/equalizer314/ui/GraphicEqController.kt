@@ -203,7 +203,7 @@ class GraphicEqController(
             radius = 12 * density
             cardElevation = 0f
             setCardBackgroundColor(com.google.android.material.color.MaterialColors.getColor(
-                activity, com.google.android.material.R.attr.colorSurfaceContainerHigh, 0xFF2A2A2A.toInt()))
+                activity, com.google.android.material.R.attr.colorSurfaceContainerHigh, 0xFF35414C.toInt()))
             strokeWidth = 0
             clipChildren = false
             clipToPadding = false
@@ -229,7 +229,7 @@ class GraphicEqController(
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
             background = android.graphics.drawable.GradientDrawable().apply {
-                setColor(0xFF404040.toInt())
+                setColor(0xFF485663.toInt())
                 cornerRadius = 8 * density
             }
             setPadding(bubblePad, (4 * density).toInt(), bubblePad, (4 * density).toInt())
@@ -237,21 +237,21 @@ class GraphicEqController(
         val hzText = TextView(activity).apply {
             text = formatHz(band.frequency)
             textSize = hzDbSize
-            setTextColor(0xFFAAAAAA.toInt())
+            setTextColor(0xFFA9B4BE.toInt())
             gravity = android.view.Gravity.CENTER
             maxLines = 1
         }
         val dbText = TextView(activity).apply {
             text = "${String.format("%.1f", band.gain)} dB"
             textSize = hzDbSize
-            setTextColor(if (isLpHp) 0xFF555555.toInt() else 0xFFAAAAAA.toInt())
+            setTextColor(if (isLpHp) 0xFF5E6C79.toInt() else 0xFFA9B4BE.toInt())
             gravity = android.view.Gravity.CENTER
             maxLines = 1
         }
         val qText = TextView(activity).apply {
             text = "${String.format("%.2f", band.q)} Q"
             textSize = qSize
-            setTextColor(0xFFAAAAAA.toInt())
+            setTextColor(0xFFA9B4BE.toInt())
             gravity = android.view.Gravity.CENTER
             maxLines = 1
         }
@@ -368,7 +368,7 @@ class GraphicEqController(
             icon = null
             text = filterTypeLabels[currentFilterIdx]
             textSize = filterLabelSize
-            setTextColor(0xFFAAAAAA.toInt())
+            setTextColor(0xFFA9B4BE.toInt())
             cornerRadius = (8 * density).toInt()
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, (32 * density).toInt()
@@ -380,8 +380,8 @@ class GraphicEqController(
             minWidth = 0; minimumWidth = 0
             minHeight = 0; minimumHeight = 0
             setBackgroundColor(0x00000000)
-            iconTint = android.content.res.ColorStateList.valueOf(0xFFAAAAAA.toInt())
-            strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt())
+            iconTint = android.content.res.ColorStateList.valueOf(0xFFA9B4BE.toInt())
+            strokeColor = android.content.res.ColorStateList.valueOf(0xFF4C5A67.toInt())
             strokeWidth = (1 * density).toInt()
 
             setOnClickListener {
@@ -395,7 +395,7 @@ class GraphicEqController(
                     val item = android.widget.TextView(activity).apply {
                         text = name
                         textSize = 16f
-                        setTextColor(0xFFE2E2E2.toInt())
+                        setTextColor(0xFFE3E8EB.toInt())
                         setPadding((16 * density).toInt(), (14 * density).toInt(), (16 * density).toInt(), (14 * density).toInt())
                         setOnClickListener {
                             val b = eq.getBand(bandIndex) ?: return@setOnClickListener
@@ -423,7 +423,7 @@ class GraphicEqController(
             icon = null
             text = if (bandColor != null) activity.getString(R.string.color_caps) else "\u2014"
             textSize = filterLabelSize
-            setTextColor(0xFFAAAAAA.toInt())
+            setTextColor(0xFFA9B4BE.toInt())
             cornerRadius = (8 * density).toInt()
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, (32 * density).toInt()
@@ -435,7 +435,7 @@ class GraphicEqController(
             minWidth = 0; minimumWidth = 0
             minHeight = 0; minimumHeight = 0
             setBackgroundColor(0x00000000)
-            strokeColor = android.content.res.ColorStateList.valueOf(bandColor ?: 0xFF444444.toInt())
+            strokeColor = android.content.res.ColorStateList.valueOf(bandColor ?: 0xFF4C5A67.toInt())
             strokeWidth = (if (bandColor != null) 2 else 1).let { (it * density).toInt() }
             setOnClickListener {
                 showColorPickerSheet(bandIndex, this)
@@ -468,7 +468,7 @@ class GraphicEqController(
             val input = android.widget.EditText(activity).apply {
                 setText(initialValue)
                 textSize = 22f
-                setTextColor(if (enabled) 0xFFE2E2E2.toInt() else 0xFF555555.toInt())
+                setTextColor(if (enabled) 0xFFE3E8EB.toInt() else 0xFF5E6C79.toInt())
                 this.inputType = inputType
                 isSingleLine = true
                 background = null
@@ -481,7 +481,7 @@ class GraphicEqController(
             row.addView(TextView(activity).apply {
                 text = label
                 textSize = 14f
-                setTextColor(if (enabled) 0xFF999999.toInt() else 0xFF555555.toInt())
+                setTextColor(if (enabled) 0xFF9BA7B1.toInt() else 0xFF5E6C79.toInt())
                 layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
                     marginStart = (8 * density).toInt()
                 }
@@ -494,7 +494,7 @@ class GraphicEqController(
                 layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, (1 * density).toInt()).apply {
                     topMargin = (8 * density).toInt(); bottomMargin = (8 * density).toInt()
                 }
-                setBackgroundColor(0xFF444444.toInt())
+                setBackgroundColor(0xFF4C5A67.toInt())
             }
         }
 
@@ -556,7 +556,7 @@ class GraphicEqController(
         val title = TextView(activity).apply {
             text = activity.getString(R.string.band_color)
             textSize = 16f
-            setTextColor(0xFFE2E2E2.toInt())
+            setTextColor(0xFFE3E8EB.toInt())
             setPadding(0, 0, 0, (12 * density).toInt())
         }
         sheetLayout.addView(title)
@@ -569,21 +569,21 @@ class GraphicEqController(
         }
 
         for ((color, _) in TableEqController.BAND_COLORS) {
-            val isNone = color == 0xFF333333.toInt()
+            val isNone = color == 0xFF3D4955.toInt()
             val size = (32 * density).toInt()
             val swatch = if (isNone) {
                 TextView(activity).apply {
                     text = "\u2014"
                     textSize = 16f
-                    setTextColor(0xFFAAAAAA.toInt())
+                    setTextColor(0xFFA9B4BE.toInt())
                     gravity = android.view.Gravity.CENTER
                     layoutParams = LinearLayout.LayoutParams(size, size).apply {
                         setMargins((3 * density).toInt(), 0, (3 * density).toInt(), 0)
                     }
                     background = android.graphics.drawable.GradientDrawable().apply {
-                        setColor(0xFF404040.toInt())
+                        setColor(0xFF485663.toInt())
                         cornerRadius = 8 * density
-                        setStroke((1 * density).toInt(), 0xFF666666.toInt())
+                        setStroke((1 * density).toInt(), 0xFF717E8A.toInt())
                     }
                 }
             } else {
@@ -594,7 +594,7 @@ class GraphicEqController(
                     background = android.graphics.drawable.GradientDrawable().apply {
                         setColor(color)
                         cornerRadius = 8 * density
-                        setStroke((1 * density).toInt(), 0xFF666666.toInt())
+                        setStroke((1 * density).toInt(), 0xFF717E8A.toInt())
                     }
                 }
             }
@@ -608,7 +608,7 @@ class GraphicEqController(
                     state.saveState()
                     graphView.setBandColors(state.bandColors)
                     graphView.invalidate()
-                    val applyColor = if (isNone) 0xFF444444.toInt() else color
+                    val applyColor = if (isNone) 0xFF4C5A67.toInt() else color
                     colorBtn.strokeColor = android.content.res.ColorStateList.valueOf(applyColor)
                     colorBtn.strokeWidth = (if (isNone) 1 else 2).let { (it * density).toInt() }
                     onColorChanged?.invoke()

@@ -40,9 +40,9 @@ class LimiterMeterView @JvmOverloads constructor(
     private var peakHoldFrames = 0
     private val peakHoldMax = 30  // ~1 second at 30fps
 
-    private val bgPaint = Paint().apply { color = 0xFF1E1E1E.toInt() }
+    private val bgPaint = Paint().apply { color = 0xFF2D3742.toInt() }
     private val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFF333333.toInt(); style = Paint.Style.STROKE; strokeWidth = 1f
+        color = 0xFF3D4955.toInt(); style = Paint.Style.STROKE; strokeWidth = 1f
     }
     private val barPaint = Paint()
     private val peakPaint = Paint().apply {
@@ -59,9 +59,9 @@ class LimiterMeterView @JvmOverloads constructor(
             android.content.res.Configuration.UI_MODE_NIGHT_MASK) !=
             android.content.res.Configuration.UI_MODE_NIGHT_YES
         if (isLight) {
-            bgPaint.color = 0xFFE6E6E6.toInt()
-            borderPaint.color = 0xFFCFCFCF.toInt()
-            peakPaint.color = 0xFF333333.toInt()
+            bgPaint.color = 0xFFE7EBEF.toInt()
+            borderPaint.color = 0xFFCFD6DC.toInt()
+            peakPaint.color = 0xFF3D4955.toInt()
         }
     }
 

@@ -31,6 +31,7 @@ Code layout:
 | Component | License | Notes |
 |---|---|---|
 | Equalizer314 | GPL-3.0 | bearinmindcat — fork base |
+| Outfit typeface (`res/font/outfit_*.ttf`) | SIL OFL 1.1 | The Outfit Project Authors — licence text in `branding/fonts/OFL-Outfit.txt` |
 | Oboe | Apache-2.0 | Google — full-duplex audio I/O (prefab dependency) |
 | PipeWire convolver, PFFFT | MIT / BSD-like | bundled by upstream in `app/src/main/cpp/pipewire` (see file headers) |
 | AndroidX, Jetpack Compose, Material Components | Apache-2.0 | Google |

@@ -122,10 +122,10 @@ class SimpleEqController(
             radius = 16 * density
             cardElevation = 0f
             setCardBackgroundColor(com.google.android.material.color.MaterialColors.getColor(
-                activity, com.google.android.material.R.attr.colorSurfaceContainer, 0xFF1E1E1E.toInt()))
+                activity, com.google.android.material.R.attr.colorSurfaceContainer, 0xFF2D3742.toInt()))
             setStrokeColor(android.content.res.ColorStateList.valueOf(
                 com.google.android.material.color.MaterialColors.getColor(
-                    activity, com.google.android.material.R.attr.colorOutlineVariant, 0xFF444444.toInt())))
+                    activity, com.google.android.material.R.attr.colorOutlineVariant, 0xFF4C5A67.toInt())))
             strokeWidth = (1 * density).toInt()
         }
         val graph = EqGraphView(activity).apply {
@@ -158,7 +158,7 @@ class SimpleEqController(
             radius = 16 * density
             cardElevation = 0f
             setCardBackgroundColor(com.google.android.material.color.MaterialColors.getColor(
-                activity, com.google.android.material.R.attr.colorSurfaceVariant, 0xFF1E1E1E.toInt()))
+                activity, com.google.android.material.R.attr.colorSurfaceVariant, 0xFF2D3742.toInt()))
             strokeWidth = 0
         }
 
@@ -202,7 +202,7 @@ class SimpleEqController(
             visibility = View.GONE
             isVerticalScrollBarEnabled = false
             setBackgroundColor(com.google.android.material.color.MaterialColors.getColor(
-                activity, com.google.android.material.R.attr.colorSurface, 0xFF121212.toInt()))
+                activity, com.google.android.material.R.attr.colorSurface, 0xFF1E262D.toInt()))
         }
         val pickerInner = LinearLayout(activity).apply {
             orientation = LinearLayout.VERTICAL
@@ -227,7 +227,7 @@ class SimpleEqController(
             radius = 16 * density
             cardElevation = 0f
             setCardBackgroundColor(com.google.android.material.color.MaterialColors.getColor(
-                activity, com.google.android.material.R.attr.colorSurfaceContainerHigh, 0xFF2A2A2A.toInt()))
+                activity, com.google.android.material.R.attr.colorSurfaceContainerHigh, 0xFF35414C.toInt()))
             strokeWidth = 0
         }
 
@@ -245,7 +245,7 @@ class SimpleEqController(
             textSize = 12f
             setTextColor(0xFFEF9A9A.toInt())
             cornerRadius = (12 * density).toInt()
-            strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt())
+            strokeColor = android.content.res.ColorStateList.valueOf(0xFF4C5A67.toInt())
             strokeWidth = (1 * density).toInt()
             setBackgroundColor(0x00000000)
             insetTop = 0; insetBottom = 0
@@ -272,11 +272,11 @@ class SimpleEqController(
         // Save / Presets button — icon only, rounded rectangle outline
         val save = android.widget.ImageButton(activity).apply {
             setImageResource(R.drawable.ic_save)
-            setColorFilter(0xFFBBBBBB.toInt())
+            setColorFilter(0xFFBAC3CB.toInt())
             background = android.graphics.drawable.GradientDrawable().apply {
                 cornerRadius = 12 * density
                 setColor(0x00000000)
-                setStroke((1 * density).toInt(), 0xFF444444.toInt())
+                setStroke((1 * density).toInt(), 0xFF4C5A67.toInt())
             }
             layoutParams = LinearLayout.LayoutParams(iconBtnSize, iconBtnSize).apply {
                 marginEnd = (8 * density).toInt()
@@ -291,11 +291,11 @@ class SimpleEqController(
         // Undo — icon only, rounded rectangle outline
         val undo = android.widget.ImageButton(activity).apply {
             setImageResource(R.drawable.ic_undo)
-            setColorFilter(0xFFBBBBBB.toInt())
+            setColorFilter(0xFFBAC3CB.toInt())
             background = android.graphics.drawable.GradientDrawable().apply {
                 cornerRadius = 12 * density
                 setColor(0x00000000)
-                setStroke((1 * density).toInt(), 0xFF444444.toInt())
+                setStroke((1 * density).toInt(), 0xFF4C5A67.toInt())
             }
             layoutParams = LinearLayout.LayoutParams(iconBtnSize, iconBtnSize).apply {
                 marginEnd = (8 * density).toInt()
@@ -316,11 +316,11 @@ class SimpleEqController(
         // Redo — icon only, rounded rectangle outline
         val redo = android.widget.ImageButton(activity).apply {
             setImageResource(R.drawable.ic_redo)
-            setColorFilter(0xFFBBBBBB.toInt())
+            setColorFilter(0xFFBAC3CB.toInt())
             background = android.graphics.drawable.GradientDrawable().apply {
                 cornerRadius = 12 * density
                 setColor(0x00000000)
-                setStroke((1 * density).toInt(), 0xFF444444.toInt())
+                setStroke((1 * density).toInt(), 0xFF4C5A67.toInt())
             }
             layoutParams = LinearLayout.LayoutParams(iconBtnSize, iconBtnSize)
             scaleType = android.widget.ImageView.ScaleType.CENTER_INSIDE
@@ -370,10 +370,10 @@ class SimpleEqController(
             saveBtn?.apply {
                 background = android.graphics.drawable.GradientDrawable().apply {
                     cornerRadius = 12 * density
-                    setColor(0xFF555555.toInt())
-                    setStroke((1 * density).toInt(), 0xFF888888.toInt())
+                    setColor(0xFF5E6C79.toInt())
+                    setStroke((1 * density).toInt(), 0xFF8E9AA5.toInt())
                 }
-                setColorFilter(0xFFDDDDDD.toInt())
+                setColorFilter(0xFFDDE3E7.toInt())
             }
         } else {
             closePresetPicker()
@@ -399,9 +399,9 @@ class SimpleEqController(
             background = android.graphics.drawable.GradientDrawable().apply {
                 cornerRadius = 12 * density
                 setColor(0x00000000)
-                setStroke((1 * density).toInt(), 0xFF444444.toInt())
+                setStroke((1 * density).toInt(), 0xFF4C5A67.toInt())
             }
-            setColorFilter(0xFFBBBBBB.toInt())
+            setColorFilter(0xFFBAC3CB.toInt())
         }
     }
 
@@ -428,8 +428,8 @@ class SimpleEqController(
             minWidth = 0; minimumWidth = 0
             gravity = Gravity.CENTER
             setBackgroundColor(0x00000000)
-            setTextColor(0xFF888888.toInt())
-            strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt())
+            setTextColor(0xFF8E9AA5.toInt())
+            strokeColor = android.content.res.ColorStateList.valueOf(0xFF4C5A67.toInt())
             strokeWidth = (1 * density).toInt()
             setOnClickListener { showSaveDialog() }
         }
@@ -460,7 +460,7 @@ class SimpleEqController(
         val title = TextView(activity).apply {
             text = activity.getString(
                 if (existingName == null) R.string.save_simple_eq_preset else R.string.overwrite_custom_preset)
-            setTextColor(0xFFE2E2E2.toInt())
+            setTextColor(0xFFE3E8EB.toInt())
             textSize = 20f
             setPadding(0, 0, 0, (12 * density).toInt())
         }
@@ -473,7 +473,7 @@ class SimpleEqController(
             }
             background = android.graphics.drawable.GradientDrawable().apply {
                 setColor(0x00000000)
-                setStroke((1 * density).toInt(), 0xFF555555.toInt())
+                setStroke((1 * density).toInt(), 0xFF5E6C79.toInt())
                 cornerRadius = 12 * density
             }
         }
@@ -482,7 +482,7 @@ class SimpleEqController(
             hint = defaultName
             if (existingName != null) setText(existingName)
             setTextColor(0xFFFFFFFF.toInt())
-            setHintTextColor(0xFF888888.toInt())
+            setHintTextColor(0xFF8E9AA5.toInt())
             inputType = android.text.InputType.TYPE_CLASS_TEXT
             background = null
             val pad = (14 * density).toInt()
@@ -496,7 +496,7 @@ class SimpleEqController(
             ).apply {
                 bottomMargin = (12 * density).toInt()
             }
-            setBackgroundColor(0xFF444444.toInt())
+            setBackgroundColor(0xFF4C5A67.toInt())
         }
         val btnRow = LinearLayout(activity).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -512,7 +512,7 @@ class SimpleEqController(
             }
             cornerRadius = (12 * density).toInt()
             setTextColor(0xFFEF9A9A.toInt())
-            strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt())
+            strokeColor = android.content.res.ColorStateList.valueOf(0xFF4C5A67.toInt())
             strokeWidth = (1 * density).toInt()
             setBackgroundColor(0x00000000)
             insetTop = 0; insetBottom = 0
@@ -523,9 +523,9 @@ class SimpleEqController(
                 marginStart = (3 * density).toInt()
             }
             cornerRadius = (12 * density).toInt()
-            setTextColor(0xFFDDDDDD.toInt())
+            setTextColor(0xFFDDE3E7.toInt())
             setBackgroundColor(0x00000000)
-            strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt())
+            strokeColor = android.content.res.ColorStateList.valueOf(0xFF4C5A67.toInt())
             strokeWidth = (1 * density).toInt()
             insetTop = 0; insetBottom = 0
         }
@@ -568,7 +568,7 @@ class SimpleEqController(
             gravity = Gravity.CENTER_VERTICAL
             background = android.graphics.drawable.GradientDrawable().apply {
                 setColor(0x00000000)
-                setStroke((1 * density).toInt(), 0xFF444444.toInt())
+                setStroke((1 * density).toInt(), 0xFF4C5A67.toInt())
                 cornerRadius = 12 * density
             }
             val hPad = (12 * density).toInt()
@@ -583,7 +583,7 @@ class SimpleEqController(
         val nameText = TextView(activity).apply {
             text = name
             // Dark in light mode — preset rows sit on the light surface.
-            setTextColor(if (isLightUi) 0xFF202020.toInt() else 0xFFE2E2E2.toInt())
+            setTextColor(if (isLightUi) 0xFF2F3944.toInt() else 0xFFE3E8EB.toInt())
             textSize = 14f
             isSingleLine = true
             layoutParams = LinearLayout.LayoutParams(
@@ -596,7 +596,7 @@ class SimpleEqController(
         } catch (_: Exception) { null }
         val preampSubtitle = TextView(activity).apply {
             text = presetPreamp?.let { PresetDropdownAdapter.formatPreamp(it) } ?: ""
-            setTextColor(0xFF888888.toInt())
+            setTextColor(0xFF8E9AA5.toInt())
             textSize = 11f
             isSingleLine = true
             visibility = if (presetPreamp == null) View.GONE else View.VISIBLE
@@ -637,7 +637,7 @@ class SimpleEqController(
                 val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
                     this.color = color; strokeWidth = 0.5f * density; style = android.graphics.Paint.Style.STROKE
                 }
-                val gridPaint = android.graphics.Paint().apply { this.color = 0xFF6A6A6A.toInt(); strokeWidth = 1f }
+                val gridPaint = android.graphics.Paint().apply { this.color = 0xFF75828E.toInt(); strokeWidth = 1f }
                 canvas.drawLine(x0, y0 + h / 2f, x0 + w, y0 + h / 2f, gridPaint)
                 canvas.drawLine(x0, y0, x0, y0 + h, gridPaint)
                 val path = android.graphics.Path()
@@ -660,13 +660,13 @@ class SimpleEqController(
                 try {
                     val obj = org.json.JSONObject(presetJson)
                     val cseOn = obj.optBoolean("channelSideEqEnabled", false)
-                    val curveColor = 0xFFAAAAAA.toInt()
+                    val curveColor = 0xFFA9B4BE.toInt()
                     if (cseOn && obj.has("leftBands") && obj.has("rightBands")) {
                         val labelCol = 9f * density
                         val gap = 2f * density
                         val halfH = (h - gap) / 2f
                         val labelPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
-                            color = 0xFF888888.toInt()
+                            color = 0xFF8E9AA5.toInt()
                             textSize = 10f * activity.resources.displayMetrics.scaledDensity
                             textAlign = android.graphics.Paint.Align.CENTER
                         }
@@ -674,7 +674,7 @@ class SimpleEqController(
                         val textCenterOffset = (-fm.ascent - fm.descent) / 2f
                         canvas.drawText("L", labelCol / 2f, halfH / 2f + textCenterOffset, labelPaint)
                         drawCurve(canvas, buildEq(obj.getJSONArray("leftBands")), labelCol, 0f, w - labelCol, halfH, curveColor)
-                        val dividerPaint = android.graphics.Paint().apply { color = 0xFF444444.toInt(); strokeWidth = 1f }
+                        val dividerPaint = android.graphics.Paint().apply { color = 0xFF4C5A67.toInt(); strokeWidth = 1f }
                         canvas.drawLine(0f, halfH + gap / 2f, w, halfH + gap / 2f, dividerPaint)
                         val rTop = halfH + gap
                         canvas.drawText("R", labelCol / 2f, rTop + halfH / 2f + textCenterOffset, labelPaint)
@@ -690,7 +690,7 @@ class SimpleEqController(
 
         val filtersText = TextView(activity).apply {
             text = activity.getString(R.string.n_filters, bandCount)
-            setTextColor(0xFF888888.toInt())
+            setTextColor(0xFF8E9AA5.toInt())
             textSize = 10f
             gravity = Gravity.CENTER
         }
@@ -722,9 +722,9 @@ class SimpleEqController(
             icon = activity.resources.getDrawable(R.drawable.ic_export, activity.theme)
             iconGravity = MaterialButton.ICON_GRAVITY_TEXT_START
             iconPadding = 0
-            iconTint = android.content.res.ColorStateList.valueOf(0xFF888888.toInt())
+            iconTint = android.content.res.ColorStateList.valueOf(0xFF8E9AA5.toInt())
             iconSize = (18 * density).toInt()
-            strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt())
+            strokeColor = android.content.res.ColorStateList.valueOf(0xFF4C5A67.toInt())
             strokeWidth = (1 * density).toInt()
             setOnClickListener { exportPresetApo(name) }
         }
@@ -744,9 +744,9 @@ class SimpleEqController(
             icon = activity.resources.getDrawable(R.drawable.ic_save, activity.theme)
             iconGravity = MaterialButton.ICON_GRAVITY_TEXT_START
             iconPadding = 0
-            iconTint = android.content.res.ColorStateList.valueOf(0xFF888888.toInt())
+            iconTint = android.content.res.ColorStateList.valueOf(0xFF8E9AA5.toInt())
             iconSize = (18 * density).toInt()
-            strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt())
+            strokeColor = android.content.res.ColorStateList.valueOf(0xFF4C5A67.toInt())
             strokeWidth = (1 * density).toInt()
             setOnClickListener { showSaveDialog(name) }
         }
@@ -767,7 +767,7 @@ class SimpleEqController(
             gravity = Gravity.CENTER
             setBackgroundColor(0x00000000)
             setTextColor(0xFFEF9A9A.toInt())
-            strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt())
+            strokeColor = android.content.res.ColorStateList.valueOf(0xFF4C5A67.toInt())
             strokeWidth = (1 * density).toInt()
             setOnClickListener { showDeleteDialog(name) }
         }
@@ -805,13 +805,13 @@ class SimpleEqController(
         }
         val dlgTitle = TextView(activity).apply {
             text = activity.getString(R.string.delete)
-            setTextColor(0xFFE2E2E2.toInt())
+            setTextColor(0xFFE3E8EB.toInt())
             textSize = 20f
             setPadding(0, 0, 0, (12 * density).toInt())
         }
         val dlgMsg = TextView(activity).apply {
             text = activity.getString(R.string.delete_preset_confirm, name)
-            setTextColor(0xFFAAAAAA.toInt())
+            setTextColor(0xFFA9B4BE.toInt())
             textSize = 14f
             setPadding(0, 0, 0, (16 * density).toInt())
         }
@@ -821,7 +821,7 @@ class SimpleEqController(
             ).apply {
                 bottomMargin = (12 * density).toInt()
             }
-            setBackgroundColor(0xFF444444.toInt())
+            setBackgroundColor(0xFF4C5A67.toInt())
         }
         val dlgBtnRow = LinearLayout(activity).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -837,7 +837,7 @@ class SimpleEqController(
             }
             cornerRadius = (12 * density).toInt()
             setTextColor(0xFFEF9A9A.toInt())
-            strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt())
+            strokeColor = android.content.res.ColorStateList.valueOf(0xFF4C5A67.toInt())
             strokeWidth = (1 * density).toInt()
             setBackgroundColor(0x00000000)
             insetTop = 0; insetBottom = 0
@@ -848,9 +848,9 @@ class SimpleEqController(
                 marginStart = (3 * density).toInt()
             }
             cornerRadius = (12 * density).toInt()
-            setTextColor(0xFFDDDDDD.toInt())
+            setTextColor(0xFFDDE3E7.toInt())
             setBackgroundColor(0x00000000)
-            strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt())
+            strokeColor = android.content.res.ColorStateList.valueOf(0xFF4C5A67.toInt())
             strokeWidth = (1 * density).toInt()
             insetTop = 0; insetBottom = 0
         }

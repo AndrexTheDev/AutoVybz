@@ -629,7 +629,7 @@ class EqPreferencesManager(context: Context) {
     fun saveSpectrumRelease(value: Float) { prefs.edit().putFloat("spectrumRelease", value).apply() }
     fun getSpectrumRelease(): Float = prefs.getFloat("spectrumRelease", 0.22f)
     fun saveSpectrumColor(color: Int) { prefs.edit().putInt("spectrumColor", color).apply() }
-    fun getSpectrumColor(): Int = prefs.getInt("spectrumColor", 0xFFB4B4B4.toInt()) // default gray
+    fun getSpectrumColor(): Int = prefs.getInt("spectrumColor", 0xFFB3BDC5.toInt()) // default gray
     fun saveSpectrumFps(fps: Int) { prefs.edit().putInt("spectrumFps", fps).apply() }
     fun getSpectrumFps(): Int = prefs.getInt("spectrumFps", 60)
 

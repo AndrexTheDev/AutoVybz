@@ -51,6 +51,18 @@ class LicenseAuditTest {
         assertTrue("dependencies without reviewed licence: $problems", problems.isEmpty())
     }
 
+    /** Bundled fonts: OFL text shipped in the repo and the font credited in NOTICE.md. */
+    @Test
+    fun bundledFontsAreOflAndCredited() {
+        val fonts = ProjectFiles.module("src/main/res/font").listFiles { f -> f.name.endsWith(".ttf") }.orEmpty()
+        assertTrue("brand font missing", fonts.isNotEmpty())
+        assertTrue("only Outfit is reviewed: ${fonts.map { it.name }}", fonts.all { it.name.startsWith("outfit_") })
+        val ofl = ProjectFiles.root("branding/fonts/OFL-Outfit.txt").readText()
+        assertTrue("OFL text incomplete", "SIL OPEN FONT LICENSE Version 1.1" in ofl && "Outfit Project Authors" in ofl)
+        val notice = ProjectFiles.root("NOTICE.md").readText()
+        assertTrue("NOTICE.md must credit the Outfit typeface", "Outfit" in notice && "OFL" in notice)
+    }
+
     @Test
     fun noProprietaryTrackingOrAdsSdks() {
         val gradle = ProjectFiles.module("build.gradle.kts").readText().lowercase()

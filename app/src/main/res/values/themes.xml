@@ -1,49 +1,56 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Light theme palette — an exact mirror of the dark palette in
-         values-night/themes.xml: every grey sits at the same luminance
-         distance from its background as its dark counterpart, just
-         inverted (dark surface 0x0E + outline 0x44 = +54 steps → light
-         surface 0xF4 − 54 = 0xBE, etc.) so the two themes have the same
-         contrast relationships. The active palette is picked by
-         AppCompatDelegate night mode (see EqApp + the Settings toggle);
-         dark remains the default. -->
-    <style name="Theme.Equalizer314" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Primary (grey) -->
+    <!-- AutoVybz "Vybz Slate" window theme of the engine screens (parametric EQ, compressor, limiter, settings).
+         AutoVybz is dark by design (logo + intro live on slate), so there is one palette for day and night:
+         EqApp always runs night mode and the theme picker offers Slate and Black (AMOLED) only.
+         Colours mirror ui/theme/AutoVybzPalette.kt (avz_*) and its SLATE_RAMP. -->
+    <style name="Theme.Equalizer314" parent="Theme.Material3.Dark.NoActionBar">
+        <!-- Primary: neon green with dark text (white on neon is unreadable) -->
         <item name="colorPrimary">@color/avz_green</item>
-        <item name="colorOnPrimary">#FFFFFFFF</item>
-        <item name="colorPrimaryContainer">#FFC8C8C8</item>
-        <item name="colorOnPrimaryContainer">#FF252525</item>
+        <item name="colorOnPrimary">@color/avz_on_green</item>
+        <item name="colorPrimaryContainer">@color/avz_green_container</item>
+        <item name="colorOnPrimaryContainer">@color/avz_green_bright</item>
 
-        <!-- Secondary -->
-        <item name="colorSecondary">#FF8A7200</item>
-        <item name="colorOnSecondary">#FFFFFFFF</item>
-        <item name="colorSecondaryContainer">#FFCFCFCF</item>
-        <item name="colorOnSecondaryContainer">#FF252525</item>
+        <!-- Secondary: gold -->
+        <item name="colorSecondary">@color/avz_gold</item>
+        <item name="colorOnSecondary">@color/avz_on_green</item>
+        <item name="colorSecondaryContainer">@color/avz_gold_container</item>
+        <item name="colorOnSecondaryContainer">#FFFFF1B3</item>
 
         <!-- Tertiary -->
-        <item name="colorTertiary">#FF474747</item>
-        <item name="colorOnTertiary">#FFFFFFFF</item>
-        <item name="colorTertiaryContainer">#FFC8C8C8</item>
-        <item name="colorOnTertiaryContainer">#FF252525</item>
+        <item name="colorTertiary">@color/avz_green_bright</item>
+        <item name="colorOnTertiary">@color/avz_on_green</item>
+        <item name="colorTertiaryContainer">@color/avz_green_container</item>
+        <item name="colorOnTertiaryContainer">@color/avz_green_bright</item>
 
-        <!-- Surface / background -->
-        <item name="colorSurface">#FFF4F4F4</item>
-        <item name="colorOnSurface">#FF202020</item>
-        <item name="colorSurfaceVariant">#FFE4E4E4</item>
-        <item name="colorOnSurfaceVariant">#FF474747</item>
-        <item name="colorSurfaceContainerLow">#FFECECEC</item>
-        <item name="colorSurfaceContainer">#FFE6E6E6</item>
-        <item name="colorSurfaceContainerHigh">#FFDDDDDD</item>
+        <!-- Surface / background (slate ramp) -->
+        <item name="android:colorBackground">@color/avz_background</item>
+        <item name="android:windowBackground">@color/avz_background</item>
+        <item name="colorSurface">@color/avz_background</item>
+        <item name="colorOnSurface">@color/avz_on_dark</item>
+        <item name="colorSurfaceVariant">#FF222B33</item>
+        <item name="colorOnSurfaceVariant">@color/avz_on_dark_muted</item>
+        <item name="colorSurfaceDim">@color/avz_background_deep</item>
+        <item name="colorSurfaceBright">#FF38444F</item>
+        <item name="colorSurfaceContainerLowest">@color/avz_background_deep</item>
+        <item name="colorSurfaceContainerLow">#FF222B33</item>
+        <item name="colorSurfaceContainer">@color/avz_surface</item>
+        <item name="colorSurfaceContainerHigh">#FF2B3540</item>
+        <item name="colorSurfaceContainerHighest">@color/avz_surface_high</item>
 
         <!-- Outline -->
-        <item name="colorOutline">#FFBEBEBE</item>
-        <item name="colorOutlineVariant">#FFCFCFCF</item>
+        <item name="colorOutline">@color/avz_outline</item>
+        <item name="colorOutlineVariant">#FF38444F</item>
+        <item name="colorError">@color/avz_error</item>
+
+        <!-- Brand typeface -->
+        <item name="android:fontFamily">@font/outfit</item>
+        <item name="fontFamily">@font/outfit</item>
 
         <!-- System bars -->
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
-        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightStatusBar">false</item>
     </style>
 
     <!-- Black (AMOLED) overlay: EqApp layers it on the dark theme when the Experimental toggle is on. -->
@@ -52,35 +59,35 @@
         <item name="android:windowBackground">#FF000000</item>
         <item name="colorSurface">#FF000000</item>
         <item name="colorSurfaceDim">#FF000000</item>
-        <item name="colorSurfaceBright">#FF1A1A1A</item>
-        <item name="colorSurfaceVariant">#FF0F0F0F</item>
+        <item name="colorSurfaceBright">#FF1A2127</item>
+        <item name="colorSurfaceVariant">#FF0E1216</item>
         <item name="colorSurfaceContainerLowest">#FF000000</item>
-        <item name="colorSurfaceContainerLow">#FF060606</item>
-        <item name="colorSurfaceContainer">#FF0C0C0C</item>
-        <item name="colorSurfaceContainerHigh">#FF141414</item>
-        <item name="colorSurfaceContainerHighest">#FF1A1A1A</item>
+        <item name="colorSurfaceContainerLow">#FF080A0C</item>
+        <item name="colorSurfaceContainer">#FF0E1216</item>
+        <item name="colorSurfaceContainerHigh">#FF12171C</item>
+        <item name="colorSurfaceContainerHighest">#FF1A2127</item>
     </style>
 
     <!-- Rounded dialog -->
     <style name="Theme.Equalizer314.Dialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
         <item name="android:windowBackground">@drawable/bg_dialog_rounded</item>
         <item name="android:backgroundDimAmount">0.6</item>
-        <item name="android:textColorPrimary">#FFE2E2E2</item>
-        <item name="android:textColorSecondary">#FFBBBBBB</item>
+        <item name="android:textColorPrimary">@color/avz_on_dark</item>
+        <item name="android:textColorSecondary">#FFB6C0C8</item>
         <item name="buttonBarPositiveButtonStyle">@style/Widget.Equalizer314.DialogButtonNegative</item>
         <item name="buttonBarNegativeButtonStyle">@style/Widget.Equalizer314.DialogButtonReset</item>
     </style>
 
     <style name="Widget.Equalizer314.DialogButtonReset" parent="Widget.Material3.Button.OutlinedButton">
-        <item name="android:textColor">#FFEF9A9A</item>
-        <item name="strokeColor">#FF444444</item>
+        <item name="android:textColor">@color/avz_error</item>
+        <item name="strokeColor">#FF4B5966</item>
         <item name="strokeWidth">1dp</item>
         <item name="cornerRadius">8dp</item>
     </style>
 
     <style name="Widget.Equalizer314.DialogButtonNegative" parent="Widget.Material3.Button.OutlinedButton">
-        <item name="android:textColor">#FFDDDDDD</item>
-        <item name="strokeColor">#FF444444</item>
+        <item name="android:textColor">#FFD3DAE0</item>
+        <item name="strokeColor">#FF4B5966</item>
         <item name="strokeWidth">1dp</item>
         <item name="cornerRadius">8dp</item>
     </style>

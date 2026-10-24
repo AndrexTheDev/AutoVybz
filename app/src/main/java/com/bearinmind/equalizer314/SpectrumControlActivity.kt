@@ -85,15 +85,15 @@ class SpectrumControlActivity : AppCompatActivity() {
         }
         fun updateSpecToggleStyle(active: Boolean) {
             if (active) {
-                specToggle.setBackgroundColor(0xFF555555.toInt())
-                specToggle.strokeColor = android.content.res.ColorStateList.valueOf(0xFF888888.toInt())
+                specToggle.setBackgroundColor(0xFF5E6C79.toInt())
+                specToggle.strokeColor = android.content.res.ColorStateList.valueOf(0xFF8E9AA5.toInt())
                 specToggle.strokeWidth = (2 * density).toInt()
-                specToggle.iconTint = android.content.res.ColorStateList.valueOf(0xFFDDDDDD.toInt())
+                specToggle.iconTint = android.content.res.ColorStateList.valueOf(0xFFDDE3E7.toInt())
             } else {
                 specToggle.setBackgroundColor(0x00000000)
-                specToggle.strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt())
+                specToggle.strokeColor = android.content.res.ColorStateList.valueOf(0xFF4C5A67.toInt())
                 specToggle.strokeWidth = (1 * density).toInt()
-                specToggle.iconTint = android.content.res.ColorStateList.valueOf(0xFF888888.toInt())
+                specToggle.iconTint = android.content.res.ColorStateList.valueOf(0xFF8E9AA5.toInt())
             }
         }
 
@@ -155,7 +155,7 @@ class SpectrumControlActivity : AppCompatActivity() {
             val tv = TextView(this).apply {
                 text = label
                 textSize = 10f
-                setTextColor(0xFF666666.toInt())
+                setTextColor(0xFF717E8A.toInt())
             }
             tickLabelViews.add(tv)
             tickLabelsRow.addView(tv, android.widget.FrameLayout.LayoutParams(
@@ -210,13 +210,13 @@ class SpectrumControlActivity : AppCompatActivity() {
 
     private fun updateTickHighlight(selectedIdx: Int) {
         val primaryColor = com.google.android.material.color.MaterialColors.getColor(
-            this, com.google.android.material.R.attr.colorPrimary, 0xFFBB86FC.toInt())
+            this, com.google.android.material.R.attr.colorPrimary, 0xFF5CF28C.toInt())
         for (i in tickLabelViews.indices) {
             if (i == selectedIdx) {
                 tickLabelViews[i].setTextColor(primaryColor)
                 tickLabelViews[i].setTypeface(null, android.graphics.Typeface.BOLD)
             } else {
-                tickLabelViews[i].setTextColor(0xFF666666.toInt())
+                tickLabelViews[i].setTextColor(0xFF717E8A.toInt())
                 tickLabelViews[i].setTypeface(null, android.graphics.Typeface.NORMAL)
             }
         }
@@ -234,25 +234,25 @@ class SpectrumControlActivity : AppCompatActivity() {
         val size = (22 * density).toInt()
 
         for ((color, _) in colors) {
-            val isDefault = color == 0xFF333333.toInt()
+            val isDefault = color == 0xFF3D4955.toInt()
             val wrapper = android.widget.FrameLayout(this).apply {
                 layoutParams = android.widget.LinearLayout.LayoutParams(0,
                     android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
             }
-            val displayColor = if (isDefault) 0xFFB4B4B4.toInt() else color
+            val displayColor = if (isDefault) 0xFFB3BDC5.toInt() else color
             val swatch: android.view.View = if (isDefault) {
                 android.widget.TextView(this).apply {
                     text = "\u2014"
                     textSize = 12f
-                    setTextColor(0xFFAAAAAA.toInt())
+                    setTextColor(0xFFA9B4BE.toInt())
                     gravity = android.view.Gravity.CENTER
                     layoutParams = android.widget.FrameLayout.LayoutParams(size, size).apply {
                         gravity = android.view.Gravity.CENTER
                     }
                     background = android.graphics.drawable.GradientDrawable().apply {
-                        setColor(0xFF333333.toInt())
+                        setColor(0xFF3D4955.toInt())
                         cornerRadius = 6 * density
-                        setStroke((1 * density).toInt(), 0xFF666666.toInt())
+                        setStroke((1 * density).toInt(), 0xFF717E8A.toInt())
                     }
                 }
             } else {
@@ -263,7 +263,7 @@ class SpectrumControlActivity : AppCompatActivity() {
                     background = android.graphics.drawable.GradientDrawable().apply {
                         setColor(color)
                         cornerRadius = 6 * density
-                        setStroke((1 * density).toInt(), 0xFF666666.toInt())
+                        setStroke((1 * density).toInt(), 0xFF717E8A.toInt())
                     }
                 }
             }
@@ -288,13 +288,13 @@ class SpectrumControlActivity : AppCompatActivity() {
             val swatch = wrapper.getChildAt(0) ?: continue
             val bg = swatch.background as? android.graphics.drawable.GradientDrawable ?: continue
             val swatchColor = colors[i].first
-            val isDefault = swatchColor == 0xFF333333.toInt()
-            val displayColor = if (isDefault) 0xFFB4B4B4.toInt() else swatchColor
+            val isDefault = swatchColor == 0xFF3D4955.toInt()
+            val displayColor = if (isDefault) 0xFFB3BDC5.toInt() else swatchColor
             val isSelected = displayColor == selectedColor
             if (isSelected) {
                 bg.setStroke((2 * density).toInt(), 0xFFFFFFFF.toInt())
             } else {
-                bg.setStroke((1 * density).toInt(), 0xFF666666.toInt())
+                bg.setStroke((1 * density).toInt(), 0xFF717E8A.toInt())
             }
         }
     }

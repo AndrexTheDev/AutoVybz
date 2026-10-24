@@ -133,12 +133,12 @@ class TargetCurveActivity : AppCompatActivity() {
             measurementStatus.text = if (info.isNotBlank()) "$name \u00B7 $info" else name
             measurementStatus.setTextColor(
                 com.google.android.material.color.MaterialColors.getColor(
-                    measurementStatus, com.google.android.material.R.attr.colorPrimary, 0xFFBB86FC.toInt()
+                    measurementStatus, com.google.android.material.R.attr.colorPrimary, 0xFF5CF28C.toInt()
                 )
             )
         } else {
             measurementStatus.text = getString(R.string.no_measurement_selected)
-            measurementStatus.setTextColor(0xFF888888.toInt())
+            measurementStatus.setTextColor(0xFF8E9AA5.toInt())
         }
     }
 
@@ -149,12 +149,12 @@ class TargetCurveActivity : AppCompatActivity() {
             targetSelectStatus.text = if (type.isNotBlank()) "$name \u00B7 $type" else name
             targetSelectStatus.setTextColor(
                 com.google.android.material.color.MaterialColors.getColor(
-                    targetSelectStatus, com.google.android.material.R.attr.colorPrimary, 0xFFBB86FC.toInt()
+                    targetSelectStatus, com.google.android.material.R.attr.colorPrimary, 0xFF5CF28C.toInt()
                 )
             )
         } else {
             targetSelectStatus.text = getString(R.string.no_target_selected)
-            targetSelectStatus.setTextColor(0xFF888888.toInt())
+            targetSelectStatus.setTextColor(0xFF8E9AA5.toInt())
         }
     }
 
@@ -302,7 +302,7 @@ class TargetCurveActivity : AppCompatActivity() {
         }
         val title = android.widget.TextView(this).apply {
             text = getString(R.string.edit_generated_eq)
-            setTextColor(0xFFE2E2E2.toInt()); textSize = 20f
+            setTextColor(0xFFE3E8EB.toInt()); textSize = 20f
             layoutParams = android.widget.LinearLayout.LayoutParams(0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
         }
         val undoDlgBtn = com.google.android.material.button.MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
@@ -310,7 +310,7 @@ class TargetCurveActivity : AppCompatActivity() {
             layoutParams = android.widget.LinearLayout.LayoutParams(sz, sz).apply { marginStart = (4 * density).toInt() }
             icon = resources.getDrawable(R.drawable.ic_undo, theme); iconGravity = com.google.android.material.button.MaterialButton.ICON_GRAVITY_TEXT_START
             iconPadding = 0; iconTint = null; setPadding(0, 0, 0, 0); insetTop = 0; insetBottom = 0; minWidth = 0; minimumWidth = 0; minHeight = 0; minimumHeight = 0
-            cornerRadius = (8 * density).toInt(); strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt()); strokeWidth = (1 * density).toInt()
+            cornerRadius = (8 * density).toInt(); strokeColor = android.content.res.ColorStateList.valueOf(0xFF4C5A67.toInt()); strokeWidth = (1 * density).toInt()
             setBackgroundColor(0x00000000)
         }
         val redoDlgBtn = com.google.android.material.button.MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
@@ -318,22 +318,22 @@ class TargetCurveActivity : AppCompatActivity() {
             layoutParams = android.widget.LinearLayout.LayoutParams(sz, sz).apply { marginStart = (4 * density).toInt() }
             icon = resources.getDrawable(R.drawable.ic_redo, theme); iconGravity = com.google.android.material.button.MaterialButton.ICON_GRAVITY_TEXT_START
             iconPadding = 0; iconTint = null; setPadding(0, 0, 0, 0); insetTop = 0; insetBottom = 0; minWidth = 0; minimumWidth = 0; minHeight = 0; minimumHeight = 0
-            cornerRadius = (8 * density).toInt(); strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt()); strokeWidth = (1 * density).toInt()
+            cornerRadius = (8 * density).toInt(); strokeColor = android.content.res.ColorStateList.valueOf(0xFF4C5A67.toInt()); strokeWidth = (1 * density).toInt()
             setBackgroundColor(0x00000000)
         }
         titleRow.addView(title); titleRow.addView(undoDlgBtn); titleRow.addView(redoDlgBtn)
 
         val editBox = android.widget.EditText(this).apply {
             setText(originalText)
-            setTextColor(0xFFDDDDDD.toInt())
+            setTextColor(0xFFDDE3E7.toInt())
             textSize = 11f
             typeface = android.graphics.Typeface.MONOSPACE
             inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE
             gravity = android.view.Gravity.START or android.view.Gravity.TOP
             minLines = 8
             background = android.graphics.drawable.GradientDrawable().apply {
-                setColor(0xFF1A1A1A.toInt())
-                setStroke((1 * density).toInt(), 0xFF555555.toInt())
+                setColor(0xFF28323D.toInt())
+                setStroke((1 * density).toInt(), 0xFF5E6C79.toInt())
                 cornerRadius = 12 * density
             }
             val pad = (12 * density).toInt()
@@ -345,7 +345,7 @@ class TargetCurveActivity : AppCompatActivity() {
                 android.widget.LinearLayout.LayoutParams.MATCH_PARENT, (1 * density).toInt()).apply {
                 topMargin = (12 * density).toInt(); bottomMargin = (12 * density).toInt()
             }
-            setBackgroundColor(0xFF444444.toInt())
+            setBackgroundColor(0xFF4C5A67.toInt())
         }
 
         fun saveState() {
@@ -368,7 +368,7 @@ class TargetCurveActivity : AppCompatActivity() {
                 marginEnd = (3 * density).toInt()
             }
             cornerRadius = (12 * density).toInt(); setTextColor(0xFFEF9A9A.toInt())
-            setBackgroundColor(0x00000000); strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt()); strokeWidth = (1 * density).toInt()
+            setBackgroundColor(0x00000000); strokeColor = android.content.res.ColorStateList.valueOf(0xFF4C5A67.toInt()); strokeWidth = (1 * density).toInt()
             insetTop = 0; insetBottom = 0
         }
         val saveBtn = com.google.android.material.button.MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
@@ -376,8 +376,8 @@ class TargetCurveActivity : AppCompatActivity() {
             layoutParams = android.widget.LinearLayout.LayoutParams(0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
                 marginStart = (3 * density).toInt()
             }
-            cornerRadius = (12 * density).toInt(); setTextColor(0xFFDDDDDD.toInt())
-            setBackgroundColor(0x00000000); strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt()); strokeWidth = (1 * density).toInt()
+            cornerRadius = (12 * density).toInt(); setTextColor(0xFFDDE3E7.toInt())
+            setBackgroundColor(0x00000000); strokeColor = android.content.res.ColorStateList.valueOf(0xFF4C5A67.toInt()); strokeWidth = (1 * density).toInt()
             insetTop = 0; insetBottom = 0
         }
         btnRow.addView(resetDlgBtn); btnRow.addView(saveBtn)
@@ -453,7 +453,7 @@ class TargetCurveActivity : AppCompatActivity() {
         }
         val titleTv = android.widget.TextView(this).apply {
             text = getString(R.string.save_custom_preset)
-            setTextColor(0xFFE2E2E2.toInt()); textSize = 20f
+            setTextColor(0xFFE3E8EB.toInt()); textSize = 20f
             setPadding(0, 0, 0, (12 * density).toInt())
         }
         // Input box: rounded 12dp #555555 border around a borderless EditText, like the other save dialogs.
@@ -464,14 +464,14 @@ class TargetCurveActivity : AppCompatActivity() {
             ).apply { bottomMargin = (16 * density).toInt() }
             background = android.graphics.drawable.GradientDrawable().apply {
                 setColor(0x00000000)
-                setStroke((1 * density).toInt(), 0xFF555555.toInt())
+                setStroke((1 * density).toInt(), 0xFF5E6C79.toInt())
                 cornerRadius = 12 * density
             }
         }
         val nameInput = android.widget.EditText(this).apply {
             setText(defaultName)
             setTextColor(0xFFFFFFFF.toInt())
-            setHintTextColor(0xFF888888.toInt())
+            setHintTextColor(0xFF8E9AA5.toInt())
             inputType = android.text.InputType.TYPE_CLASS_TEXT
             background = null
             isSingleLine = true
@@ -486,7 +486,7 @@ class TargetCurveActivity : AppCompatActivity() {
             ).apply {
                 bottomMargin = (12 * density).toInt()
             }
-            setBackgroundColor(0xFF444444.toInt())
+            setBackgroundColor(0xFF4C5A67.toInt())
         }
         val btnRow = android.widget.LinearLayout(this).apply {
             orientation = android.widget.LinearLayout.HORIZONTAL
@@ -504,7 +504,7 @@ class TargetCurveActivity : AppCompatActivity() {
             ).apply { marginEnd = (3 * density).toInt() }
             cornerRadius = (12 * density).toInt()
             setTextColor(0xFFEF9A9A.toInt())
-            strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt())
+            strokeColor = android.content.res.ColorStateList.valueOf(0xFF4C5A67.toInt())
             strokeWidth = (1 * density).toInt()
             setBackgroundColor(0x00000000)
             insetTop = 0; insetBottom = 0
@@ -517,8 +517,8 @@ class TargetCurveActivity : AppCompatActivity() {
                 0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f
             ).apply { marginStart = (3 * density).toInt() }
             cornerRadius = (12 * density).toInt()
-            setTextColor(0xFFDDDDDD.toInt())
-            strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt())
+            setTextColor(0xFFDDE3E7.toInt())
+            strokeColor = android.content.res.ColorStateList.valueOf(0xFF4C5A67.toInt())
             strokeWidth = (1 * density).toInt()
             setBackgroundColor(0x00000000)
             insetTop = 0; insetBottom = 0
@@ -583,12 +583,12 @@ class TargetCurveActivity : AppCompatActivity() {
 
         private val density = context.resources.displayMetrics.density
         private val curvePaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
-            color = 0xFFAAAAAA.toInt()
+            color = 0xFFA9B4BE.toInt()
             strokeWidth = 0.5f * density
             style = android.graphics.Paint.Style.STROKE
         }
         private val gridPaint = android.graphics.Paint().apply {
-            color = 0xFF6A6A6A.toInt(); strokeWidth = 1f
+            color = 0xFF75828E.toInt(); strokeWidth = 1f
         }
 
         init {

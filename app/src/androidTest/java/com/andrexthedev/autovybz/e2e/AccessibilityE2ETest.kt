@@ -166,7 +166,9 @@ class AccessibilityE2ETest : E2eTest() {
         compose.tap("avz:result:saveApply"); compose.await("avz:saved"); audit("saved")
 
         compose.savedToProTab()
-        expandAllCards(); audit("pro (all cards expanded)")
+        expandAllCards(); audit("studio (all cards expanded)")
+        compose.tap("avz:tab:HOME"); compose.await("avz:screen:home"); audit("sound")
+        compose.tap("avz:style:LIVE"); compose.await("avz:home:intensity"); audit("sound (style selected)")
         compose.tap("avz:tab:HELP"); compose.await("avz:screen:help")
         expandAllCards(); audit("help (all expanded)")
         compose.tap("avz:tab:ABOUT"); compose.await("avz:screen:about"); audit("about")

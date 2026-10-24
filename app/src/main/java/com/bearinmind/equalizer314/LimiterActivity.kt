@@ -77,8 +77,8 @@ class LimiterActivity : AppCompatActivity() {
         // Refresh nav icon after loadState sets the switch
         val limIcon = findViewById<android.widget.ImageButton>(R.id.navLimiterButton)
         limIcon.imageTintList = android.content.res.ColorStateList.valueOf(
-            if (masterSwitch.isChecked) com.google.android.material.color.MaterialColors.getColor(limIcon, com.google.android.material.R.attr.colorPrimary, 0xFFBB86FC.toInt())
-            else 0xFF555555.toInt()
+            if (masterSwitch.isChecked) com.google.android.material.color.MaterialColors.getColor(limIcon, com.google.android.material.R.attr.colorPrimary, 0xFF5CF28C.toInt())
+            else 0xFF5E6C79.toInt()
         )
         if (eqPrefs.getSpectrumEnabled()) startMetering()
 
@@ -184,13 +184,13 @@ class LimiterActivity : AppCompatActivity() {
             }
             val titleTv = android.widget.TextView(this).apply {
                 text = getString(R.string.reset)
-                setTextColor(0xFFE2E2E2.toInt())
+                setTextColor(0xFFE3E8EB.toInt())
                 textSize = 20f
                 setPadding(0, 0, 0, (12 * density).toInt())
             }
             val messageTv = android.widget.TextView(this).apply {
                 text = getString(R.string.reset_screen_confirm)
-                setTextColor(0xFFAAAAAA.toInt())
+                setTextColor(0xFFA9B4BE.toInt())
                 textSize = 14f
                 setPadding(0, 0, 0, (16 * density).toInt())
             }
@@ -199,7 +199,7 @@ class LimiterActivity : AppCompatActivity() {
                     android.widget.LinearLayout.LayoutParams.MATCH_PARENT, (1 * density).toInt()).apply {
                     bottomMargin = (12 * density).toInt()
                 }
-                setBackgroundColor(0xFF444444.toInt())
+                setBackgroundColor(0xFF4C5A67.toInt())
             }
             val btnRow = android.widget.LinearLayout(this).apply {
                 orientation = android.widget.LinearLayout.HORIZONTAL
@@ -214,7 +214,7 @@ class LimiterActivity : AppCompatActivity() {
                 }
                 cornerRadius = (12 * density).toInt()
                 setTextColor(0xFFEF9A9A.toInt())
-                strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt())
+                strokeColor = android.content.res.ColorStateList.valueOf(0xFF4C5A67.toInt())
                 strokeWidth = (1 * density).toInt()
                 setBackgroundColor(0x00000000)
                 insetTop = 0; insetBottom = 0
@@ -225,9 +225,9 @@ class LimiterActivity : AppCompatActivity() {
                     marginStart = (3 * density).toInt()
                 }
                 cornerRadius = (12 * density).toInt()
-                setTextColor(0xFFDDDDDD.toInt())
+                setTextColor(0xFFDDE3E7.toInt())
                 setBackgroundColor(0x00000000)
-                strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt())
+                strokeColor = android.content.res.ColorStateList.valueOf(0xFF4C5A67.toInt())
                 strokeWidth = (1 * density).toInt()
                 insetTop = 0; insetBottom = 0
             }
@@ -268,11 +268,11 @@ class LimiterActivity : AppCompatActivity() {
         val isLightUi = (resources.configuration.uiMode and
             android.content.res.Configuration.UI_MODE_NIGHT_MASK) !=
             android.content.res.Configuration.UI_MODE_NIGHT_YES
-        val litBg = if (isLightUi) 0xFFADADAD.toInt() else 0xFF555555.toInt()
-        val litStroke = if (isLightUi) 0xFF7A7A7A.toInt() else 0xFF888888.toInt()
-        val litContent = if (isLightUi) 0xFF252525.toInt() else 0xFFDDDDDD.toInt()
-        val dimStroke = if (isLightUi) 0xFFBEBEBE.toInt() else 0xFF444444.toInt()
-        val dimContent = if (isLightUi) 0xFF7A7A7A.toInt() else 0xFF888888.toInt()
+        val litBg = if (isLightUi) 0xFFACB7C0.toInt() else 0xFF5E6C79.toInt()
+        val litStroke = if (isLightUi) 0xFF84919C.toInt() else 0xFF8E9AA5.toInt()
+        val litContent = if (isLightUi) 0xFF333E49.toInt() else 0xFFDDE3E7.toInt()
+        val dimStroke = if (isLightUi) 0xFFBDC6CE.toInt() else 0xFF4C5A67.toInt()
+        val dimContent = if (isLightUi) 0xFF84919C.toInt() else 0xFF8E9AA5.toInt()
         fun updateVizStyle(active: Boolean) {
             if (active) {
                 vizToggle.setBackgroundColor(litBg)

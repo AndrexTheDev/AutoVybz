@@ -1,22 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- AutoVybz "Jamaica" palette. Mirrored 1:1 in the Compose theme
-     (com.andrexthedev.autovybz.ui.theme.AutoVybzPalette) - change together;
+<!-- AutoVybz "Vybz Slate" palette: slate = intro-video backdrop, neon green + gold = logo rings.
+     Mirrored 1:1 in the Compose theme (com.andrexthedev.autovybz.ui.theme.AutoVybzPalette) - change together;
      ColorContrastAuditTest enforces the mirror and the WCAG contrast ratios. -->
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <color name="avz_background">#FF121212</color>
-    <color name="avz_background_deep">#FF0A0A0A</color>
-    <color name="avz_surface">#FF181818</color>
-    <color name="avz_surface_high">#FF222222</color>
-    <color name="avz_outline">#FF737373</color>
-    <color name="avz_green">#FF009B3A</color>
-    <color name="avz_green_bright">#FF2BC266</color>
-    <color name="avz_green_container">#FF0B3A1F</color>
-    <color name="avz_gold">#FFFED100</color>
-    <color name="avz_gold_container">#FF3D3300</color>
-    <color name="avz_on_dark">#FFEDEDED</color>
-    <color name="avz_on_dark_muted">#FFA8A8A8</color>
-    <!-- text on green; used from Compose via AutoVybzPalette.ON_GREEN, kept here so the XML palette stays complete -->
-    <color name="avz_on_green" tools:ignore="UnusedResources">#FF0A0A0A</color>
-    <color name="avz_error">#FFFF6B6B</color>
-    <color name="ic_launcher_background">#FF121212</color>
+    <color name="avz_background">#FF1E262D</color>
+    <color name="avz_background_deep">#FF161C21</color>
+    <color name="avz_surface">#FF26303A</color>
+    <color name="avz_surface_high">#FF313C47</color>
+    <color name="avz_outline">#FF7F8C98</color>
+    <color name="avz_green">#FF1EED61</color>
+    <color name="avz_green_bright">#FF5CF28C</color>
+    <color name="avz_green_container">#FF123A27</color>
+    <color name="avz_gold">#FFFCD207</color>
+    <color name="avz_gold_container">#FF3E3612</color>
+    <color name="avz_on_dark">#FFEEF2F5</color>
+    <color name="avz_on_dark_muted">#FFA7B2BC</color>
+    <color name="avz_on_green">#FF08130C</color>
+    <color name="avz_error">#FFFF8A8A</color>
+    <color name="avz_grid" tools:ignore="UnusedResources">#FF35414C</color>
+    <color name="avz_curve_measured" tools:ignore="UnusedResources">#FF93A0AC</color>
+    <color name="ic_launcher_background">#FF1E262D</color>
 </resources>

@@ -29,20 +29,20 @@ class SimpleEqBarsView @JvmOverloads constructor(
 
     // Bar styling
     private val barPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFFB0B0B0.toInt()
+        color = 0xFFAFB9C2.toInt()
         style = Paint.Style.FILL
     }
     private val barBgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFF2A2A2A.toInt()
+        color = 0xFF35414C.toInt()
         style = Paint.Style.FILL
     }
     private val centerLinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFF444444.toInt()
+        color = 0xFF4C5A67.toInt()
         style = Paint.Style.STROKE
         strokeWidth = 1f * density
     }
     private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFF999999.toInt()
+        color = 0xFF9BA7B1.toInt()
         textSize = 9f * density
         textAlign = Paint.Align.CENTER
     }
@@ -56,10 +56,10 @@ class SimpleEqBarsView @JvmOverloads constructor(
         if (isLight) {
             // Exact luminance mirrors of the dark values — light theme keeps the
             // dark theme's contrast relationships.
-            barPaint.color = 0xFF525252.toInt()        // dark #B0B0B0
-            barBgPaint.color = 0xFFD8D8D8.toInt()      // dark #2A2A2A
-            centerLinePaint.color = 0xFFBEBEBE.toInt() // dark #444444
-            labelPaint.color = 0xFF696969.toInt()      // dark #999999
+            barPaint.color = 0xFF5B6976.toInt()        // dark #B0B0B0
+            barBgPaint.color = 0xFFD8DEE4.toInt()      // dark #2A2A2A
+            centerLinePaint.color = 0xFFBDC6CE.toInt() // dark #444444
+            labelPaint.color = 0xFF74818D.toInt()      // dark #999999
         }
     }
 

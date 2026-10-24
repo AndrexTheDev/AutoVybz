@@ -8,13 +8,16 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import com.bearinmind.equalizer314.R
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 /**
- * AutoVybz "Jamaica" palette - mirrors res/values/autovybz_colors.xml 1:1
- * (the XML is used by the window theme / launcher icon, this object by Compose).
+ * AutoVybz "Vybz Slate" palette - mirrors res/values/autovybz_colors.xml 1:1
+ * (the XML is used by the window themes / launcher icon, this object by Compose).
  */
 object AutoVybzColors {
     val Background = Color(AutoVybzPalette.BACKGROUND)
@@ -37,6 +40,10 @@ object AutoVybzColors {
     val CurveTarget = Gold
     val CurveCorrected = GreenBright
     val Grid = Color(AutoVybzPalette.GRID)
+
+    /** Subtle top-lit card fill: the "glow from the ring" look of the brand. */
+    val CardTop = Color(0xFF2A3540)
+    val CardBottom = Surface
 }
 
 private val AutoVybzColorScheme = darkColorScheme(
@@ -45,7 +52,7 @@ private val AutoVybzColorScheme = darkColorScheme(
     primaryContainer = AutoVybzColors.GreenContainer,
     onPrimaryContainer = AutoVybzColors.GreenBright,
     secondary = AutoVybzColors.Gold,
-    onSecondary = Color.Black,
+    onSecondary = AutoVybzColors.OnGreen,
     secondaryContainer = AutoVybzColors.GoldContainer,
     onSecondaryContainer = AutoVybzColors.Gold,
     tertiary = AutoVybzColors.GreenBright,
@@ -58,7 +65,7 @@ private val AutoVybzColorScheme = darkColorScheme(
     onSurfaceVariant = AutoVybzColors.OnDarkMuted,
     surfaceTint = AutoVybzColors.Green,
     outline = AutoVybzColors.Outline,
-    outlineVariant = Color(0xFF3A3A3A),
+    outlineVariant = Color(0xFF3A4652),
     error = AutoVybzColors.Error,
     onError = Color.Black,
     inverseSurface = AutoVybzColors.OnDark,
@@ -66,26 +73,46 @@ private val AutoVybzColorScheme = darkColorScheme(
     scrim = Color.Black,
 )
 
+/** Brand typeface Outfit (SIL OFL 1.1) - geometric and round like the logo rings. */
+val Outfit = FontFamily(
+    Font(R.font.outfit_regular, FontWeight.Normal),
+    Font(R.font.outfit_medium, FontWeight.Medium),
+    Font(R.font.outfit_semibold, FontWeight.SemiBold),
+    Font(R.font.outfit_bold, FontWeight.Bold),
+)
+
+/** Tabular figures: dB / Hz / % readouts keep their width while the value changes. */
+private const val TNUM = "tnum"
+
+private fun style(weight: FontWeight, size: Int, line: Int, spacing: Double = 0.0) = TextStyle(
+    fontFamily = Outfit, fontWeight = weight, fontSize = size.sp, lineHeight = line.sp,
+    letterSpacing = spacing.sp, fontFeatureSettings = TNUM,
+)
+
 private val AutoVybzTypography = Typography(
-    displaySmall = TextStyle(fontWeight = FontWeight.Bold, fontSize = 32.sp, lineHeight = 38.sp, letterSpacing = (-0.5).sp),
-    headlineMedium = TextStyle(fontWeight = FontWeight.Bold, fontSize = 26.sp, lineHeight = 32.sp),
-    headlineSmall = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 22.sp, lineHeight = 28.sp),
-    titleLarge = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 20.sp, lineHeight = 26.sp),
-    titleMedium = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 16.sp, lineHeight = 22.sp, letterSpacing = 0.1.sp),
-    titleSmall = TextStyle(fontWeight = FontWeight.Medium, fontSize = 14.sp, lineHeight = 20.sp),
-    bodyLarge = TextStyle(fontSize = 16.sp, lineHeight = 24.sp),
-    bodyMedium = TextStyle(fontSize = 14.sp, lineHeight = 20.sp),
-    bodySmall = TextStyle(fontSize = 12.sp, lineHeight = 16.sp),
-    labelLarge = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 15.sp, lineHeight = 20.sp, letterSpacing = 0.2.sp),
-    labelMedium = TextStyle(fontWeight = FontWeight.Medium, fontSize = 12.sp, lineHeight = 16.sp),
+    displayLarge = style(FontWeight.Bold, 52, 56, -1.0),
+    displayMedium = style(FontWeight.Bold, 40, 46, -0.8),
+    displaySmall = style(FontWeight.Bold, 32, 38, -0.5),
+    headlineLarge = style(FontWeight.Bold, 30, 36, -0.4),
+    headlineMedium = style(FontWeight.Bold, 26, 32, -0.2),
+    headlineSmall = style(FontWeight.SemiBold, 22, 28),
+    titleLarge = style(FontWeight.SemiBold, 20, 26),
+    titleMedium = style(FontWeight.SemiBold, 16, 22, 0.1),
+    titleSmall = style(FontWeight.Medium, 14, 20, 0.1),
+    bodyLarge = style(FontWeight.Normal, 16, 24, 0.1),
+    bodyMedium = style(FontWeight.Normal, 14, 20, 0.1),
+    bodySmall = style(FontWeight.Normal, 12, 16, 0.2),
+    labelLarge = style(FontWeight.SemiBold, 15, 20, 0.3),
+    labelMedium = style(FontWeight.Medium, 12, 16, 0.4),
+    labelSmall = style(FontWeight.Medium, 11, 14, 0.5),
 )
 
 private val AutoVybzShapes = Shapes(
     extraSmall = RoundedCornerShape(6.dp),
-    small = RoundedCornerShape(10.dp),
-    medium = RoundedCornerShape(16.dp),
-    large = RoundedCornerShape(24.dp),
-    extraLarge = RoundedCornerShape(32.dp),
+    small = RoundedCornerShape(12.dp),
+    medium = RoundedCornerShape(20.dp),
+    large = RoundedCornerShape(28.dp),
+    extraLarge = RoundedCornerShape(36.dp),
 )
 
 /** Always dark - AutoVybz has a single, deliberately dark look. */

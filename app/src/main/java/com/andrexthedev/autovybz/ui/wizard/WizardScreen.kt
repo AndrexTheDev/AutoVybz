@@ -105,6 +105,11 @@ import com.andrexthedev.autovybz.ui.components.ExportButton
 import com.andrexthedev.autovybz.ui.components.FrequencyResponseChart
 import com.andrexthedev.autovybz.ui.components.LevelMeter
 import com.andrexthedev.autovybz.ui.components.SectionTitle
+import com.andrexthedev.autovybz.ui.components.VybzIcons
+import com.andrexthedev.autovybz.ui.components.VybzRings
+import com.andrexthedev.autovybz.ui.components.rememberPulse
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.progressBarRangeInfo
 import com.andrexthedev.autovybz.ui.share.ResultSharer
 import com.andrexthedev.autovybz.ui.theme.AutoVybzColors
 import com.bearinmind.equalizer314.R
@@ -233,9 +238,9 @@ private fun IdleStep(state: WizardUiState, vm: WizardViewModel, onStart: () -> U
                     Icon(if (env == ListeningEnvironment.OUTDOOR) Icons.Filled.Star else Icons.Filled.Home, null, Modifier.size(18.dp))
                 },
                 colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = AutoVybzColors.GreenContainer,
-                    selectedLabelColor = AutoVybzColors.GreenBright,
-                    selectedLeadingIconColor = AutoVybzColors.Gold,
+                    selectedContainerColor = AutoVybzColors.Green,
+                    selectedLabelColor = AutoVybzColors.OnGreen,
+                    selectedLeadingIconColor = AutoVybzColors.OnGreen,
                 ),
             )
         }
@@ -258,8 +263,8 @@ private fun IdleStep(state: WizardUiState, vm: WizardViewModel, onStart: () -> U
                 label = { Text(stringResource(label)) },
                 modifier = Modifier.testTag("avz:positions:$count"),
                 colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = AutoVybzColors.GreenContainer,
-                    selectedLabelColor = AutoVybzColors.GreenBright,
+                    selectedContainerColor = AutoVybzColors.Green,
+                    selectedLabelColor = AutoVybzColors.OnGreen,
                 ),
             )
         }
@@ -282,23 +287,20 @@ private fun IdleStep(state: WizardUiState, vm: WizardViewModel, onStart: () -> U
     }
 }
 
-/** The one big round button laypeople need. */
+/** The one big round button laypeople need - inside the logo's two rings, breathing. */
 @Composable
 private fun BigStartButton(onClick: () -> Unit) {
-    Box(
-        Modifier.size(212.dp).clip(CircleShape)
-            .background(Brush.radialGradient(listOf(AutoVybzColors.Green.copy(alpha = 0.35f), AutoVybzColors.Background))),
-        contentAlignment = Alignment.Center,
-    ) {
+    Box(Modifier.size(220.dp), contentAlignment = Alignment.Center) {
+        VybzRings(Modifier.matchParentSize(), pulse = rememberPulse(), strokeWidth = 5.dp)
         Button(
             onClick = onClick,
             shape = CircleShape,
             colors = ButtonDefaults.buttonColors(containerColor = AutoVybzColors.Green, contentColor = AutoVybzColors.OnGreen),
-            border = BorderStroke(3.dp, AutoVybzColors.Gold),
-            modifier = Modifier.size(176.dp).testTag("avz:start"),
+            modifier = Modifier.size(150.dp).testTag("avz:start"),
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(Icons.Filled.PlayArrow, contentDescription = null, modifier = Modifier.size(48.dp))
+                Icon(VybzIcons.Calibrate, contentDescription = null, modifier = Modifier.size(40.dp))
+                Spacer(Modifier.height(4.dp))
                 Text(
                     stringResource(R.string.avz_wizard_start),
                     style = MaterialTheme.typography.titleMedium,
@@ -326,8 +328,8 @@ private fun TargetChooser(selected: TargetType, onSelect: (TargetType) -> Unit) 
                 label = { Text(stringResource(label)) },
                 modifier = Modifier.testTag("avz:target:${type.name}"),
                 colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = AutoVybzColors.GreenContainer,
-                    selectedLabelColor = AutoVybzColors.GreenBright,
+                    selectedContainerColor = AutoVybzColors.Green,
+                    selectedLabelColor = AutoVybzColors.OnGreen,
                     labelColor = AutoVybzColors.OnDarkMuted,
                 ),
             )
@@ -489,12 +491,10 @@ private fun MeasuringStep(step: WizardStep.Measuring, onCancel: () -> Unit) {
     Column(Modifier.fillMaxWidth().testTag("avz:measuring"), horizontalAlignment = Alignment.CenterHorizontally) {
         Spacer(Modifier.height(24.dp))
         Box(contentAlignment = Alignment.Center) {
-            CircularProgressIndicator(
-                progress = { step.fraction },
-                modifier = Modifier.size(180.dp),
-                color = AutoVybzColors.Green,
-                trackColor = AutoVybzColors.SurfaceHigh,
-                strokeWidth = 10.dp,
+            VybzRings(
+                Modifier.size(196.dp).semantics { progressBarRangeInfo = ProgressBarRangeInfo(step.fraction, 0f..1f) },
+                progress = step.fraction,
+                strokeWidth = 8.dp,
             )
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 val secondsLeft = ((1f - step.fraction) * 11f).roundToInt().coerceAtLeast(0)
@@ -534,10 +534,8 @@ private fun CountdownStep(step: WizardStep.Countdown, onCancel: () -> Unit) {
             )
             Spacer(Modifier.height(12.dp))
         }
-        Box(
-            Modifier.size(160.dp).clip(CircleShape).background(AutoVybzColors.GreenContainer),
-            contentAlignment = Alignment.Center,
-        ) {
+        Box(Modifier.size(188.dp), contentAlignment = Alignment.Center) {
+            VybzRings(Modifier.matchParentSize(), pulse = rememberPulse(1_000), strokeWidth = 6.dp)
             Text(
                 step.secondsLeft.toString(),
                 style = MaterialTheme.typography.displaySmall.copy(fontSize = 72.sp, lineHeight = 80.sp),
@@ -751,8 +749,8 @@ private fun ResultStep(step: WizardStep.Result, state: WizardUiState, vm: Wizard
                 label = { Text(stringResource(label)) },
                 modifier = Modifier.testTag("avz:bands:$count"),
                 colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = AutoVybzColors.GreenContainer,
-                    selectedLabelColor = AutoVybzColors.GreenBright,
+                    selectedContainerColor = AutoVybzColors.Green,
+                    selectedLabelColor = AutoVybzColors.OnGreen,
                 ),
             )
         }

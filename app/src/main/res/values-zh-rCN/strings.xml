@@ -209,7 +209,7 @@
 <string name="imported_quoted">已导入“%1$s”</string>
 <string name="import_failed">导入失败：%1$s</string>
 <string name="export_quoted">导出“%1$s”</string>
-<string name="export_format_choices">EqualizerAPO (.txt)\nEqualizer314 (.json)</string>
+<string name="export_format_choices">EqualizerAPO (.txt)\nAutoVybz (.json)</string>
 <string name="delete">删除</string>
 <string name="delete_quoted_confirm">删除“%1$s”？</string>
 <string name="backup_saved">备份已保存</string>

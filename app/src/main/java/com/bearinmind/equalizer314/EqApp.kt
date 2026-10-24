@@ -51,12 +51,9 @@ class EqApp : Application() {
         /** Saved theme; installs from before the picker map their old Light / Black AMOLED toggles. */
         fun themeMode(context: Context): String {
             val p = context.getSharedPreferences("eq_settings", Context.MODE_PRIVATE)
-            p.getString("themeMode", null)?.let { return it }
-            return when {
-                p.getBoolean("lightTheme", false) -> THEME_LIGHT
-                p.getBoolean("amoledTheme", false) -> THEME_AMOLED
-                else -> THEME_DARK
-            }
+            // AutoVybz is dark by design: a saved Light / Follow-system choice from Equalizer314 maps to Slate.
+            p.getString("themeMode", null)?.let { return if (it == THEME_AMOLED) THEME_AMOLED else THEME_DARK }
+            return if (p.getBoolean("amoledTheme", false)) THEME_AMOLED else THEME_DARK
         }
 
         /** Save the theme; the old toggles are mirrored so backups still restore on older versions. */
@@ -68,13 +65,10 @@ class EqApp : Application() {
                 .apply()
         }
 
-        /** Light → day, Follow system → the phone's setting, Dark / Black → night. */
+        /** Always night: AutoVybz has one dark brand palette (Slate, optionally Black AMOLED). */
         fun applyNightMode(context: Context) {
-            AppCompatDelegate.setDefaultNightMode(when (themeMode(context)) {
-                THEME_LIGHT -> AppCompatDelegate.MODE_NIGHT_NO
-                THEME_SYSTEM -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
-                else -> AppCompatDelegate.MODE_NIGHT_YES
-            })
+            // One slate palette for every mode (values/themes.xml); night mode keeps system dialogs dark too.
+            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
         }
 
         fun amoledActive(context: Context): Boolean = themeMode(context) == THEME_AMOLED

@@ -198,12 +198,12 @@ class ConvertToApoActivity : AppCompatActivity() {
     ) : View(context) {
         private val density = context.resources.displayMetrics.density
         private val curvePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = 0xFFAAAAAA.toInt()
+            color = 0xFFA9B4BE.toInt()
             strokeWidth = 0.5f * density
             style = Paint.Style.STROKE
         }
         private val gridPaint = Paint().apply {
-            color = 0xFF6A6A6A.toInt(); strokeWidth = 1f
+            color = 0xFF75828E.toInt(); strokeWidth = 1f
         }
 
         init {

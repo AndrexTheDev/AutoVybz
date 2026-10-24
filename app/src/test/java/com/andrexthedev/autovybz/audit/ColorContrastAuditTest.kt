@@ -44,6 +44,8 @@ class ColorContrastAuditTest {
         Triple("ON_DARK_MUTED on GREEN_CONTAINER", P.ON_DARK_MUTED, P.GREEN_CONTAINER),
         Triple("GREEN_BRIGHT on GREEN_CONTAINER (countdown, badges)", P.GREEN_BRIGHT, P.GREEN_CONTAINER),
         Triple("GOLD on GOLD_CONTAINER (warnings)", P.GOLD, P.GOLD_CONTAINER),
+        Triple("ON_GREEN on GOLD (style badges)", P.ON_GREEN, P.GOLD),
+        Triple("GREEN on GREEN_CONTAINER (selected chips / nav)", P.GREEN, P.GREEN_CONTAINER),
         Triple("ON_DARK on GOLD_CONTAINER", P.ON_DARK, P.GOLD_CONTAINER),
     )
 
@@ -92,9 +94,19 @@ class ColorContrastAuditTest {
 
     @Test
     fun brandColoursAreTheSpecifiedOnes() {
-        assertEquals(0xFF121212, P.BACKGROUND)
-        assertEquals(0xFF009B3A, P.GREEN)
-        assertEquals(0xFFFED100, P.GOLD)
+        // measured from the brand material: intro-video backdrop, logo outer ring, logo inner ring
+        assertEquals(0xFF1E262D, P.BACKGROUND)
+        assertEquals(0xFF1EED61, P.GREEN)
+        assertEquals(0xFFFCD207, P.GOLD)
+    }
+
+    @Test
+    fun slateRampIsMonotonicAndContainsTheCorePalette() {
+        val l = P.SLATE_RAMP.map { luminance(it) }
+        for (i in 1 until l.size) assertTrue("ramp step $i not lighter", l[i] > l[i - 1])
+        for (c in listOf(P.BACKGROUND, P.BACKGROUND_DEEP, P.SURFACE, P.SURFACE_HIGH, P.ON_DARK, P.ON_DARK_MUTED)) {
+            assertTrue("0x%08X missing in SLATE_RAMP".format(c), P.SLATE_RAMP.contains(c))
+        }
     }
 
     @Test
@@ -106,6 +118,7 @@ class ColorContrastAuditTest {
             "SURFACE_HIGH" to P.SURFACE_HIGH, "OUTLINE" to P.OUTLINE, "GREEN" to P.GREEN, "GREEN_BRIGHT" to P.GREEN_BRIGHT,
             "GREEN_CONTAINER" to P.GREEN_CONTAINER, "GOLD" to P.GOLD, "GOLD_CONTAINER" to P.GOLD_CONTAINER,
             "ON_DARK" to P.ON_DARK, "ON_DARK_MUTED" to P.ON_DARK_MUTED, "ON_GREEN" to P.ON_GREEN, "ERROR" to P.ERROR,
+            "GRID" to P.GRID, "CURVE_MEASURED" to P.CURVE_MEASURED,
         )
         val seen = mutableSetOf<String>()
         for (i in 0 until list.length) {

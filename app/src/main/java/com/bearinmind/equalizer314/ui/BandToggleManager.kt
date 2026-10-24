@@ -908,7 +908,7 @@ class BandToggleManager(
             val minH = ((if (compact) 40 else 48) * activity.resources.displayMetrics.density).toInt()
             minHeight = minH; minimumHeight = minH
             gravity = android.view.Gravity.CENTER
-            rippleColor = android.content.res.ColorStateList.valueOf(0x33AAAAAA.toInt())
+            rippleColor = android.content.res.ColorStateList.valueOf(0x33A9B4BE.toInt())
             compoundDrawablePadding = (1 * activity.resources.displayMetrics.density).toInt()
 
             val filterIcon = state.getFilterIconForBand(bandIdx)?.let {
@@ -947,8 +947,8 @@ class BandToggleManager(
             minHeight = minH; minimumHeight = minH
             gravity = android.view.Gravity.CENTER
             setBackgroundColor(0x00000000)
-            setTextColor(0xFF888888.toInt())
-            strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt())
+            setTextColor(0xFF8E9AA5.toInt())
+            strokeColor = android.content.res.ColorStateList.valueOf(0xFF4C5A67.toInt())
             strokeWidth = (1 * activity.resources.displayMetrics.density).toInt()
             setOnClickListener { addNewBand() }
         }
@@ -994,24 +994,24 @@ class BandToggleManager(
         val bandColor = if (slotIdx >= 0) state.bandColors[slotIdx] else null
 
         if (selected && enabled) {
-            btn.setBackgroundColor(bandColor ?: 0xFF777777.toInt())
+            btn.setBackgroundColor(bandColor ?: 0xFF828F9A.toInt())
             val isLight = bandColor != null && isColorLight(bandColor)
-            btn.setTextColor(if (isLight) 0xFF222222.toInt() else 0xFFFFFFFF.toInt())
-            btn.strokeColor = android.content.res.ColorStateList.valueOf(bandColor ?: 0xFFBBBBBB.toInt())
+            btn.setTextColor(if (isLight) 0xFF313C47.toInt() else 0xFFFFFFFF.toInt())
+            btn.strokeColor = android.content.res.ColorStateList.valueOf(bandColor ?: 0xFFBAC3CB.toInt())
             btn.strokeWidth = (2 * density).toInt()
-            btn.compoundDrawablesRelative.filterNotNull().forEach { it.setTint(if (isLight) 0xFF222222.toInt() else 0xFFFFFFFF.toInt()) }
+            btn.compoundDrawablesRelative.filterNotNull().forEach { it.setTint(if (isLight) 0xFF313C47.toInt() else 0xFFFFFFFF.toInt()) }
         } else if (enabled) {
-            btn.setBackgroundColor(0xFF555555.toInt())
-            btn.setTextColor(0xFFDDDDDD.toInt())
-            btn.strokeColor = android.content.res.ColorStateList.valueOf(bandColor ?: 0xFF888888.toInt())
+            btn.setBackgroundColor(0xFF5E6C79.toInt())
+            btn.setTextColor(0xFFDDE3E7.toInt())
+            btn.strokeColor = android.content.res.ColorStateList.valueOf(bandColor ?: 0xFF8E9AA5.toInt())
             btn.strokeWidth = (if (bandColor != null) 2 else 1).let { (it * density).toInt() }
-            btn.compoundDrawablesRelative.filterNotNull().forEach { it.setTint(0xFFDDDDDD.toInt()) }
+            btn.compoundDrawablesRelative.filterNotNull().forEach { it.setTint(0xFFDDE3E7.toInt()) }
         } else {
             btn.setBackgroundColor(0x00000000)
-            btn.setTextColor(0xFF555555.toInt())
-            btn.strokeColor = android.content.res.ColorStateList.valueOf(bandColor ?: 0xFF444444.toInt())
+            btn.setTextColor(0xFF5E6C79.toInt())
+            btn.strokeColor = android.content.res.ColorStateList.valueOf(bandColor ?: 0xFF4C5A67.toInt())
             btn.strokeWidth = (1 * density).toInt()
-            btn.compoundDrawablesRelative.filterNotNull().forEach { it.setTint(0xFF555555.toInt()) }
+            btn.compoundDrawablesRelative.filterNotNull().forEach { it.setTint(0xFF5E6C79.toInt()) }
         }
     }
 

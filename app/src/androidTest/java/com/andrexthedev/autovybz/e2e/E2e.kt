@@ -5,6 +5,7 @@ import android.os.ParcelFileDescriptor
 import androidx.test.platform.app.InstrumentationRegistry
 import com.andrexthedev.autovybz.AutoVybzServices
 import com.andrexthedev.autovybz.measurement.audio.RouteClassifier
+import com.andrexthedev.autovybz.ui.intro.IntroGate
 import org.junit.rules.TestRule
 import org.junit.runner.Description
 import org.junit.runners.model.Statement
@@ -41,7 +42,7 @@ object E2e {
 
     /** Fresh install state: no settings, no calibrations, no Equalizer314 presets. */
     fun resetAppData() {
-        for (p in listOf("autovybz_settings", "autovybz_state", "custom_presets")) app.getSharedPreferences(p, Context.MODE_PRIVATE).edit().clear().commit()
+        for (p in listOf("autovybz_settings", "autovybz_state", "autovybz_sound", "custom_presets")) app.getSharedPreferences(p, Context.MODE_PRIVATE).edit().clear().commit()
         File(app.filesDir, "autovybz").deleteRecursively()
         File(app.cacheDir, "share").deleteRecursively()
     }
@@ -54,10 +55,13 @@ object E2e {
 }
 
 /** Installs the simulated hardware before the activity starts and restores the real one afterwards. */
-class E2eRule(private val countdownSeconds: Int = 0) : TestRule {
+class E2eRule(private val countdownSeconds: Int = 0, private val intro: Boolean = false) : TestRule {
     override fun apply(base: Statement, description: Description): Statement = object : Statement() {
         override fun evaluate() {
             E2e.resetAppData()
+            // the brand intro would cover every screen for 4 s; only IntroE2ETest plays it (also without animations)
+            IntroGate.enabled = intro
+            IntroGate.force = intro
             E2e.engine.reset()
             E2e.route = E2e.speaker()
             E2e.install(countdownSeconds)
@@ -67,6 +71,8 @@ class E2eRule(private val countdownSeconds: Int = 0) : TestRule {
             } finally {
                 E2e.engine.hold?.complete(Unit)
                 AutoVybzServices.reset()
+                IntroGate.enabled = false
+                IntroGate.force = false
             }
         }
     }

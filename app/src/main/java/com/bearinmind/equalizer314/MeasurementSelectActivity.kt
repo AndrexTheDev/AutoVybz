@@ -210,12 +210,12 @@ class MeasurementSelectActivity : AppCompatActivity() {
         }
         val title = android.widget.TextView(this).apply {
             text = getString(R.string.delete)
-            setTextColor(0xFFE2E2E2.toInt()); textSize = 20f
+            setTextColor(0xFFE3E8EB.toInt()); textSize = 20f
             setPadding(0, 0, 0, (12 * density).toInt())
         }
         val message = android.widget.TextView(this).apply {
             text = getString(R.string.delete_quoted_confirm, name)
-            setTextColor(0xFFAAAAAA.toInt()); textSize = 14f
+            setTextColor(0xFFA9B4BE.toInt()); textSize = 14f
             setPadding(0, 0, 0, (16 * density).toInt())
         }
         val divider = android.view.View(this).apply {
@@ -223,7 +223,7 @@ class MeasurementSelectActivity : AppCompatActivity() {
                 android.widget.LinearLayout.LayoutParams.MATCH_PARENT, (1 * density).toInt()).apply {
                 bottomMargin = (12 * density).toInt()
             }
-            setBackgroundColor(0xFF444444.toInt())
+            setBackgroundColor(0xFF4C5A67.toInt())
         }
         val btnRow = android.widget.LinearLayout(this).apply {
             orientation = android.widget.LinearLayout.HORIZONTAL
@@ -233,13 +233,13 @@ class MeasurementSelectActivity : AppCompatActivity() {
         val deleteBtn = com.google.android.material.button.MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
             text = getString(R.string.delete); layoutParams = android.widget.LinearLayout.LayoutParams(0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { marginEnd = (3 * density).toInt() }
             cornerRadius = (12 * density).toInt(); setTextColor(0xFFEF9A9A.toInt())
-            strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt()); strokeWidth = (1 * density).toInt()
+            strokeColor = android.content.res.ColorStateList.valueOf(0xFF4C5A67.toInt()); strokeWidth = (1 * density).toInt()
             setBackgroundColor(0x00000000); insetTop = 0; insetBottom = 0
         }
         val cancelBtn = com.google.android.material.button.MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
             text = getString(R.string.cancel); layoutParams = android.widget.LinearLayout.LayoutParams(0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { marginStart = (3 * density).toInt() }
-            cornerRadius = (12 * density).toInt(); setTextColor(0xFFDDDDDD.toInt())
-            setBackgroundColor(0x00000000); strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt()); strokeWidth = (1 * density).toInt()
+            cornerRadius = (12 * density).toInt(); setTextColor(0xFFDDE3E7.toInt())
+            setBackgroundColor(0x00000000); strokeColor = android.content.res.ColorStateList.valueOf(0xFF4C5A67.toInt()); strokeWidth = (1 * density).toInt()
             insetTop = 0; insetBottom = 0
         }
         btnRow.addView(deleteBtn); btnRow.addView(cancelBtn)
@@ -297,8 +297,8 @@ class MeasurementSelectActivity : AppCompatActivity() {
                 layoutParams = android.widget.LinearLayout.LayoutParams(0,
                     android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
             }
-            val text1 = TextView(ctx).apply { setTextColor(0xFFE2E2E2.toInt()); textSize = 14f; isSingleLine = true }
-            val text2 = TextView(ctx).apply { setTextColor(0xFF888888.toInt()); textSize = 12f; isSingleLine = true }
+            val text1 = TextView(ctx).apply { setTextColor(0xFFE3E8EB.toInt()); textSize = 14f; isSingleLine = true }
+            val text2 = TextView(ctx).apply { setTextColor(0xFF8E9AA5.toInt()); textSize = 12f; isSingleLine = true }
             textCol.addView(text1)
             textCol.addView(text2)
             row.addView(textCol)
@@ -329,7 +329,7 @@ class MeasurementSelectActivity : AppCompatActivity() {
                 }
                 background = android.graphics.drawable.GradientDrawable().apply {
                     setColor(0x00000000)
-                    setStroke((1 * density).toInt(), 0xFF444444.toInt())
+                    setStroke((1 * density).toInt(), 0xFF4C5A67.toInt())
                     cornerRadius = 10 * density
                 }
                 isClickable = true
@@ -369,12 +369,12 @@ class MeasurementSelectActivity : AppCompatActivity() {
         private var smoothLevels: FloatArray? = null
         private val density = context.resources.displayMetrics.density
         private val curvePaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
-            color = 0xFFAAAAAA.toInt()
+            color = 0xFFA9B4BE.toInt()
             strokeWidth = 0.5f * density
             style = android.graphics.Paint.Style.STROKE
         }
         private val gridPaint = android.graphics.Paint().apply {
-            color = 0xFF6A6A6A.toInt(); strokeWidth = 1f
+            color = 0xFF75828E.toInt(); strokeWidth = 1f
         }
 
         fun setData(data: FreqResponse?) {

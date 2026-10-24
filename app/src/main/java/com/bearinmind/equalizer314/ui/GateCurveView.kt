@@ -60,32 +60,32 @@ class GateCurveView @JvmOverloads constructor(
 
     // Paints — identical to CompressorCurveView
     private val bgPaint = Paint().apply {
-        color = 0xFF1E1E1E.toInt(); style = Paint.Style.FILL
+        color = 0xFF2D3742.toInt(); style = Paint.Style.FILL
     }
     private val gridPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFF333333.toInt(); strokeWidth = 1f; style = Paint.Style.STROKE
+        color = 0xFF3D4955.toInt(); strokeWidth = 1f; style = Paint.Style.STROKE
     }
     private val diagonalPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFF4A4A4A.toInt(); strokeWidth = 1.5f; style = Paint.Style.STROKE
+        color = 0xFF52606E.toInt(); strokeWidth = 1.5f; style = Paint.Style.STROKE
     }
     private val curvePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFFDDDDDD.toInt(); strokeWidth = 2.5f; style = Paint.Style.STROKE
+        color = 0xFFDDE3E7.toInt(); strokeWidth = 2.5f; style = Paint.Style.STROKE
     }
     private val threshLinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xAABBBBBB.toInt(); strokeWidth = 1.5f; style = Paint.Style.STROKE
+        color = 0xAABAC3CB.toInt(); strokeWidth = 1.5f; style = Paint.Style.STROKE
         pathEffect = DashPathEffect(floatArrayOf(8f, 6f), 0f)
     }
     private val dotBgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFF1E1E1E.toInt(); style = Paint.Style.FILL
+        color = 0xFF2D3742.toInt(); style = Paint.Style.FILL
     }
     private val dotRingPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFFDDDDDD.toInt(); strokeWidth = 2.5f; style = Paint.Style.STROKE
+        color = 0xFFDDE3E7.toInt(); strokeWidth = 2.5f; style = Paint.Style.STROKE
     }
     private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFF888888.toInt(); textSize = 24f
+        color = 0xFF8E9AA5.toInt(); textSize = 24f
     }
     private val haloPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0x38AAAAAA.toInt(); style = Paint.Style.FILL
+        color = 0x38A9B4BE.toInt(); style = Paint.Style.FILL
     }
     private val dotNumberPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = 0xFFFFFFFF.toInt(); textSize = 14f
@@ -123,7 +123,7 @@ class GateCurveView @JvmOverloads constructor(
 
         // Title — centered between 10 and 20 dB on Y axis (top of graph)
         val titlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = 0xFF888888.toInt(); textSize = 24f; textAlign = Paint.Align.CENTER
+            color = 0xFF8E9AA5.toInt(); textSize = 24f; textAlign = Paint.Align.CENTER
         }
         val titleY = (dbToY(10f) + dbToY(20f)) / 2f + 8f
         canvas.drawText(context.getString(R.string.gate_below_threshold), w / 2f, titleY, titlePaint)
@@ -171,7 +171,7 @@ class GateCurveView @JvmOverloads constructor(
         if (draggingRatio) {
             val haloDp = 24f * resources.displayMetrics.density
             val haloStrokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = 0x38AAAAAA.toInt(); strokeWidth = haloDp * 2f
+                color = 0x38A9B4BE.toInt(); strokeWidth = haloDp * 2f
                 style = Paint.Style.STROKE; strokeCap = Paint.Cap.ROUND
             }
             val highlightPaint = Paint(curvePaint).apply {
@@ -200,10 +200,10 @@ class GateCurveView @JvmOverloads constructor(
         val compRefX = dbToX(compressorThreshold.coerceIn(minDb, maxDb)).coerceIn(dotMargin, w - dotMargin)
         val compRefY = dbToY(compressorThreshold.coerceIn(minDb, maxDb)).coerceIn(dotMargin, h - dotMargin)
         val ghostRingPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = 0xFF444444.toInt(); style = Paint.Style.STROKE; strokeWidth = 2f
+            color = 0xFF4C5A67.toInt(); style = Paint.Style.STROKE; strokeWidth = 2f
         }
         val ghostTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = 0xFF444444.toInt(); textSize = 14f
+            color = 0xFF4C5A67.toInt(); textSize = 14f
             textAlign = Paint.Align.CENTER; typeface = Typeface.DEFAULT_BOLD
         }
         canvas.drawCircle(compRefX, compRefY, 20f, dotBgPaint)

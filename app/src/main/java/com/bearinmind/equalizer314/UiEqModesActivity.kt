@@ -46,19 +46,19 @@ class UiEqModesActivity : AppCompatActivity() {
         root.addView(styledDialogTitle(getString(R.string.theme)))
         root.addView(styledDialogDivider())
         val dialog = android.app.AlertDialog.Builder(this, R.style.Theme_Equalizer314_Dialog).setView(root).create()
-        for (mode in listOf(EqApp.THEME_SYSTEM, EqApp.THEME_LIGHT, EqApp.THEME_DARK, EqApp.THEME_AMOLED)) {
+        for (mode in listOf(EqApp.THEME_DARK, EqApp.THEME_AMOLED)) { // AutoVybz: dark brand palette only
             val selected = mode == current
             root.addView(android.widget.TextView(this).apply {
                 text = themeLabel(mode)
                 textSize = 16f
-                setTextColor(if (selected) 0xFFFFFFFF.toInt() else 0xFFDDDDDD.toInt())
+                setTextColor(if (selected) 0xFFFFFFFF.toInt() else 0xFFDDE3E7.toInt())
                 setPadding((16 * density).toInt(), (14 * density).toInt(), (16 * density).toInt(), (14 * density).toInt())
                 // Selected row gets the brighter outline, as in the language picker.
                 background = android.graphics.drawable.GradientDrawable().apply {
                     cornerRadius = 12 * density
                     if (selected) setStroke((2 * density).toInt(),
                         com.google.android.material.color.MaterialColors.getColor(root, androidx.appcompat.R.attr.colorPrimary))
-                    else setStroke((1 * density).toInt(), 0xFF444444.toInt())
+                    else setStroke((1 * density).toInt(), 0xFF4C5A67.toInt())
                 }
                 layoutParams = android.widget.LinearLayout.LayoutParams(
                     android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
@@ -102,7 +102,7 @@ class UiEqModesActivity : AppCompatActivity() {
         root.addView(android.widget.LinearLayout(this).apply {
             orientation = android.widget.LinearLayout.VERTICAL
             background = android.graphics.drawable.GradientDrawable().apply {
-                setColor(0xFF2A2A2A.toInt()); cornerRadius = 12 * density
+                setColor(0xFF35414C.toInt()); cornerRadius = 12 * density
             }
             setPadding((12 * density).toInt(), (10 * density).toInt(), (12 * density).toInt(), (10 * density).toInt())
             layoutParams = android.widget.LinearLayout.LayoutParams(
@@ -134,13 +134,13 @@ class UiEqModesActivity : AppCompatActivity() {
                 currentRow?.addView(android.widget.TextView(this).apply {
                     text = labels[key]
                     textSize = 12f
-                    setTextColor(0xFFDDDDDD.toInt())
+                    setTextColor(0xFFDDE3E7.toInt())
                     gravity = android.view.Gravity.CENTER
                     setPadding(0, (7 * density).toInt(), 0, (7 * density).toInt())
                     background = android.graphics.drawable.GradientDrawable().apply {
                         setColor(0x00000000)
                         cornerRadius = 12 * density
-                        setStroke((1 * density).toInt(), 0xFF555555.toInt())
+                        setStroke((1 * density).toInt(), 0xFF5E6C79.toInt())
                     }
                     layoutParams = android.widget.LinearLayout.LayoutParams(
                         0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f
@@ -187,7 +187,7 @@ class UiEqModesActivity : AppCompatActivity() {
                     contentDescription = getString(R.string.drag_handle)
                 }
                 val label = android.widget.TextView(this@UiEqModesActivity).apply {
-                    setTextColor(0xFFDDDDDD.toInt())
+                    setTextColor(0xFFDDE3E7.toInt())
                     textSize = 15f
                     layoutParams = android.widget.LinearLayout.LayoutParams(
                         0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
@@ -285,17 +285,17 @@ class UiEqModesActivity : AppCompatActivity() {
 
         // Live mock of the notification, updates as the toggles flip.
         val previewTitle = android.widget.TextView(this).apply {
-            setTextColor(0xFFE2E2E2.toInt()); textSize = 13f
+            setTextColor(0xFFE3E8EB.toInt()); textSize = 13f
             setTypeface(typeface, android.graphics.Typeface.BOLD)
         }
         val previewBody = android.widget.TextView(this).apply {
-            setTextColor(0xFFAAAAAA.toInt()); textSize = 12f
+            setTextColor(0xFFA9B4BE.toInt()); textSize = 12f
             setPadding(0, (2 * density).toInt(), 0, 0)
         }
         root.addView(android.widget.LinearLayout(this).apply {
             orientation = android.widget.LinearLayout.VERTICAL
             background = android.graphics.drawable.GradientDrawable().apply {
-                setColor(0xFF2A2A2A.toInt()); cornerRadius = 12 * density
+                setColor(0xFF35414C.toInt()); cornerRadius = 12 * density
             }
             setPadding((12 * density).toInt(), (10 * density).toInt(), (12 * density).toInt(), (10 * density).toInt())
             layoutParams = android.widget.LinearLayout.LayoutParams(
@@ -382,7 +382,7 @@ class UiEqModesActivity : AppCompatActivity() {
                     contentDescription = getString(R.string.drag_handle)
                 }
                 val label = android.widget.TextView(this@UiEqModesActivity).apply {
-                    setTextColor(0xFFDDDDDD.toInt())
+                    setTextColor(0xFFDDE3E7.toInt())
                     textSize = 15f
                     layoutParams = android.widget.LinearLayout.LayoutParams(
                         0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
@@ -464,7 +464,7 @@ class UiEqModesActivity : AppCompatActivity() {
         }
         hideRow.addView(android.widget.TextView(this).apply {
             text = getString(R.string.hide_notification)
-            setTextColor(0xFFDDDDDD.toInt())
+            setTextColor(0xFFDDE3E7.toInt())
             textSize = 15f
             layoutParams = android.widget.LinearLayout.LayoutParams(
                 0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
@@ -509,7 +509,7 @@ class UiEqModesActivity : AppCompatActivity() {
         val density = resources.displayMetrics.density
         return android.widget.TextView(this).apply {
             this.text = text
-            setTextColor(0xFFE2E2E2.toInt())
+            setTextColor(0xFFE3E8EB.toInt())
             textSize = 20f
             setPadding(0, 0, 0, (12 * density).toInt())
         }
@@ -522,7 +522,7 @@ class UiEqModesActivity : AppCompatActivity() {
                 android.widget.LinearLayout.LayoutParams.MATCH_PARENT, (1 * density).toInt()).apply {
                 bottomMargin = (12 * density).toInt()
             }
-            setBackgroundColor(0xFF444444.toInt())
+            setBackgroundColor(0xFF4C5A67.toInt())
         }
     }
 
@@ -533,8 +533,8 @@ class UiEqModesActivity : AppCompatActivity() {
         ).apply {
             text = label
             cornerRadius = (12 * density).toInt()
-            setTextColor(if (isCancel) 0xFFEF9A9A.toInt() else 0xFFDDDDDD.toInt())
-            strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt())
+            setTextColor(if (isCancel) 0xFFEF9A9A.toInt() else 0xFFDDE3E7.toInt())
+            strokeColor = android.content.res.ColorStateList.valueOf(0xFF4C5A67.toInt())
             strokeWidth = (1 * density).toInt()
             setBackgroundColor(0x00000000)
             insetTop = 0; insetBottom = 0

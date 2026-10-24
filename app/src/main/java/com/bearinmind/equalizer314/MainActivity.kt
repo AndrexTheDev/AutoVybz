@@ -114,19 +114,19 @@ class  MainActivity : AppCompatActivity() {
         }
         dialogView.addView(android.widget.TextView(this).apply {
             text = getString(R.string.export_quoted, name)
-            setTextColor(0xFFE2E2E2.toInt()); textSize = 20f
+            setTextColor(0xFFE3E8EB.toInt()); textSize = 20f
             setPadding(0, 0, 0, (8 * density).toInt())
         })
         dialogView.addView(android.widget.TextView(this).apply {
             text = getString(R.string.export_format_choices)
-            setTextColor(0xFFAAAAAA.toInt()); textSize = 13f
+            setTextColor(0xFFA9B4BE.toInt()); textSize = 13f
             setPadding(0, 0, 0, (16 * density).toInt())
         })
         dialogView.addView(android.view.View(this).apply {
             layoutParams = android.widget.LinearLayout.LayoutParams(
                 android.widget.LinearLayout.LayoutParams.MATCH_PARENT, (1 * density).toInt()
             ).apply { bottomMargin = (12 * density).toInt() }
-            setBackgroundColor(0xFF444444.toInt())
+            setBackgroundColor(0xFF4C5A67.toInt())
         })
         val btnRow = android.widget.LinearLayout(this).apply {
             orientation = android.widget.LinearLayout.HORIZONTAL
@@ -142,14 +142,14 @@ class  MainActivity : AppCompatActivity() {
                     marginStart = (3 * density).toInt(); marginEnd = (3 * density).toInt()
                 }
                 cornerRadius = (12 * density).toInt()
-                setTextColor(0xFFDDDDDD.toInt())
-                strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt())
+                setTextColor(0xFFDDE3E7.toInt())
+                strokeColor = android.content.res.ColorStateList.valueOf(0xFF4C5A67.toInt())
                 strokeWidth = (1 * density).toInt()
                 setBackgroundColor(0x00000000)
                 insetTop = 0; insetBottom = 0
             }
         val apoBtn = formatBtn("EqualizerAPO")
-        val nativeBtn = formatBtn("Equalizer314")
+        val nativeBtn = formatBtn("AutoVybz")
         btnRow.addView(apoBtn); btnRow.addView(nativeBtn)
         dialogView.addView(btnRow)
         val dialog = android.app.AlertDialog.Builder(this, R.style.Theme_Equalizer314_Dialog)
@@ -174,12 +174,12 @@ class  MainActivity : AppCompatActivity() {
         }
         dialogView.addView(android.widget.TextView(this).apply {
             text = getString(R.string.delete)
-            setTextColor(0xFFE2E2E2.toInt()); textSize = 20f
+            setTextColor(0xFFE3E8EB.toInt()); textSize = 20f
             setPadding(0, 0, 0, (12 * density).toInt())
         })
         dialogView.addView(android.widget.TextView(this).apply {
             text = getString(R.string.delete_quoted_confirm, name)
-            setTextColor(0xFFAAAAAA.toInt()); textSize = 14f
+            setTextColor(0xFFA9B4BE.toInt()); textSize = 14f
             setPadding(0, 0, 0, (16 * density).toInt())
         })
         dialogView.addView(android.view.View(this).apply {
@@ -187,7 +187,7 @@ class  MainActivity : AppCompatActivity() {
                 android.widget.LinearLayout.LayoutParams.MATCH_PARENT, (1 * density).toInt()).apply {
                 bottomMargin = (12 * density).toInt()
             }
-            setBackgroundColor(0xFF444444.toInt())
+            setBackgroundColor(0xFF4C5A67.toInt())
         })
         val btnRow = android.widget.LinearLayout(this).apply {
             orientation = android.widget.LinearLayout.HORIZONTAL
@@ -202,12 +202,12 @@ class  MainActivity : AppCompatActivity() {
                     if (endMargin) marginEnd = (3 * density).toInt() else marginStart = (3 * density).toInt()
                 }
                 cornerRadius = (12 * density).toInt(); setTextColor(color)
-                strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt())
+                strokeColor = android.content.res.ColorStateList.valueOf(0xFF4C5A67.toInt())
                 strokeWidth = (1 * density).toInt()
                 setBackgroundColor(0x00000000); insetTop = 0; insetBottom = 0
             }
         val deleteBtn = dlgBtn(getString(R.string.delete), 0xFFEF9A9A.toInt(), endMargin = true)
-        val cancelBtn = dlgBtn(getString(R.string.cancel), 0xFFDDDDDD.toInt(), endMargin = false)
+        val cancelBtn = dlgBtn(getString(R.string.cancel), 0xFFDDE3E7.toInt(), endMargin = false)
         btnRow.addView(deleteBtn); btnRow.addView(cancelBtn)
         dialogView.addView(btnRow)
         val dialog = android.app.AlertDialog.Builder(this, R.style.Theme_Equalizer314_Dialog)
@@ -262,7 +262,7 @@ class  MainActivity : AppCompatActivity() {
         val intent = android.content.Intent(android.content.Intent.ACTION_CREATE_DOCUMENT).apply {
             addCategory(android.content.Intent.CATEGORY_OPENABLE)
             type = "application/json"
-            putExtra(android.content.Intent.EXTRA_TITLE, "Equalizer314-backup.json")
+            putExtra(android.content.Intent.EXTRA_TITLE, "AutoVybz-backup.json")
         }
         backupExportLauncher.launch(intent)
     }
@@ -275,19 +275,19 @@ class  MainActivity : AppCompatActivity() {
         }
         val title = android.widget.TextView(this).apply {
             text = getString(R.string.backup_and_restore)
-            setTextColor(0xFFE2E2E2.toInt()); textSize = 20f
+            setTextColor(0xFFE3E8EB.toInt()); textSize = 20f
             setPadding(0, 0, 0, (8 * density).toInt())
         }
         val msg = android.widget.TextView(this).apply {
             text = getString(R.string.backup_restore_blurb)
-            setTextColor(0xFFAAAAAA.toInt()); textSize = 13f
+            setTextColor(0xFFA9B4BE.toInt()); textSize = 13f
             setPadding(0, 0, 0, (16 * density).toInt())
         }
         val divider = android.view.View(this).apply {
             layoutParams = android.widget.LinearLayout.LayoutParams(
                 android.widget.LinearLayout.LayoutParams.MATCH_PARENT, (1 * density).toInt()
             ).apply { bottomMargin = (12 * density).toInt() }
-            setBackgroundColor(0xFF444444.toInt())
+            setBackgroundColor(0xFF4C5A67.toInt())
         }
         val btnRow = android.widget.LinearLayout(this).apply {
             orientation = android.widget.LinearLayout.HORIZONTAL
@@ -303,13 +303,13 @@ class  MainActivity : AppCompatActivity() {
                 }
                 cornerRadius = (12 * density).toInt()
                 setTextColor(textColor)
-                strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt())
+                strokeColor = android.content.res.ColorStateList.valueOf(0xFF4C5A67.toInt())
                 strokeWidth = (1 * density).toInt()
                 setBackgroundColor(0x00000000)
                 insetTop = 0; insetBottom = 0
             }
-        val importBtn = outlinedBtn(getString(R.string.import_label), 0xFFDDDDDD.toInt())
-        val exportBtn = outlinedBtn(getString(R.string.export_label), 0xFFDDDDDD.toInt())
+        val importBtn = outlinedBtn(getString(R.string.import_label), 0xFFDDE3E7.toInt())
+        val exportBtn = outlinedBtn(getString(R.string.export_label), 0xFFDDE3E7.toInt())
         btnRow.addView(importBtn)
         btnRow.addView(exportBtn)
         dialogView.addView(title)
@@ -515,14 +515,14 @@ class  MainActivity : AppCompatActivity() {
         get() = (resources.configuration.uiMode and
             android.content.res.Configuration.UI_MODE_NIGHT_MASK) !=
             android.content.res.Configuration.UI_MODE_NIGHT_YES
-    private val graphBtnLitBg: Int get() = if (isLightUi) 0xFFADADAD.toInt() else 0xFF555555.toInt()
-    private val graphBtnLitStroke: Int get() = if (isLightUi) 0xFF7A7A7A.toInt() else 0xFF888888.toInt()
-    private val graphBtnLitContent: Int get() = if (isLightUi) 0xFF252525.toInt() else 0xFFDDDDDD.toInt()
-    private val graphBtnDimStroke: Int get() = if (isLightUi) 0xFFBEBEBE.toInt() else 0xFF444444.toInt()
-    private val graphBtnDimContent: Int get() = if (isLightUi) 0xFF555555.toInt() else 0xFF888888.toInt()
+    private val graphBtnLitBg: Int get() = if (isLightUi) 0xFFACB7C0.toInt() else 0xFF5E6C79.toInt()
+    private val graphBtnLitStroke: Int get() = if (isLightUi) 0xFF84919C.toInt() else 0xFF8E9AA5.toInt()
+    private val graphBtnLitContent: Int get() = if (isLightUi) 0xFF333E49.toInt() else 0xFFDDE3E7.toInt()
+    private val graphBtnDimStroke: Int get() = if (isLightUi) 0xFFBDC6CE.toInt() else 0xFF4C5A67.toInt()
+    private val graphBtnDimContent: Int get() = if (isLightUi) 0xFF5E6C79.toInt() else 0xFF8E9AA5.toInt()
     // Opaque dim fill matching EqGraphView's canvas background.
     private val graphBtnDimBg: Int get() = com.google.android.material.color.MaterialColors.getColor(
-        this, com.google.android.material.R.attr.colorSurfaceVariant, if (isLightUi) 0xFFE4E4E4.toInt() else 0xFF1E1E1E.toInt())
+        this, com.google.android.material.R.attr.colorSurfaceVariant, if (isLightUi) 0xFFE5EAED.toInt() else 0xFF2D3742.toInt())
     private lateinit var navSettingsButton: ImageButton
     private lateinit var navPresetsButton: ImageButton
     private lateinit var powerFab: android.widget.ImageButton
@@ -1354,8 +1354,8 @@ class  MainActivity : AppCompatActivity() {
                     b.alpha = 1f; b.scaleX = 1f; b.scaleY = 1f; b.translationY = 0f
                 }
                 altRouteBtn.setBackgroundColor(graphBtnDimBg)
-                altRouteBtn.strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt())
-                altRouteBtn.iconTint = android.content.res.ColorStateList.valueOf(0xFF888888.toInt())
+                altRouteBtn.strokeColor = android.content.res.ColorStateList.valueOf(0xFF4C5A67.toInt())
+                altRouteBtn.iconTint = android.content.res.ColorStateList.valueOf(0xFF8E9AA5.toInt())
             }
         }
         altRouteBtn.setOnClickListener {
@@ -1379,9 +1379,9 @@ class  MainActivity : AppCompatActivity() {
                     .setDuration(250).setStartDelay(80).setInterpolator(android.view.animation.OvershootInterpolator(1.0f)).start()
                 settingsGearBtn.animate().alpha(1f).scaleX(1f).scaleY(1f).translationY(0f)
                     .setDuration(250).setStartDelay(120).setInterpolator(android.view.animation.OvershootInterpolator(1.0f)).start()
-                altRouteBtn.setBackgroundColor(0xFF555555.toInt())
-                altRouteBtn.strokeColor = android.content.res.ColorStateList.valueOf(0xFF888888.toInt())
-                altRouteBtn.iconTint = android.content.res.ColorStateList.valueOf(0xFFDDDDDD.toInt())
+                altRouteBtn.setBackgroundColor(0xFF5E6C79.toInt())
+                altRouteBtn.strokeColor = android.content.res.ColorStateList.valueOf(0xFF8E9AA5.toInt())
+                altRouteBtn.iconTint = android.content.res.ColorStateList.valueOf(0xFFDDE3E7.toInt())
             } else {
                 val offsetY = -(altRouteBtn.height.toFloat() + gapPx)
                 settingsGearBtn.animate().alpha(0f).scaleX(0.3f).scaleY(0.3f).translationY(offsetY)
@@ -1397,8 +1397,8 @@ class  MainActivity : AppCompatActivity() {
                     .setDuration(200).setStartDelay(120).setInterpolator(android.view.animation.AccelerateInterpolator())
                     .withEndAction { channelBothBtn.visibility = View.GONE; channelBothBtn.translationY = 0f }.start()
                 altRouteBtn.setBackgroundColor(graphBtnDimBg)
-                altRouteBtn.strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt())
-                altRouteBtn.iconTint = android.content.res.ColorStateList.valueOf(0xFF888888.toInt())
+                altRouteBtn.strokeColor = android.content.res.ColorStateList.valueOf(0xFF4C5A67.toInt())
+                altRouteBtn.iconTint = android.content.res.ColorStateList.valueOf(0xFF8E9AA5.toInt())
             }
         }
 
@@ -1472,8 +1472,8 @@ class  MainActivity : AppCompatActivity() {
                     minWidth = 0; minimumWidth = 0
                     gravity = android.view.Gravity.CENTER
                     setBackgroundColor(0x00000000)
-                    setTextColor(0xFF888888.toInt())
-                    strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt())
+                    setTextColor(0xFF8E9AA5.toInt())
+                    strokeColor = android.content.res.ColorStateList.valueOf(0xFF4C5A67.toInt())
                     strokeWidth = (1 * density).toInt()
                 }
             val actionRow = android.widget.LinearLayout(this).apply {
@@ -1489,7 +1489,7 @@ class  MainActivity : AppCompatActivity() {
                 btn.iconGravity = com.google.android.material.button.MaterialButton.ICON_GRAVITY_TEXT_START
                 btn.iconPadding = (6 * density).toInt()
                 btn.iconSize = (18 * density).toInt()
-                btn.iconTint = android.content.res.ColorStateList.valueOf(0xFF888888.toInt())
+                btn.iconTint = android.content.res.ColorStateList.valueOf(0xFF8E9AA5.toInt())
             }
             val saveCurrentBtn = pickerActionBtn(getString(R.string.new_preset), endMargin = true)
             pickerBtnIcon(saveCurrentBtn, R.drawable.ic_add)
@@ -1512,7 +1512,7 @@ class  MainActivity : AppCompatActivity() {
                 }
                 val title = android.widget.TextView(this).apply {
                     text = getString(R.string.save_custom_preset)
-                    setTextColor(0xFFE2E2E2.toInt())
+                    setTextColor(0xFFE3E8EB.toInt())
                     textSize = 20f
                     setPadding(0, 0, 0, (12 * density).toInt())
                 }
@@ -1524,7 +1524,7 @@ class  MainActivity : AppCompatActivity() {
                     }
                     background = android.graphics.drawable.GradientDrawable().apply {
                         setColor(0x00000000)
-                        setStroke((1 * density).toInt(), 0xFF555555.toInt())
+                        setStroke((1 * density).toInt(), 0xFF5E6C79.toInt())
                         cornerRadius = 12 * density
                     }
                 }
@@ -1532,7 +1532,7 @@ class  MainActivity : AppCompatActivity() {
                 val input = android.widget.EditText(this).apply {
                     hint = defaultName
                     setTextColor(0xFFFFFFFF.toInt())
-                    setHintTextColor(0xFF888888.toInt())
+                    setHintTextColor(0xFF8E9AA5.toInt())
                     inputType = android.text.InputType.TYPE_CLASS_TEXT
                     background = null
                     val pad = (14 * density).toInt()
@@ -1553,7 +1553,7 @@ class  MainActivity : AppCompatActivity() {
                     }
                     cornerRadius = (12 * density).toInt()
                     setTextColor(0xFFEF9A9A.toInt())
-                    strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt())
+                    strokeColor = android.content.res.ColorStateList.valueOf(0xFF4C5A67.toInt())
                     strokeWidth = (1 * density).toInt()
                     setBackgroundColor(0x00000000)
                     insetTop = 0; insetBottom = 0
@@ -1564,9 +1564,9 @@ class  MainActivity : AppCompatActivity() {
                         marginStart = (3 * density).toInt()
                     }
                     cornerRadius = (12 * density).toInt()
-                    setTextColor(0xFFDDDDDD.toInt())
+                    setTextColor(0xFFDDE3E7.toInt())
                     setBackgroundColor(0x00000000)
-                    strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt())
+                    strokeColor = android.content.res.ColorStateList.valueOf(0xFF4C5A67.toInt())
                     strokeWidth = (1 * density).toInt()
                     insetTop = 0; insetBottom = 0
                 }
@@ -1577,7 +1577,7 @@ class  MainActivity : AppCompatActivity() {
                         android.widget.LinearLayout.LayoutParams.MATCH_PARENT, (1 * density).toInt()).apply {
                         bottomMargin = (12 * density).toInt()
                     }
-                    setBackgroundColor(0xFF444444.toInt())
+                    setBackgroundColor(0xFF4C5A67.toInt())
                 }
                 dialogView.addView(title)
                 dialogView.addView(inputBox)
@@ -1638,7 +1638,7 @@ class  MainActivity : AppCompatActivity() {
                 }
                 val chevron = android.widget.ImageView(this).apply {
                     setImageResource(R.drawable.ic_chevron_right)
-                    imageTintList = android.content.res.ColorStateList.valueOf(0xFF888888.toInt())
+                    imageTintList = android.content.res.ColorStateList.valueOf(0xFF8E9AA5.toInt())
                     layoutParams = android.widget.LinearLayout.LayoutParams(
                         (16 * density).toInt(), (16 * density).toInt()
                     ).apply { marginEnd = (6 * density).toInt() }
@@ -1648,14 +1648,14 @@ class  MainActivity : AppCompatActivity() {
                     text = label
                     textSize = 12f
                     letterSpacing = 0.08f
-                    setTextColor(0xFF888888.toInt())
+                    setTextColor(0xFF8E9AA5.toInt())
                     layoutParams = android.widget.LinearLayout.LayoutParams(
                         0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
                 })
                 if (rightText != null) header.addView(android.widget.TextView(this).apply {
                     text = rightText
                     textSize = 12f
-                    setTextColor(0xFF888888.toInt())
+                    setTextColor(0xFF8E9AA5.toInt())
                 })
                 var open = pickerSectionPrefs.getBoolean(prefKey, true)
                 val interp = androidx.interpolator.view.animation.FastOutSlowInInterpolator()
@@ -1732,7 +1732,7 @@ class  MainActivity : AppCompatActivity() {
                     gravity = android.view.Gravity.CENTER_VERTICAL
                     background = android.graphics.drawable.GradientDrawable().apply {
                         setColor(0x00000000)
-                        setStroke((1 * density).toInt(), 0xFF444444.toInt())
+                        setStroke((1 * density).toInt(), 0xFF4C5A67.toInt())
                         cornerRadius = 12 * density
                     }
                     val hPad = (12 * density).toInt()
@@ -1765,7 +1765,7 @@ class  MainActivity : AppCompatActivity() {
                         val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
                             this.color = color; strokeWidth = 0.5f * density; style = android.graphics.Paint.Style.STROKE
                         }
-                        val gridPaint = android.graphics.Paint().apply { this.color = 0xFF6A6A6A.toInt(); strokeWidth = 1f }
+                        val gridPaint = android.graphics.Paint().apply { this.color = 0xFF75828E.toInt(); strokeWidth = 1f }
                         canvas.drawLine(x0, y0 + h / 2f, x0 + w, y0 + h / 2f, gridPaint)
                         canvas.drawLine(x0, y0, x0, y0 + h, gridPaint)
                         val path = android.graphics.Path()
@@ -1788,7 +1788,7 @@ class  MainActivity : AppCompatActivity() {
                         try {
                             val obj = org.json.JSONObject(presetJson)
                             val cseOn = obj.optBoolean("channelSideEqEnabled", false)
-                            val curveColor = 0xFFAAAAAA.toInt()
+                            val curveColor = 0xFFA9B4BE.toInt()
                             if (cseOn && obj.has("leftBands") && obj.has("rightBands")) {
                                 // Stacked L/R with divider + 2px gap; same grey as single-curve.
                                 val labelCol = 9f * density
@@ -1796,7 +1796,7 @@ class  MainActivity : AppCompatActivity() {
                                 val halfH = (h - gap) / 2f
                                 // Matches the "N filters" text: 10sp, medium grey (#888), not bold.
                                 val labelPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
-                                    color = 0xFF888888.toInt()
+                                    color = 0xFF8E9AA5.toInt()
                                     textSize = 10f * resources.displayMetrics.scaledDensity
                                     textAlign = android.graphics.Paint.Align.CENTER
                                 }
@@ -1812,7 +1812,7 @@ class  MainActivity : AppCompatActivity() {
                                 )
                                 // Divider between the two graphs
                                 val dividerPaint = android.graphics.Paint().apply {
-                                    color = 0xFF444444.toInt()
+                                    color = 0xFF4C5A67.toInt()
                                     strokeWidth = 1f
                                 }
                                 canvas.drawLine(0f, halfH + gap / 2f, w, halfH + gap / 2f, dividerPaint)
@@ -1839,7 +1839,7 @@ class  MainActivity : AppCompatActivity() {
                 val nameText = android.widget.TextView(this).apply {
                     text = name
                     // Rows sit on the light page surface — name must be dark in light mode (#E2E2E2 was near-invisible there).
-                    setTextColor(if (isLightUi) 0xFF202020.toInt() else 0xFFE2E2E2.toInt())
+                    setTextColor(if (isLightUi) 0xFF2F3944.toInt() else 0xFFE3E8EB.toInt())
                     textSize = 14f
                     isSingleLine = true
                     layoutParams = android.widget.LinearLayout.LayoutParams(
@@ -1860,7 +1860,7 @@ class  MainActivity : AppCompatActivity() {
                     text = presetPreamp?.let {
                         com.bearinmind.equalizer314.ui.PresetDropdownAdapter.formatPreamp(it) + chainTags
                     } ?: ""
-                    setTextColor(0xFF888888.toInt())
+                    setTextColor(0xFF8E9AA5.toInt())
                     textSize = 11f
                     isSingleLine = true
                     visibility = if (presetPreamp == null) android.view.View.GONE else android.view.View.VISIBLE
@@ -1889,7 +1889,7 @@ class  MainActivity : AppCompatActivity() {
                 }
                 val filtersText = android.widget.TextView(this).apply {
                     text = getString(R.string.n_filters, bandCount)
-                    setTextColor(0xFF888888.toInt())
+                    setTextColor(0xFF8E9AA5.toInt())
                     textSize = 10f
                     gravity = android.view.Gravity.CENTER
                 }
@@ -1909,7 +1909,7 @@ class  MainActivity : AppCompatActivity() {
                     gravity = android.view.Gravity.CENTER
                     setBackgroundColor(0x00000000)
                     setTextColor(0xFFEF9A9A.toInt())
-                    strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt())
+                    strokeColor = android.content.res.ColorStateList.valueOf(0xFF4C5A67.toInt())
                     strokeWidth = (1 * density).toInt()
                 }
                 deleteBtn.setOnClickListener {
@@ -1920,13 +1920,13 @@ class  MainActivity : AppCompatActivity() {
                     }
                     val dlgTitle = android.widget.TextView(this).apply {
                         text = getString(R.string.delete)
-                        setTextColor(0xFFE2E2E2.toInt())
+                        setTextColor(0xFFE3E8EB.toInt())
                         textSize = 20f
                         setPadding(0, 0, 0, (12 * d).toInt())
                     }
                     val dlgMsg = android.widget.TextView(this).apply {
                         text = getString(R.string.delete_preset_confirm, name)
-                        setTextColor(0xFFAAAAAA.toInt())
+                        setTextColor(0xFFA9B4BE.toInt())
                         textSize = 14f
                         setPadding(0, 0, 0, (16 * d).toInt())
                     }
@@ -1935,7 +1935,7 @@ class  MainActivity : AppCompatActivity() {
                             android.widget.LinearLayout.LayoutParams.MATCH_PARENT, (1 * d).toInt()).apply {
                             bottomMargin = (12 * d).toInt()
                         }
-                        setBackgroundColor(0xFF444444.toInt())
+                        setBackgroundColor(0xFF4C5A67.toInt())
                     }
                     val dlgBtnRow = android.widget.LinearLayout(this).apply {
                         orientation = android.widget.LinearLayout.HORIZONTAL
@@ -1950,7 +1950,7 @@ class  MainActivity : AppCompatActivity() {
                         }
                         cornerRadius = (12 * d).toInt()
                         setTextColor(0xFFEF9A9A.toInt())
-                        strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt())
+                        strokeColor = android.content.res.ColorStateList.valueOf(0xFF4C5A67.toInt())
                         strokeWidth = (1 * d).toInt()
                         setBackgroundColor(0x00000000)
                         insetTop = 0; insetBottom = 0
@@ -1961,9 +1961,9 @@ class  MainActivity : AppCompatActivity() {
                             marginStart = (3 * d).toInt()
                         }
                         cornerRadius = (12 * d).toInt()
-                        setTextColor(0xFFDDDDDD.toInt())
+                        setTextColor(0xFFDDE3E7.toInt())
                         setBackgroundColor(0x00000000)
-                        strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt())
+                        strokeColor = android.content.res.ColorStateList.valueOf(0xFF4C5A67.toInt())
                         strokeWidth = (1 * d).toInt()
                         insetTop = 0; insetBottom = 0
                     }
@@ -2000,9 +2000,9 @@ class  MainActivity : AppCompatActivity() {
                     icon = resources.getDrawable(R.drawable.ic_export_up, theme)
                     iconGravity = com.google.android.material.button.MaterialButton.ICON_GRAVITY_TEXT_START
                     iconPadding = 0
-                    iconTint = android.content.res.ColorStateList.valueOf(0xFF888888.toInt())
+                    iconTint = android.content.res.ColorStateList.valueOf(0xFF8E9AA5.toInt())
                     iconSize = (18 * density).toInt()
-                    strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt())
+                    strokeColor = android.content.res.ColorStateList.valueOf(0xFF4C5A67.toInt())
                     strokeWidth = (1 * density).toInt()
                 }
                 exportBtn.setOnClickListener {
@@ -2024,9 +2024,9 @@ class  MainActivity : AppCompatActivity() {
                     icon = resources.getDrawable(R.drawable.ic_save, theme)
                     iconGravity = com.google.android.material.button.MaterialButton.ICON_GRAVITY_TEXT_START
                     iconPadding = 0
-                    iconTint = android.content.res.ColorStateList.valueOf(0xFF888888.toInt())
+                    iconTint = android.content.res.ColorStateList.valueOf(0xFF8E9AA5.toInt())
                     iconSize = (18 * density).toInt()
-                    strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt())
+                    strokeColor = android.content.res.ColorStateList.valueOf(0xFF4C5A67.toInt())
                     strokeWidth = (1 * density).toInt()
                 }
                 overwriteBtn.setOnClickListener {
@@ -2038,7 +2038,7 @@ class  MainActivity : AppCompatActivity() {
                     }
                     val dlgTitle = android.widget.TextView(this).apply {
                         text = getString(R.string.overwrite_custom_preset)
-                        setTextColor(0xFFE2E2E2.toInt()); textSize = 20f
+                        setTextColor(0xFFE3E8EB.toInt()); textSize = 20f
                         setPadding(0, 0, 0, (12 * d).toInt())
                     }
                     val dlgInputBox = android.widget.FrameLayout(this).apply {
@@ -2049,14 +2049,14 @@ class  MainActivity : AppCompatActivity() {
                         }
                         background = android.graphics.drawable.GradientDrawable().apply {
                             setColor(0x00000000)
-                            setStroke((1 * d).toInt(), 0xFF555555.toInt())
+                            setStroke((1 * d).toInt(), 0xFF5E6C79.toInt())
                             cornerRadius = 12 * d
                         }
                     }
                     val dlgInput = android.widget.EditText(this).apply {
                         setText(name)
                         setTextColor(0xFFFFFFFF.toInt())
-                        setHintTextColor(0xFF888888.toInt())
+                        setHintTextColor(0xFF8E9AA5.toInt())
                         inputType = android.text.InputType.TYPE_CLASS_TEXT
                         background = null
                         val pad = (14 * d).toInt()
@@ -2069,7 +2069,7 @@ class  MainActivity : AppCompatActivity() {
                             android.widget.LinearLayout.LayoutParams.MATCH_PARENT, (1 * d).toInt()).apply {
                             bottomMargin = (12 * d).toInt()
                         }
-                        setBackgroundColor(0xFF444444.toInt())
+                        setBackgroundColor(0xFF4C5A67.toInt())
                     }
                     val dlgBtnRow = android.widget.LinearLayout(this).apply {
                         orientation = android.widget.LinearLayout.HORIZONTAL
@@ -2084,7 +2084,7 @@ class  MainActivity : AppCompatActivity() {
                         }
                         cornerRadius = (12 * d).toInt()
                         setTextColor(0xFFEF9A9A.toInt())
-                        strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt())
+                        strokeColor = android.content.res.ColorStateList.valueOf(0xFF4C5A67.toInt())
                         strokeWidth = (1 * d).toInt()
                         setBackgroundColor(0x00000000)
                         insetTop = 0; insetBottom = 0
@@ -2095,9 +2095,9 @@ class  MainActivity : AppCompatActivity() {
                             marginStart = (3 * d).toInt()
                         }
                         cornerRadius = (12 * d).toInt()
-                        setTextColor(0xFFDDDDDD.toInt())
+                        setTextColor(0xFFDDE3E7.toInt())
                         setBackgroundColor(0x00000000)
-                        strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt())
+                        strokeColor = android.content.res.ColorStateList.valueOf(0xFF4C5A67.toInt())
                         strokeWidth = (1 * d).toInt()
                         insetTop = 0; insetBottom = 0
                     }
@@ -2229,13 +2229,13 @@ class  MainActivity : AppCompatActivity() {
 
             val autoEqSearch = android.widget.EditText(this).apply {
                 hint = getString(R.string.search_autoeq)
-                setTextColor(if (isLightUi) 0xFF202020.toInt() else 0xFFFFFFFF.toInt())
-                setHintTextColor(0xFF888888.toInt())
+                setTextColor(if (isLightUi) 0xFF2F3944.toInt() else 0xFFFFFFFF.toInt())
+                setHintTextColor(0xFF8E9AA5.toInt())
                 textSize = 14f
                 isSingleLine = true
                 background = android.graphics.drawable.GradientDrawable().apply {
                     setColor(0x00000000)
-                    setStroke((1 * density).toInt(), 0xFF444444.toInt())
+                    setStroke((1 * density).toInt(), 0xFF4C5A67.toInt())
                     cornerRadius = 12 * density
                 }
                 val padH = (12 * density).toInt(); val padV = (10 * density).toInt()
@@ -2297,7 +2297,7 @@ class  MainActivity : AppCompatActivity() {
                         }
                         background = android.graphics.drawable.GradientDrawable().apply {
                             setColor(0x00000000)
-                            setStroke((1 * density).toInt(), 0xFF444444.toInt())
+                            setStroke((1 * density).toInt(), 0xFF4C5A67.toInt())
                             cornerRadius = 12 * density
                         }
                         val padH = (12 * density).toInt(); val padV = (10 * density).toInt()
@@ -2313,13 +2313,13 @@ class  MainActivity : AppCompatActivity() {
                         text = entry.name
                         textSize = 14f
                         isSingleLine = true
-                        setTextColor(if (isLightUi) 0xFF202020.toInt() else 0xFFE2E2E2.toInt())
+                        setTextColor(if (isLightUi) 0xFF2F3944.toInt() else 0xFFE3E8EB.toInt())
                     })
                     nameCol.addView(android.widget.TextView(this).apply {
                         text = entry.source
                         textSize = 11f
                         isSingleLine = true
-                        setTextColor(0xFF888888.toInt())
+                        setTextColor(0xFF8E9AA5.toInt())
                     })
                     row.addView(nameCol)
                     val cacheKey = "${entry.source}|${entry.path.ifEmpty { entry.name }}"
@@ -2346,7 +2346,7 @@ class  MainActivity : AppCompatActivity() {
                     })
                     rightCol.addView(android.widget.TextView(this).apply {
                         text = getString(R.string.n_filters_text, entryProfile?.filters?.size?.toString() ?: "?")
-                        setTextColor(0xFF888888.toInt())
+                        setTextColor(0xFF8E9AA5.toInt())
                         textSize = 10f
                         gravity = android.view.Gravity.CENTER
                     })
@@ -2363,7 +2363,7 @@ class  MainActivity : AppCompatActivity() {
                             }
                             background = android.graphics.drawable.GradientDrawable().apply {
                                 setColor(0x00000000)
-                                setStroke((1 * density).toInt(), 0xFF444444.toInt())
+                                setStroke((1 * density).toInt(), 0xFF4C5A67.toInt())
                                 cornerRadius = 10 * density
                             }
                             isClickable = true; isFocusable = true
@@ -2521,7 +2521,7 @@ class  MainActivity : AppCompatActivity() {
                     b.alpha = 1f; b.scaleX = 1f; b.scaleY = 1f; b.translationY = 0f
                 }
                 paintLit(bandPtsBtn, false)
-                bandPtsBtn.iconTint = android.content.res.ColorStateList.valueOf(0xFFDDDDDD.toInt())
+                bandPtsBtn.iconTint = android.content.res.ColorStateList.valueOf(0xFFDDE3E7.toInt())
             }
         }
 
@@ -2555,7 +2555,7 @@ class  MainActivity : AppCompatActivity() {
                     .setDuration(200).setStartDelay(80).setInterpolator(android.view.animation.AccelerateInterpolator())
                     .withEndAction { onOffBtn.visibility = android.view.View.GONE; onOffBtn.translationY = 0f }.start()
                 paintLit(bandPtsBtn, false)
-                bandPtsBtn.iconTint = android.content.res.ColorStateList.valueOf(0xFFDDDDDD.toInt())
+                bandPtsBtn.iconTint = android.content.res.ColorStateList.valueOf(0xFFDDE3E7.toInt())
             }
         }
 
@@ -2592,13 +2592,13 @@ class  MainActivity : AppCompatActivity() {
             }
             val title = android.widget.TextView(this).apply {
                 text = getString(R.string.reset)
-                setTextColor(0xFFE2E2E2.toInt())
+                setTextColor(0xFFE3E8EB.toInt())
                 textSize = 20f
                 setPadding(0, 0, 0, (12 * density).toInt())
             }
             val message = android.widget.TextView(this).apply {
                 text = getString(R.string.reset_screen_confirm)
-                setTextColor(0xFFAAAAAA.toInt())
+                setTextColor(0xFFA9B4BE.toInt())
                 textSize = 14f
                 setPadding(0, 0, 0, (16 * density).toInt())
             }
@@ -2607,7 +2607,7 @@ class  MainActivity : AppCompatActivity() {
                     android.widget.LinearLayout.LayoutParams.MATCH_PARENT, (1 * density).toInt()).apply {
                     bottomMargin = (12 * density).toInt()
                 }
-                setBackgroundColor(0xFF444444.toInt())
+                setBackgroundColor(0xFF4C5A67.toInt())
             }
             val btnRow = android.widget.LinearLayout(this).apply {
                 orientation = android.widget.LinearLayout.HORIZONTAL
@@ -2622,7 +2622,7 @@ class  MainActivity : AppCompatActivity() {
                 }
                 cornerRadius = (12 * density).toInt()
                 setTextColor(0xFFEF9A9A.toInt())
-                strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt())
+                strokeColor = android.content.res.ColorStateList.valueOf(0xFF4C5A67.toInt())
                 strokeWidth = (1 * density).toInt()
                 setBackgroundColor(0x00000000)
                 insetTop = 0; insetBottom = 0
@@ -2633,9 +2633,9 @@ class  MainActivity : AppCompatActivity() {
                     marginStart = (3 * density).toInt()
                 }
                 cornerRadius = (12 * density).toInt()
-                setTextColor(0xFFDDDDDD.toInt())
+                setTextColor(0xFFDDE3E7.toInt())
                 setBackgroundColor(0x00000000)
-                strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt())
+                strokeColor = android.content.res.ColorStateList.valueOf(0xFF4C5A67.toInt())
                 strokeWidth = (1 * density).toInt()
                 insetTop = 0; insetBottom = 0
             }
@@ -3102,11 +3102,11 @@ class  MainActivity : AppCompatActivity() {
             val source = eqPrefs.getAutoEqSource() ?: ""
             statusText.text = getString(R.string.name_by_source, name, source)
             statusText.setTextColor(com.google.android.material.color.MaterialColors.getColor(
-                statusText, com.google.android.material.R.attr.colorPrimary, 0xFFBB86FC.toInt()))
+                statusText, com.google.android.material.R.attr.colorPrimary, 0xFF5CF28C.toInt()))
         } else {
             statusText.text = getString(R.string.select_or_import_a_preset)
             statusText.setTextColor(com.google.android.material.color.MaterialColors.getColor(
-                statusText, com.google.android.material.R.attr.colorOnSurfaceVariant, 0xFF888888.toInt()))
+                statusText, com.google.android.material.R.attr.colorOnSurfaceVariant, 0xFF8E9AA5.toInt()))
         }
     }
 
@@ -3117,11 +3117,11 @@ class  MainActivity : AppCompatActivity() {
             val type = eqPrefs.getSelectedTargetType() ?: ""
             statusText.text = if (type.isNotBlank()) "$name \u00B7 $type" else name
             statusText.setTextColor(com.google.android.material.color.MaterialColors.getColor(
-                statusText, com.google.android.material.R.attr.colorPrimary, 0xFFBB86FC.toInt()))
+                statusText, com.google.android.material.R.attr.colorPrimary, 0xFF5CF28C.toInt()))
         } else {
             statusText.text = getString(R.string.import_measurement_blurb)
             statusText.setTextColor(com.google.android.material.color.MaterialColors.getColor(
-                statusText, com.google.android.material.R.attr.colorOnSurfaceVariant, 0xFF888888.toInt()))
+                statusText, com.google.android.material.R.attr.colorOnSurfaceVariant, 0xFF8E9AA5.toInt()))
         }
     }
 
@@ -3996,7 +3996,7 @@ class  MainActivity : AppCompatActivity() {
             val item = TextView(this).apply {
                 text = presetLabelOf(presetName)
                 textSize = 16f
-                setTextColor(0xFFE2E2E2.toInt())
+                setTextColor(0xFFE3E8EB.toInt())
                 setPadding((16 * density).toInt(), (14 * density).toInt(), (16 * density).toInt(), (14 * density).toInt())
                 setOnClickListener {
                     stateManager.loadPreset(presetName, eqGraphView)
@@ -4076,7 +4076,7 @@ class  MainActivity : AppCompatActivity() {
         val size = (22 * density).toInt()
 
         for ((color, _) in TableEqController.BAND_COLORS) {
-            val isNone = color == 0xFF333333.toInt()
+            val isNone = color == 0xFF3D4955.toInt()
             val wrapper = FrameLayout(this).apply {
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
             }
@@ -4084,15 +4084,15 @@ class  MainActivity : AppCompatActivity() {
                 TextView(this).apply {
                     text = "\u2014"
                     textSize = 12f
-                    setTextColor(0xFFAAAAAA.toInt())
+                    setTextColor(0xFFA9B4BE.toInt())
                     gravity = android.view.Gravity.CENTER
                     layoutParams = FrameLayout.LayoutParams(size, size).apply {
                         gravity = android.view.Gravity.CENTER
                     }
                     background = android.graphics.drawable.GradientDrawable().apply {
-                        setColor(0xFF404040.toInt())
+                        setColor(0xFF485663.toInt())
                         cornerRadius = 6 * density
-                        setStroke((1 * density).toInt(), 0xFF666666.toInt())
+                        setStroke((1 * density).toInt(), 0xFF717E8A.toInt())
                     }
                 }
             } else {
@@ -4103,7 +4103,7 @@ class  MainActivity : AppCompatActivity() {
                     background = android.graphics.drawable.GradientDrawable().apply {
                         setColor(color)
                         cornerRadius = 6 * density
-                        setStroke((1 * density).toInt(), 0xFF666666.toInt())
+                        setStroke((1 * density).toInt(), 0xFF717E8A.toInt())
                     }
                 }
             }
@@ -4138,13 +4138,13 @@ class  MainActivity : AppCompatActivity() {
             val bg = swatch.background as? android.graphics.drawable.GradientDrawable ?: continue
 
             val swatchColor = TableEqController.BAND_COLORS[i].first
-            val isNone = swatchColor == 0xFF333333.toInt()
+            val isNone = swatchColor == 0xFF3D4955.toInt()
             val isSelected = if (isNone) currentColor == null else currentColor == swatchColor
 
             if (isSelected) {
                 bg.setStroke((2 * density).toInt(), 0xFFFFFFFF.toInt())
             } else {
-                bg.setStroke((1 * density).toInt(), 0xFF666666.toInt())
+                bg.setStroke((1 * density).toInt(), 0xFF717E8A.toInt())
             }
         }
     }
@@ -4303,7 +4303,7 @@ class  MainActivity : AppCompatActivity() {
             eqPowerToggle.setBackgroundColor(graphBtnDimBg)
             eqPowerToggle.strokeColor = android.content.res.ColorStateList.valueOf(graphBtnDimStroke)
             eqPowerToggle.strokeWidth = (1 * d).toInt()
-            eqPowerToggle.setTextColor(if (isLightUi) 0xFF8B8B8B.toInt() else 0xFF777777.toInt())
+            eqPowerToggle.setTextColor(if (isLightUi) 0xFF909CA7.toInt() else 0xFF828F9A.toInt())
         }
     }
 
@@ -4751,7 +4751,7 @@ class  MainActivity : AppCompatActivity() {
         val bothBtn = findViewById<com.google.android.material.button.MaterialButton>(R.id.channelBothButton)
         val density = resources.displayMetrics.density
         // The "L"/"R" glyphs read lighter than the icon buttons.
-        val lrDim = if (isLightUi) 0xFF2E2E2E.toInt() else 0xFF888888.toInt()
+        val lrDim = if (isLightUi) 0xFF394550.toInt() else 0xFF8E9AA5.toInt()
         fun paint(btn: com.google.android.material.button.MaterialButton, pressed: Boolean) {
             if (pressed) {
                 btn.setBackgroundColor(graphBtnLitBg)
@@ -5015,10 +5015,10 @@ class  MainActivity : AppCompatActivity() {
             val vizBtn = findViewById<com.google.android.material.button.MaterialButton>(R.id.visualizerToggle)
             val d = resources.displayMetrics.density
             vizBtn.alpha = 1.0f
-            vizBtn.setBackgroundColor(0xFF555555.toInt())
-            vizBtn.strokeColor = android.content.res.ColorStateList.valueOf(0xFF888888.toInt())
+            vizBtn.setBackgroundColor(0xFF5E6C79.toInt())
+            vizBtn.strokeColor = android.content.res.ColorStateList.valueOf(0xFF8E9AA5.toInt())
             vizBtn.strokeWidth = (2 * d).toInt()
-            vizBtn.iconTint = android.content.res.ColorStateList.valueOf(0xFFDDDDDD.toInt())
+            vizBtn.iconTint = android.content.res.ColorStateList.valueOf(0xFFDDE3E7.toInt())
         }
     }
 

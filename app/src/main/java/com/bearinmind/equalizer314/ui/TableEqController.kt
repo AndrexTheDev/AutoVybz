@@ -18,7 +18,7 @@ class TableEqController(
 ) {
     companion object {
         val BAND_COLORS = listOf(
-            0xFF333333.toInt() to "Default",
+            0xFF3D4955.toInt() to "Default",
             0xFFFFFFFF.toInt() to "White",
             0xFFEF9A9A.toInt() to "Red",
             0xFFA5D6A7.toInt() to "Green",
@@ -82,7 +82,7 @@ class TableEqController(
         val slotIndex = if (bandIndex < state.bandSlots.size) state.bandSlots[bandIndex] else bandIndex
         val slotLabel = slotIndex + 1
         val hasColor = state.bandColors.containsKey(slotIndex)
-        val savedColor = state.bandColors[slotIndex] ?: 0xFF666666.toInt()
+        val savedColor = state.bandColors[slotIndex] ?: 0xFF717E8A.toInt()
         val numBox = TextView(activity).apply {
             text = "$slotLabel"
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 0.5f).apply {
@@ -96,16 +96,16 @@ class TableEqController(
         // band is off, so toggling visibly turns the cell on/off.
         fun applyNumBoxStyle(enabled: Boolean) {
             val colored = state.bandColors.containsKey(slotIndex)
-            val color = state.bandColors[slotIndex] ?: 0xFF666666.toInt()
+            val color = state.bandColors[slotIndex] ?: 0xFF717E8A.toInt()
             numBox.background = android.graphics.drawable.GradientDrawable().apply {
                 cornerRadius = 8 * density
-                setColor(if (enabled) 0xFF404040.toInt() else 0xFF262626.toInt())
+                setColor(if (enabled) 0xFF485663.toInt() else 0xFF333E49.toInt())
                 if (colored) setStroke((1.5f * density).toInt(), color)
             }
             numBox.setTextColor(when {
-                !enabled -> 0xFF666666.toInt()
+                !enabled -> 0xFF717E8A.toInt()
                 colored -> color
-                else -> 0xFFCCCCCC.toInt()
+                else -> 0xFFCCD3DA.toInt()
             })
         }
         applyNumBoxStyle(band.enabled)
@@ -145,10 +145,10 @@ class TableEqController(
             gravity = android.view.Gravity.CENTER
             setPadding((4 * density).toInt(), (4 * density).toInt(), (4 * density).toInt(), (4 * density).toInt())
             background = android.graphics.drawable.GradientDrawable().apply {
-                setColor(0xFF404040.toInt())
+                setColor(0xFF485663.toInt())
                 cornerRadius = 8 * density
             }
-            setTextColor(0xFFCCCCCC.toInt())
+            setTextColor(0xFFCCD3DA.toInt())
 
             setOnClickListener {
                 val filterBtn = this
@@ -165,7 +165,7 @@ class TableEqController(
                         // light/dark, so hardcoded near-white text vanished in
                         // light theme (issue #66).
                         setTextColor(com.google.android.material.color.MaterialColors.getColor(
-                            this, com.google.android.material.R.attr.colorOnSurface, 0xFFE2E2E2.toInt()))
+                            this, com.google.android.material.R.attr.colorOnSurface, 0xFFE3E8EB.toInt()))
                         setPadding((16 * density).toInt(), (14 * density).toInt(), (16 * density).toInt(), (14 * density).toInt())
                         setOnClickListener {
                             val b = eq.getBand(bandIndex) ?: return@setOnClickListener
@@ -215,12 +215,12 @@ class TableEqController(
                     this.marginEnd = marginEnd
                 }
                 textSize = 12f
-                setTextColor(0xFFCCCCCC.toInt())
+                setTextColor(0xFFCCD3DA.toInt())
                 this.inputType = inputType
                 gravity = android.view.Gravity.CENTER
                 setPadding((4 * density).toInt(), (4 * density).toInt(), (4 * density).toInt(), (4 * density).toInt())
                 background = android.graphics.drawable.GradientDrawable().apply {
-                    setColor(0xFF404040.toInt())
+                    setColor(0xFF485663.toInt())
                     cornerRadius = 8 * density
                 }
                 imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_DONE
@@ -268,7 +268,7 @@ class TableEqController(
             graphView.updateBandLevels()
             onEqChanged()
         }
-        dbInput.setTextColor(if (gainless) 0xFF666666.toInt() else 0xFFCCCCCC.toInt())
+        dbInput.setTextColor(if (gainless) 0xFF717E8A.toInt() else 0xFFCCD3DA.toInt())
         dbInput.isEnabled = !gainless
         dbInput.alpha = if (gainless) 0.4f else 1f
         row.addView(dbInput)
@@ -298,7 +298,7 @@ class TableEqController(
             textSize = 16f
             // Theme-aware for light mode (issue #66).
             setTextColor(com.google.android.material.color.MaterialColors.getColor(
-                this, com.google.android.material.R.attr.colorOnSurface, 0xFFE2E2E2.toInt()))
+                this, com.google.android.material.R.attr.colorOnSurface, 0xFFE3E8EB.toInt()))
             setPadding(0, 0, 0, (12 * density).toInt())
         }
         sheetLayout.addView(title)
@@ -311,21 +311,21 @@ class TableEqController(
         }
 
         for ((color, _) in BAND_COLORS) {
-            val isNone = color == 0xFF333333.toInt()
+            val isNone = color == 0xFF3D4955.toInt()
             val size = (32 * density).toInt()
             val swatch = if (isNone) {
                 TextView(activity).apply {
                     text = "—"
                     textSize = 16f
-                    setTextColor(0xFFAAAAAA.toInt())
+                    setTextColor(0xFFA9B4BE.toInt())
                     gravity = android.view.Gravity.CENTER
                     layoutParams = LinearLayout.LayoutParams(size, size).apply {
                         setMargins((3 * density).toInt(), 0, (3 * density).toInt(), 0)
                     }
                     background = android.graphics.drawable.GradientDrawable().apply {
-                        setColor(0xFF404040.toInt())
+                        setColor(0xFF485663.toInt())
                         cornerRadius = 8 * density
-                        setStroke((1 * density).toInt(), 0xFF666666.toInt())
+                        setStroke((1 * density).toInt(), 0xFF717E8A.toInt())
                     }
                 }
             } else {
@@ -336,7 +336,7 @@ class TableEqController(
                     background = android.graphics.drawable.GradientDrawable().apply {
                         setColor(color)
                         cornerRadius = 8 * density
-                        setStroke((1 * density).toInt(), 0xFF666666.toInt())
+                        setStroke((1 * density).toInt(), 0xFF717E8A.toInt())
                     }
                 }
             }
@@ -350,12 +350,12 @@ class TableEqController(
                 // and number — not a full-color fill.
                 numBox.background = android.graphics.drawable.GradientDrawable().apply {
                     cornerRadius = 8 * density
-                    setColor(if (enabled) 0xFF404040.toInt() else 0xFF262626.toInt())
+                    setColor(if (enabled) 0xFF485663.toInt() else 0xFF333E49.toInt())
                     if (!isNone) setStroke((1.5f * density).toInt(), color)
                 }
                 numBox.setTextColor(when {
-                    !enabled -> 0xFF666666.toInt()
-                    isNone -> 0xFFCCCCCC.toInt()
+                    !enabled -> 0xFF717E8A.toInt()
+                    isNone -> 0xFFCCD3DA.toInt()
                     else -> color
                 })
                 graphView.setBandColors(state.bandColors)

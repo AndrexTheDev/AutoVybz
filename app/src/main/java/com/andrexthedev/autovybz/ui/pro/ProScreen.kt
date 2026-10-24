@@ -10,14 +10,8 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import android.content.Context
-import android.content.BroadcastReceiver
-import android.content.IntentFilter
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.semantics.Role
-import androidx.core.content.ContextCompat
-import com.andrexthedev.autovybz.measurement.audio.EqBypass
-import com.bearinmind.equalizer314.audio.EqService
 import android.content.Intent
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -84,6 +78,15 @@ import com.andrexthedev.autovybz.ui.components.AvzCard
 import com.andrexthedev.autovybz.ui.components.CollapsibleCard
 import com.andrexthedev.autovybz.ui.components.ExportButton
 import com.andrexthedev.autovybz.ui.components.SectionTitle
+import com.andrexthedev.autovybz.ui.components.HintRow
+import com.andrexthedev.autovybz.ui.components.VybzIcons
+import com.andrexthedev.autovybz.ui.components.rememberEqPower
+import com.andrexthedev.autovybz.sound.SoundComposer
+import com.andrexthedev.autovybz.sound.VybzSound
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
 import com.andrexthedev.autovybz.ui.theme.AutoVybzColors
 import com.bearinmind.equalizer314.LimiterActivity
 import com.bearinmind.equalizer314.MainActivity
@@ -112,14 +115,20 @@ fun ProScreen() {
             modifier = Modifier.testTag("avz:screen:pro").semantics { heading() },
         )
 
-        SectionTitle(stringResource(R.string.avz_pro_engine_title))
-        EngineLink(Icons.Filled.Build, R.string.avz_pro_peq, R.string.avz_pro_peq_desc) { open(context, MainActivity::class.java) }
-        EngineLink(Icons.Filled.Star, R.string.avz_pro_mbc, R.string.avz_pro_mbc_desc) { open(context, MbcActivity::class.java) }
-        EngineLink(Icons.Filled.ThumbUp, R.string.avz_pro_limiter, R.string.avz_pro_limiter_desc) { open(context, LimiterActivity::class.java) }
+        HintRow(stringResource(R.string.avz_pro_intro))
+
+        SectionTitle(stringResource(R.string.avz_studio_tone_title))
+        ToneCard(settings)
 
         SectionTitle(stringResource(R.string.avz_pro_calibrations))
         SoundCorrectionToggle()
         CalibrationList()
+
+        SectionTitle(stringResource(R.string.avz_pro_engine_title))
+        HintRow(stringResource(R.string.avz_pro_engine_hint))
+        EngineLink(VybzIcons.Studio, R.string.avz_pro_peq, R.string.avz_pro_peq_desc) { open(context, MainActivity::class.java) }
+        EngineLink(VybzIcons.Sound, R.string.avz_pro_mbc, R.string.avz_pro_mbc_desc) { open(context, MbcActivity::class.java) }
+        EngineLink(VybzIcons.Power, R.string.avz_pro_limiter, R.string.avz_pro_limiter_desc) { open(context, LimiterActivity::class.java) }
 
         CollapsibleCard(title = stringResource(R.string.avz_pro_measure_title), icon = Icons.Filled.Settings) {
             MeasurementSettings(settings)
@@ -142,7 +151,10 @@ private fun open(context: Context, cls: Class<*>) {
 private fun EngineLink(icon: ImageVector, title: Int, desc: Int, onClick: () -> Unit) {
     AvzCard(modifier = Modifier.clickable(onClick = onClick)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, contentDescription = null, tint = AutoVybzColors.Green, modifier = Modifier.size(26.dp))
+            Box(
+                Modifier.size(44.dp).clip(CircleShape).background(AutoVybzColors.GreenContainer),
+                contentAlignment = Alignment.Center,
+            ) { Icon(icon, contentDescription = null, tint = AutoVybzColors.Green, modifier = Modifier.size(24.dp)) }
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
                 Text(stringResource(title), style = MaterialTheme.typography.titleMedium)
@@ -156,52 +168,75 @@ private fun EngineLink(icon: ImageVector, title: Int, desc: Int, onClick: () -> 
 /* ---------------------------------------------------------- calibrations -- */
 
 /**
+ * Studio "Feinschliff": bass / treble shelves on top of calibration + style, and the volume protection (limiter).
+ * Changes are audible when the finger lifts - no apply button.
+ */
+@Composable
+private fun ToneCard(settings: AutoVybzSettings) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val initial = remember { VybzSound.selection(context) }
+    var bass by remember { mutableFloatStateOf(initial.bassDb.toFloat()) }
+    var treble by remember { mutableFloatStateOf(initial.trebleDb.toFloat()) }
+    var limiter by remember { mutableStateOf(settings.enableLimiterOnApply) }
+    val f = { v: Float -> String.format(Locale.getDefault(), "%+.1f", v) }
+    fun push() {
+        val b = bass.toDouble()
+        val t = treble.toDouble()
+        scope.launch(Dispatchers.IO) { VybzSound.setTone(context, b, t) }
+    }
+    val max = SoundComposer.MAX_TONE_DB.toFloat()
+    AvzCard {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.avz_studio_bass), style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+            Text(stringResource(R.string.avz_studio_db, f(bass)), style = MaterialTheme.typography.titleSmall, color = AutoVybzColors.Gold)
+        }
+        Slider(
+            bass, { bass = (it * 2).toInt() / 2f }, valueRange = -max..max, onValueChangeFinished = { push() },
+            colors = avzSliderColors(), modifier = Modifier.testTag("avz:studio:bass"),
+        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.avz_studio_treble), style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+            Text(stringResource(R.string.avz_studio_db, f(treble)), style = MaterialTheme.typography.titleSmall, color = AutoVybzColors.Gold)
+        }
+        Slider(
+            treble, { treble = (it * 2).toInt() / 2f }, valueRange = -max..max, onValueChangeFinished = { push() },
+            colors = avzSliderColors(), modifier = Modifier.testTag("avz:studio:treble"),
+        )
+        if (bass != 0f || treble != 0f) {
+            TextButton(onClick = { bass = 0f; treble = 0f; push() }, modifier = Modifier.testTag("avz:studio:tone_reset")) {
+                Text(stringResource(R.string.avz_studio_tone_reset), color = AutoVybzColors.GreenBright)
+            }
+        }
+        HintRow(stringResource(R.string.avz_studio_tone_hint))
+        SwitchRow(stringResource(R.string.avz_pro_limiter_on_apply), limiter, Modifier.testTag("avz:studio:protect")) {
+            limiter = it
+            settings.enableLimiterOnApply = it
+            scope.launch(Dispatchers.IO) { VybzSound.reapply(context) }
+        }
+        HintRow(stringResource(R.string.avz_studio_protect_hint))
+    }
+}
+
+/**
  * A/B switch for the system-wide EQ: turn it off and on while music plays to hear what the calibration does.
- * The state follows the engine's own broadcasts, so it stays in sync with the quick-settings tile, the
- * notification and the classic Equalizer314 screen (no polling - that would also keep Compose tests busy).
+ * Same live state as the big ring on the Sound screen.
  */
 @Composable
 private fun SoundCorrectionToggle() {
-    val context = LocalContext.current
-    var on by remember { mutableStateOf(EqService.isDpRunning) }
-    var name by remember { mutableStateOf(AutoVybzPresetStore.lastAppliedName(context)) }
-    var requests by remember { mutableIntStateOf(0) }
-    // If the engine could not start (or stop), fall back to its real state instead of showing a lie.
-    LaunchedEffect(requests) {
-        if (requests > 0) {
-            kotlinx.coroutines.delay(4_000)
-            on = EqService.isDpRunning
-        }
-    }
-    DisposableEffect(Unit) {
-        val receiver = object : BroadcastReceiver() {
-            override fun onReceive(c: Context, intent: Intent) {
-                on = intent.action == EqService.ACTION_EQ_STARTED
-                name = AutoVybzPresetStore.lastAppliedName(context)
-            }
-        }
-        val filter = IntentFilter().apply {
-            addAction(EqService.ACTION_EQ_STARTED)
-            addAction(EqService.ACTION_EQ_STOPPED)
-        }
-        ContextCompat.registerReceiver(context, receiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
-        onDispose { runCatching { context.unregisterReceiver(receiver) } }
-    }
+    val power = rememberEqPower()
+    val on = power.on
+    val name = power.calibration
     val status = when {
         !on -> stringResource(R.string.avz_pro_ab_off)
-        name != null -> stringResource(R.string.avz_pro_ab_active, name.orEmpty())
+        name != null -> stringResource(R.string.avz_pro_ab_active, name)
         else -> stringResource(R.string.avz_pro_ab_on)
     }
-    AvzCard(accent = if (on) AutoVybzColors.Green else null) {
+    AvzCard(accent = if (on) AutoVybzColors.Green.copy(alpha = 0.55f) else null) {
         Row(
             Modifier
                 .fillMaxWidth()
-                .toggleable(value = on, role = Role.Switch, onValueChange = { want ->
-                    on = want // optimistic; the engine's broadcast (or the re-check above) confirms it
-                    requests++
-                    if (want) EqBypass.resume(context)
-                    else if (EqService.isDpRunning) EqService.stop(context, silentToast = true)
-                })
+                .toggleable(value = on, role = Role.Switch, onValueChange = { power.set(it) })
                 .testTag("avz:pro:eq"),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -212,12 +247,9 @@ private fun SoundCorrectionToggle() {
                     color = if (on) AutoVybzColors.GreenBright else AutoVybzColors.OnDarkMuted,
                 )
             }
-            Switch(
-                checked = on, onCheckedChange = null,
-                colors = SwitchDefaults.colors(checkedThumbColor = AutoVybzColors.Gold, checkedTrackColor = AutoVybzColors.Green),
-            )
+            Switch(checked = on, onCheckedChange = null, colors = avzSwitchColors())
         }
-        Text(stringResource(R.string.avz_pro_ab_hint), style = MaterialTheme.typography.bodySmall, color = AutoVybzColors.OnDarkMuted)
+        HintRow(stringResource(R.string.avz_pro_ab_hint))
     }
 }
 
@@ -235,7 +267,7 @@ private fun CalibrationList() {
         return
     }
     val df = remember { DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT) }
-    val active = AutoVybzPresetStore.lastAppliedName(context)
+    val active = VybzSound.activeCalibrationName(context)
     var toDelete by remember { mutableStateOf<String?>(null) }
     val appliedMsg = stringResource(R.string.avz_applied_toast, "%s")
     for (p in items) {
@@ -251,10 +283,12 @@ private fun CalibrationList() {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Button(
                     onClick = {
-                        val outdoor = p.measurement?.environment == ListeningEnvironment.OUTDOOR.name
-                        AutoVybzPresetStore.apply(context, p, AutoVybzSettings(context).enableLimiterOnApply || outdoor)
+                        // style + Studio tone stay layered on top; outdoor calibrations always arm the limiter
                         Toast.makeText(context, appliedMsg.replace("%s", p.name), Toast.LENGTH_SHORT).show()
-                        reload++
+                        scope.launch {
+                            withContext(Dispatchers.IO) { VybzSound.useProfile(context, p.name) }
+                            reload++ // re-read the active marker once the engine has the new profile
+                        }
                     },
                     modifier = Modifier.testTag("avz:pro:apply:${p.name}"),
                 ) { Text(stringResource(R.string.avz_apply)) }
@@ -307,7 +341,6 @@ private fun MeasurementSettings(settings: AutoVybzSettings) {
     var bands by remember { mutableIntStateOf(settings.bandCount) }
     var smoothing by remember { mutableStateOf(settings.smoothing) }
     var maxBoost by remember { mutableStateOf(settings.maxBoostDb) }
-    var limiter by remember { mutableStateOf(settings.enableLimiterOnApply) }
     var restoreVol by remember { mutableStateOf(settings.restoreVolumeAfter) }
 
     Text(stringResource(R.string.avz_pro_bands), style = MaterialTheme.typography.titleSmall)
@@ -332,7 +365,6 @@ private fun MeasurementSettings(settings: AutoVybzSettings) {
         onValueChangeFinished = { settings.maxBoostDb = maxBoost },
         valueRange = 0f..9f, colors = avzSliderColors(),
     )
-    SwitchRow(stringResource(R.string.avz_pro_limiter_on_apply), limiter) { limiter = it; settings.enableLimiterOnApply = it }
     SwitchRow(stringResource(R.string.avz_pro_restore_volume), restoreVol) { restoreVol = it; settings.restoreVolumeAfter = it }
 }
 
@@ -427,27 +459,35 @@ private fun AvzChip(selected: Boolean, label: String, onClick: () -> Unit) {
     FilterChip(
         selected = selected, onClick = onClick, label = { Text(label) },
         colors = FilterChipDefaults.filterChipColors(
-            selectedContainerColor = AutoVybzColors.GreenContainer,
-            selectedLabelColor = AutoVybzColors.GreenBright,
-            labelColor = AutoVybzColors.OnDarkMuted,
+            selectedContainerColor = AutoVybzColors.Green,
+            selectedLabelColor = AutoVybzColors.OnGreen,
+            labelColor = AutoVybzColors.OnDark,
         ),
     )
 }
 
 @Composable
-private fun SwitchRow(text: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+private fun SwitchRow(text: String, checked: Boolean, modifier: Modifier = Modifier, onChange: (Boolean) -> Unit) {
     // The whole row is the switch: one TalkBack stop with its label, and a large touch target.
     Row(
-        Modifier.fillMaxWidth().heightIn(min = 48.dp).toggleable(value = checked, role = Role.Switch, onValueChange = onChange),
+        modifier.fillMaxWidth().heightIn(min = 48.dp).toggleable(value = checked, role = Role.Switch, onValueChange = onChange),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(text, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-        Switch(
-            checked = checked, onCheckedChange = null,
-            colors = SwitchDefaults.colors(checkedThumbColor = AutoVybzColors.Gold, checkedTrackColor = AutoVybzColors.Green),
-        )
+        Switch(checked = checked, onCheckedChange = null, colors = avzSwitchColors())
     }
 }
+
+/** Neon track with a dark thumb (white on neon green would be unreadable), slate when off. */
+@Composable
+private fun avzSwitchColors() = SwitchDefaults.colors(
+    checkedThumbColor = AutoVybzColors.OnGreen,
+    checkedTrackColor = AutoVybzColors.Green,
+    checkedBorderColor = AutoVybzColors.Green,
+    uncheckedThumbColor = AutoVybzColors.OnDarkMuted,
+    uncheckedTrackColor = AutoVybzColors.SurfaceHigh,
+    uncheckedBorderColor = AutoVybzColors.Outline,
+)
 
 @Composable
 private fun avzSliderColors() = SliderDefaults.colors(

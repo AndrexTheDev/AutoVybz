@@ -76,13 +76,13 @@ object RemoteScrim {
             isFocusable = true
             addView(TextView(activity).apply {
                 text = activity.getString(R.string.remote_controlled)
-                setTextColor(0xFFE2E2E2.toInt())
+                setTextColor(0xFFE3E8EB.toInt())
                 textSize = 15f
                 gravity = Gravity.CENTER
                 background = GradientDrawable().apply {
-                    setColor(0xE6222222.toInt())
+                    setColor(0xE6313C47.toInt())
                     cornerRadius = 16 * density
-                    setStroke((1 * density).toInt(), 0xFF444444.toInt())
+                    setStroke((1 * density).toInt(), 0xFF4C5A67.toInt())
                 }
                 setPadding(0, (14 * density).toInt(), 0, (14 * density).toInt())
                 layoutParams = FrameLayout.LayoutParams(

@@ -4,6 +4,7 @@ package com.andrexthedev.autovybz.ui.about
 
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.ui.platform.testTag
@@ -61,7 +62,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.andrexthedev.autovybz.ui.components.AvzCard
 import com.andrexthedev.autovybz.ui.components.CollapsibleCard
-import com.andrexthedev.autovybz.ui.components.JamaicaStripe
+import com.andrexthedev.autovybz.ui.components.VybzStripe
+import com.andrexthedev.autovybz.ui.components.VybzWordmark
 import com.andrexthedev.autovybz.ui.theme.AutoVybzColors
 import com.bearinmind.equalizer314.BuildConfig
 import com.bearinmind.equalizer314.MainActivity
@@ -80,25 +82,22 @@ fun AboutScreen() {
         Spacer(Modifier.height(8.dp))
         Image(
             painterResource(R.drawable.autovybz_logo), contentDescription = null,
-            modifier = Modifier.size(120.dp).clip(RoundedCornerShape(28.dp)),
+            modifier = Modifier.size(132.dp),
         )
         // One TalkBack stop "AutoVybz" (heading) instead of two words "Auto", "Vybz".
-        Row(Modifier.clearAndSetSemantics { heading(); contentDescription = "AutoVybz" }) {
-            Text("Auto", style = MaterialTheme.typography.headlineMedium)
-            Text("Vybz", style = MaterialTheme.typography.headlineMedium, color = AutoVybzColors.Gold)
-        }
+        VybzWordmark(MaterialTheme.typography.headlineLarge, Modifier.semantics { heading() })
         Text(
             stringResource(R.string.avz_about_version, BuildConfig.VERSION_NAME),
             color = AutoVybzColors.OnDarkMuted,
             modifier = Modifier.testTag("avz:screen:about"),
         )
-        JamaicaStripe(Modifier.width(64.dp).height(4.dp))
+        VybzStripe(Modifier.width(64.dp).height(4.dp))
         Text(stringResource(R.string.avz_about_text), textAlign = TextAlign.Center)
 
         Button(
             onClick = { showDonate = true },
             modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp).testTag("avz:about:donate"),
-            colors = ButtonDefaults.buttonColors(containerColor = AutoVybzColors.Gold, contentColor = androidx.compose.ui.graphics.Color.Black),
+            colors = ButtonDefaults.buttonColors(containerColor = AutoVybzColors.Gold, contentColor = AutoVybzColors.OnGreen),
         ) {
             Icon(Icons.Filled.Favorite, contentDescription = null)
             Text("  " + stringResource(R.string.avz_about_donate), style = MaterialTheme.typography.titleMedium)
@@ -116,23 +115,13 @@ fun AboutScreen() {
             }
         }
 
-        AvzCard {
+        // Legal notices (GPL-3.0): AutoVybz is built on Equalizer314 - credited here, with the source link.
+        CollapsibleCard(title = stringResource(R.string.avz_about_licenses)) {
             Text(stringResource(R.string.avz_about_based_on), style = MaterialTheme.typography.bodyMedium)
             TextButton(onClick = { openUrl(context, AutoVybzInfo.UPSTREAM_URL) }) {
                 Text("github.com/bearinmindcat/Equalizer314", color = AutoVybzColors.GreenBright)
             }
-        }
-
-        CollapsibleCard(title = stringResource(R.string.avz_about_licenses)) {
             Text(stringResource(R.string.avz_about_licenses_text), style = MaterialTheme.typography.bodySmall)
-        }
-
-        AvzCard(modifier = Modifier.clickable { context.startActivity(Intent(context, MainActivity::class.java)) }) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Filled.Home, contentDescription = null, tint = AutoVybzColors.Green)
-                Spacer(Modifier.width(12.dp))
-                Text(stringResource(R.string.avz_about_classic_ui))
-            }
         }
         Spacer(Modifier.height(24.dp))
     }

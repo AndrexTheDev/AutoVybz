@@ -287,9 +287,9 @@
                         app:icon="@drawable/ic_edit"
                         app:iconGravity="textStart"
                         app:iconPadding="0dp"
-                        app:iconTint="#FF888888"
+                        app:iconTint="#FF8E9AA5"
                         app:shapeAppearanceOverlay="@style/ShapeAppearance.ResetButton"
-                        app:strokeColor="#FF444444"
+                        app:strokeColor="#FF4C5A67"
                         app:strokeWidth="1dp" />
 
                 </LinearLayout>

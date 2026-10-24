@@ -7,6 +7,8 @@ import android.util.Log
 import com.andrexthedev.autovybz.export.PresetNaming
 import com.andrexthedev.autovybz.measurement.audio.EqBypass
 import com.andrexthedev.autovybz.preset.model.AutoVybzPreset
+import com.andrexthedev.autovybz.sound.SoundComposer
+import com.andrexthedev.autovybz.sound.VybzSound
 import com.bearinmind.equalizer314.audio.EqService
 import com.bearinmind.equalizer314.dsp.BiquadFilter
 import com.bearinmind.equalizer314.dsp.ParametricEqualizer
@@ -83,6 +85,9 @@ object AutoVybzPresetStore {
         prefs.edit().remove("preset_$name").putStringSet(POOL_NAMES, names).apply()
         legacyFileFor(context, name)?.delete()
         fileFor(context, name).delete()
+        // the deleted speaker is no longer "in use" (Sound screen, A/B switch)
+        val state = context.getSharedPreferences(AVZ_PREFS, Context.MODE_PRIVATE)
+        if (state.getString(KEY_LAST_PRESET, null) == name) state.edit().remove(KEY_LAST_PRESET).apply()
     }
 
     /**
@@ -92,6 +97,17 @@ object AutoVybzPresetStore {
      * second safety net. Running DynamicsProcessing is updated live.
      */
     fun apply(context: Context, preset: AutoVybzPreset, enableLimiter: Boolean = true) {
+        // the user's sound style + Studio tone are layered on top of the calibration (identity when neutral)
+        VybzSound.onCalibrationApplied(context)
+        applyComposed(context, SoundComposer.compose(preset, VybzSound.selection(context)), enableLimiter)
+    }
+
+    /**
+     * Writes an already composed preset into the engine. A style-only base ([SoundComposer.STYLE_ONLY_NAME])
+     * does not replace the remembered calibration, so switching back to the speaker profile is lossless.
+     */
+    fun applyComposed(context: Context, preset: AutoVybzPreset, enableLimiter: Boolean) {
+        val styleOnly = preset.name == SoundComposer.STYLE_ONLY_NAME
         val p = EqPreferencesManager(context)
         val eq = ParametricEqualizer()
         eq.clearBands()
@@ -115,10 +131,9 @@ object AutoVybzPresetStore {
             p.saveLimiterRelease(60f)
             p.saveLimiterPostGain(0f)
         }
-        context.getSharedPreferences(AVZ_PREFS, Context.MODE_PRIVATE).edit()
-            .putBoolean(KEY_PENDING_APPLY, true)
-            .putString(KEY_LAST_PRESET, preset.name)
-            .apply()
+        val state = context.getSharedPreferences(AVZ_PREFS, Context.MODE_PRIVATE).edit().putBoolean(KEY_PENDING_APPLY, true)
+        if (!styleOnly) state.putString(KEY_LAST_PRESET, preset.name)
+        state.apply()
         runCatching {
             if (EqService.isDpRunning) {
                 // Live update of the running DynamicsProcessing chain.

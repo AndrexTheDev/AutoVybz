@@ -77,11 +77,11 @@ class PresetsConversionsActivity : AppCompatActivity() {
             val source = eqPrefs.getAutoEqSource() ?: ""
             statusText.text = getString(R.string.name_by_source, name, source)
             statusText.setTextColor(MaterialColors.getColor(
-                statusText, com.google.android.material.R.attr.colorPrimary, 0xFFBB86FC.toInt()))
+                statusText, com.google.android.material.R.attr.colorPrimary, 0xFF5CF28C.toInt()))
         } else {
             statusText.text = getString(R.string.select_or_import_a_preset)
             statusText.setTextColor(MaterialColors.getColor(
-                statusText, com.google.android.material.R.attr.colorOnSurfaceVariant, 0xFF888888.toInt()))
+                statusText, com.google.android.material.R.attr.colorOnSurfaceVariant, 0xFF8E9AA5.toInt()))
         }
     }
 
@@ -92,11 +92,11 @@ class PresetsConversionsActivity : AppCompatActivity() {
             val type = eqPrefs.getSelectedTargetType() ?: ""
             statusText.text = if (type.isNotBlank()) "$name · $type" else name
             statusText.setTextColor(MaterialColors.getColor(
-                statusText, com.google.android.material.R.attr.colorPrimary, 0xFFBB86FC.toInt()))
+                statusText, com.google.android.material.R.attr.colorPrimary, 0xFF5CF28C.toInt()))
         } else {
             statusText.text = getString(R.string.import_measurement_blurb)
             statusText.setTextColor(MaterialColors.getColor(
-                statusText, com.google.android.material.R.attr.colorOnSurfaceVariant, 0xFF888888.toInt()))
+                statusText, com.google.android.material.R.attr.colorOnSurfaceVariant, 0xFF8E9AA5.toInt()))
         }
     }
 }

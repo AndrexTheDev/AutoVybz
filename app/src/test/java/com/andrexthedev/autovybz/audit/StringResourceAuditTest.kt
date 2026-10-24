@@ -148,6 +148,9 @@ class StringResourceAuditTest {
         "avz_nav_pro", "avz_target_flat", "avz_target_bass", "avz_target_harman", "avz_export_apo",
         "avz_result_details", "avz_detail_engine", "avz_pro_limiter", "avz_pro_custom_bass", "avz_about_version",
         "avz_donate_sol", "avz_donate_btc", "avz_donate_eth",
+        // navigation / brand words used as-is in German ("Sound", "Studio") and genre names that are loanwords
+        "avz_nav_home", "avz_pro_title", "avz_studio_bass", "avz_studio_db", "avz_home_intensity_value",
+        "avz_style_group_base", "avz_style_afrobeats", "avz_style_latin", "avz_style_electronic", "avz_style_rock", "avz_style_pop",
     )
 
     @Test

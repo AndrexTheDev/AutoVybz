@@ -20,10 +20,10 @@ object BottomNavHelper {
     private fun isLight(activity: Activity): Boolean =
         (activity.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) !=
             Configuration.UI_MODE_NIGHT_YES
-    private fun activeColor(activity: Activity) = if (isLight(activity)) 0xFF252525.toInt() else 0xFFDDDDDD.toInt()
-    private fun dimColor(activity: Activity) = if (isLight(activity)) 0xFF8A8A8A.toInt() else 0xFF666666.toInt()
-    private fun onColor(activity: Activity) = if (isLight(activity)) 0xFF252525.toInt() else 0xFFDDDDDD.toInt()
-    private const val OFF_COLOR = 0xFF888888.toInt()
+    private fun activeColor(activity: Activity) = if (isLight(activity)) 0xFF333E49.toInt() else 0xFFDDE3E7.toInt()
+    private fun dimColor(activity: Activity) = if (isLight(activity)) 0xFF909CA6.toInt() else 0xFF717E8A.toInt()
+    private fun onColor(activity: Activity) = if (isLight(activity)) 0xFF333E49.toInt() else 0xFFDDE3E7.toInt()
+    private const val OFF_COLOR = 0xFF8E9AA5.toInt()
 
     /** Power-FAB colors per state, themed. The "on" state is the bold,
      *  high-contrast one in both palettes (bright FAB on the dark bar /
@@ -32,11 +32,11 @@ object BottomNavHelper {
     private fun fabPalette(activity: Activity, isOn: Boolean): FabPalette {
         val light = isLight(activity)
         return if (isOn) {
-            if (light) FabPalette(0xFF2A2A2A.toInt(), 0xFFFFFFFF.toInt(), 0xFF888888.toInt(), 0x33FFFFFF)
-            else FabPalette(0xFFFFFFFF.toInt(), 0xFF000000.toInt(), 0xFF666666.toInt(), 0xCC000000.toInt())
+            if (light) FabPalette(0xFF35414C.toInt(), 0xFFFFFFFF.toInt(), 0xFF8E9AA5.toInt(), 0x33FFFFFF)
+            else FabPalette(0xFFFFFFFF.toInt(), 0xFF000000.toInt(), 0xFF717E8A.toInt(), 0xCC000000.toInt())
         } else {
-            if (light) FabPalette(0xFFCFCFCF.toInt(), 0xFF888888.toInt(), 0xFFBBBBBB.toInt(), 0x22000000)
-            else FabPalette(0xFF2A2A2A.toInt(), 0xFF555555.toInt(), 0xFF444444.toInt(), 0x33FFFFFF)
+            if (light) FabPalette(0xFFCFD6DC.toInt(), 0xFF8E9AA5.toInt(), 0xFFBAC3CB.toInt(), 0x22000000)
+            else FabPalette(0xFF35414C.toInt(), 0xFF5E6C79.toInt(), 0xFF4C5A67.toInt(), 0x33FFFFFF)
         }
     }
 

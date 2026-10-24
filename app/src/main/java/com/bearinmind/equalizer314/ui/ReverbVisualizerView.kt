@@ -61,14 +61,14 @@ class ReverbVisualizerView @JvmOverloads constructor(
 
     // ---- Color palette (all-grey, "Visualizing Reverb" reference) ----
 
-    private val bgColor = 0xFF1A1A1A.toInt()
-    private val directBarColor = 0xFFE8E8E8.toInt()  // brightest — direct sound
-    private val earlyBarColor = 0xFFBBBBBB.toInt()   // early reflections
+    private val bgColor = 0xFF28323D.toInt()
+    private val directBarColor = 0xFFE9EDF1.toInt()  // brightest — direct sound
+    private val earlyBarColor = 0xFFBAC3CB.toInt()   // early reflections
     // Regular (non-HF-damped) decay drawn brighter so it reads as the primary
     // signal; HF-damped portions get a darker shade.
-    private val bodyBarColor = 0xFFBBBBBB.toInt()    // regular decay (bright)
+    private val bodyBarColor = 0xFFBAC3CB.toInt()    // regular decay (bright)
     private val tailBarColor = bodyBarColor          // decay tail (unified)
-    private val ghostEnvelopeColor = 0x44999999.toInt()
+    private val ghostEnvelopeColor = 0x449BA7B1.toInt()
 
     // ---- Paints --------------------------------------------------------
 
@@ -141,7 +141,7 @@ class ReverbVisualizerView @JvmOverloads constructor(
         strokeCap = Paint.Cap.ROUND
         strokeWidth = 1.6f * density
         // Darker shade for HF-damped portion, paired with brighter bodyBarColor.
-        color = 0xFF3A3A3A.toInt()
+        color = 0xFF43505C.toInt()
     }
     // Segment drawn ABOVE the linear envelope when HF-damped > linear
     // (decayHfRatio > 1).
@@ -151,7 +151,7 @@ class ReverbVisualizerView @JvmOverloads constructor(
         strokeWidth = 1.6f * density
         // Same dark shade as the HF base so all HF portions read as one tone,
         // leaving bodyBarColor exclusively to the regular decay.
-        color = 0xFF3A3A3A.toInt()
+        color = 0xFF43505C.toInt()
     }
     private val ghostEnvelopePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = ghostEnvelopeColor
@@ -160,27 +160,27 @@ class ReverbVisualizerView @JvmOverloads constructor(
         strokeJoin = Paint.Join.ROUND
     }
     private val frameLinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFFAAAAAA.toInt()
+        color = 0xFFA9B4BE.toInt()
         strokeWidth = 1.5f * density
         style = Paint.Style.STROKE
         strokeCap = Paint.Cap.ROUND
     }
     private val regionDividerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0x55AAAAAA.toInt()
+        color = 0x55A9B4BE.toInt()
         strokeWidth = 1f * density
     }
     private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFFAAAAAA.toInt()
+        color = 0xFFA9B4BE.toInt()
         textSize = 9.5f * density
         textAlign = Paint.Align.CENTER
     }
     private val amplitudeLabelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFFAAAAAA.toInt()
+        color = 0xFFA9B4BE.toInt()
         textSize = 10f * density
         typeface = Typeface.DEFAULT
     }
     private val arrowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFFAAAAAA.toInt()
+        color = 0xFFA9B4BE.toInt()
         strokeWidth = 1.2f * density
         style = Paint.Style.STROKE
     }
@@ -198,14 +198,14 @@ class ReverbVisualizerView @JvmOverloads constructor(
     }
     private val handleStrokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        color = 0xFFDDDDDD.toInt()
+        color = 0xFFDDE3E7.toInt()
         strokeWidth = 2.5f
     }
     // Soft grey halo around the grabbed dot; alpha fades in on ACTION_DOWN and
     // out on ACTION_UP (matches the app's "active" feedback language).
     private val rippleHaloPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
-        color = 0xFFBBBBBB.toInt()
+        color = 0xFFBAC3CB.toInt()
     }
     private var lastGrabbedHandle: Handle? = null
     private var rippleStateChangeMs = 0L
@@ -214,7 +214,7 @@ class ReverbVisualizerView @JvmOverloads constructor(
     // Outline around zones allowing 2-D drag (Early Reflections, Decay).
     private val zoneCardPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        color = 0xFF444444.toInt()
+        color = 0xFF4C5A67.toInt()
         strokeWidth = 1.5f * density
     }
     // Faint fill over the silent regions (Pre-delay, Reverb Delay) so they read
@@ -227,7 +227,7 @@ class ReverbVisualizerView @JvmOverloads constructor(
     // left edge of the Reverb Delay zone (where its range starts).
     private val centerLinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        color = 0xFF666666.toInt()
+        color = 0xFF717E8A.toInt()
         strokeWidth = 1f * density
         pathEffect = android.graphics.DashPathEffect(
             floatArrayOf(4f * density, 4f * density), 0f
@@ -237,7 +237,7 @@ class ReverbVisualizerView @JvmOverloads constructor(
     // roomHFLevelDb so it tracks the HF Level visualisation.
     private val hfCurvePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        color = 0xFF666666.toInt()
+        color = 0xFF717E8A.toInt()
         strokeWidth = 1f * density
         pathEffect = android.graphics.DashPathEffect(
             floatArrayOf(4f * density, 4f * density), 0f
@@ -257,7 +257,7 @@ class ReverbVisualizerView @JvmOverloads constructor(
     private val hfStreamPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         // Dark grey keeps the HF-damped curve distinct from the linear LF stream.
-        color = 0xFF555555.toInt()
+        color = 0xFF5E6C79.toInt()
         strokeWidth = 1.6f * density
         pathEffect = android.graphics.DashPathEffect(
             floatArrayOf(5f * density, 4f * density), 0f
@@ -370,7 +370,7 @@ class ReverbVisualizerView @JvmOverloads constructor(
     private val ghostPath = Path()
 
     private val controlLabelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFFAAAAAA.toInt()
+        color = 0xFFA9B4BE.toInt()
         textSize = 9.5f * density
         textAlign = Paint.Align.CENTER
     }

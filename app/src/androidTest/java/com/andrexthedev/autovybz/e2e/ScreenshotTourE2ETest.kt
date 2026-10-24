@@ -150,6 +150,16 @@ class ScreenshotTourE2ETest : E2eTest() {
         compose.tap("avz:about:donate"); compose.await("avz:donate:close"); shot("donate")
         compose.tap("avz:donate:copy:BTC"); shot("donate_copied")
     }
+
+    @Test fun t08_soundStyles() {
+        compose.quickCalibration()
+        compose.tap("avz:result:saveApply"); compose.await("avz:saved")
+        compose.tap("avz:saved:done")
+        compose.tap("avz:tab:HOME"); compose.await("avz:screen:home"); shot("sound_top")
+        compose.tap("avz:style:ELECTRONIC"); scrollTo("avz:style:ELECTRONIC"); shot("sound_styles")
+        scrollTo("avz:home:curve"); shot("sound_curve")
+        compose.tap("avz:tab:PRO"); compose.await("avz:screen:pro"); shot("studio_top")
+    }
 }
 
 private val AutoVybzPresetStoreNames: List<String>

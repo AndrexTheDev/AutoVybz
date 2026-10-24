@@ -206,7 +206,7 @@
     <string name="imported_quoted">Импортировано \"%1$s\"</string>
     <string name="import_failed">Ошибка импорта: %1$s</string>
     <string name="export_quoted">Экспорт \"%1$s\"</string>
-    <string name="export_format_choices">EqualizerAPO (.txt)\nEqualizer314 (.json)</string>
+    <string name="export_format_choices">EqualizerAPO (.txt)\nAutoVybz (.json)</string>
     <string name="delete">Удалить</string>
     <string name="delete_quoted_confirm">Удалить \"%1$s\"?</string>
     <string name="backup_saved">Резервная копия сохранена</string>

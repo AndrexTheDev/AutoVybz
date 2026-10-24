@@ -27,17 +27,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -52,6 +49,13 @@ import com.andrexthedev.autovybz.measurement.ListeningEnvironment
 import com.andrexthedev.autovybz.measurement.audio.EqBypass
 import com.andrexthedev.autovybz.ui.about.AboutScreen
 import com.andrexthedev.autovybz.ui.components.AutoVybzHeader
+import com.andrexthedev.autovybz.ui.components.VybzIcons
+import com.andrexthedev.autovybz.ui.home.SoundScreen
+import com.andrexthedev.autovybz.ui.intro.IntroGate
+import com.andrexthedev.autovybz.ui.intro.IntroOverlay
+import com.andrexthedev.autovybz.preset.AutoVybzPresetStore
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import com.andrexthedev.autovybz.ui.help.HelpScreen
 import com.andrexthedev.autovybz.ui.pro.ProScreen
 import com.andrexthedev.autovybz.ui.theme.AutoVybzColors
@@ -63,9 +67,9 @@ import com.bearinmind.equalizer314.MainActivity
 import com.bearinmind.equalizer314.R
 
 /**
- * AutoVybz entry point (launcher). New screens are Jetpack Compose; the
- * inherited Equalizer314 screens (10-band PEQ, MBC, limiter, ...) stay classic
- * Views and are opened from the Pro tab.
+ * AutoVybz entry point (launcher). New screens are Jetpack Compose; the engine
+ * screens (parametric EQ, multiband compressor, limiter, ...) stay classic
+ * Views and are opened from the Studio tab.
  */
 class AutoVybzActivity : ComponentActivity() {
 
@@ -81,6 +85,11 @@ class AutoVybzActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         // AutoVybz replaced MainActivity as launcher, so it takes over the "restore EQ on app open" fallback.
         if (savedInstanceState == null) EqBypass.startIfPersistedOn(this)
+        // Cold start: brand intro (silent, skippable). Not after rotation / process restore.
+        val playIntro = savedInstanceState == null && IntroGate.shouldPlay()
+        // First start (no calibration yet) opens the calibration, later starts open the everyday Sound screen.
+        // One small directory listing; done before the first frame so the start tab never flips.
+        val startTab = if (AutoVybzPresetStore.existingNames(this).isEmpty()) Tab.WIZARD else Tab.HOME
         setContent {
             AutoVybzTheme {
                 val state by wizard.state.collectAsState()
@@ -102,7 +111,9 @@ class AutoVybzActivity : ComponentActivity() {
                         screenBrightness = if (sunlight) 1f else WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
                     }
                 }
+                var intro by remember { mutableStateOf(playIntro) }
                 AutoVybzApp(
+                    startTab = startTab,
                     wizardContent = { openHelp ->
                         WizardScreen(
                             vm = wizard,
@@ -112,25 +123,28 @@ class AutoVybzActivity : ComponentActivity() {
                         )
                     },
                 )
+                if (intro) IntroOverlay(onFinished = { intro = false })
             }
         }
     }
 }
 
+/** Test tags stay `avz:tab:<NAME>` (PRO is the Studio tab). */
 private enum class Tab(val label: Int, val icon: ImageVector) {
-    WIZARD(R.string.avz_nav_wizard, Icons.Filled.PlayArrow),
-    PRO(R.string.avz_nav_pro, Icons.Filled.Build),
-    HELP(R.string.avz_nav_help, Icons.Filled.Info),
-    ABOUT(R.string.avz_nav_about, Icons.Filled.Favorite),
+    HOME(R.string.avz_nav_home, VybzIcons.Sound),
+    WIZARD(R.string.avz_nav_wizard, VybzIcons.Calibrate),
+    PRO(R.string.avz_nav_pro, VybzIcons.Studio),
+    HELP(R.string.avz_nav_help, VybzIcons.Help),
+    ABOUT(R.string.avz_nav_about, VybzIcons.Info),
 }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun AutoVybzApp(wizardContent: @Composable (openHelp: () -> Unit) -> Unit) {
-    var tabIndex by rememberSaveable { mutableIntStateOf(Tab.WIZARD.ordinal) }
+private fun AutoVybzApp(startTab: Tab, wizardContent: @Composable (openHelp: () -> Unit) -> Unit) {
+    var tabIndex by rememberSaveable { mutableIntStateOf(startTab.ordinal) }
     val tab = Tab.values()[tabIndex]
-    // System back on Pro / Help / About returns to the wizard instead of closing the app.
-    BackHandler(enabled = tab != Tab.WIZARD) { tabIndex = Tab.WIZARD.ordinal }
+    // System back on the other tabs returns to the start tab instead of closing the app.
+    BackHandler(enabled = tab != startTab) { tabIndex = startTab.ordinal }
     // Landscape phones (and split screen) have little height: header + bottom bar would eat half of it.
     // There the navigation moves to a side rail and the header drops its subtitle.
     val heightDp = LocalConfiguration.current.screenHeightDp
@@ -154,11 +168,11 @@ private fun AutoVybzApp(wizardContent: @Composable (openHelp: () -> Unit) -> Uni
                         onClick = { tabIndex = t.ordinal },
                         modifier = Modifier.testTag("avz:tab:${t.name}"),
                         icon = { Icon(t.icon, contentDescription = null) },
-                        label = { Text(stringResource(t.label)) },
+                        label = { Text(stringResource(t.label), style = navLabel(), maxLines = 1) },
                         colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = AutoVybzColors.Gold,
-                            selectedTextColor = AutoVybzColors.Gold,
-                            indicatorColor = AutoVybzColors.GreenContainer,
+                            selectedIconColor = AutoVybzColors.OnGreen,
+                            selectedTextColor = AutoVybzColors.Green,
+                            indicatorColor = AutoVybzColors.Green,
                             unselectedIconColor = AutoVybzColors.OnDarkMuted,
                             unselectedTextColor = AutoVybzColors.OnDarkMuted,
                         ),
@@ -176,11 +190,11 @@ private fun AutoVybzApp(wizardContent: @Composable (openHelp: () -> Unit) -> Uni
                         onClick = { tabIndex = t.ordinal },
                         modifier = Modifier.testTag("avz:tab:${t.name}"),
                         icon = { Icon(t.icon, contentDescription = null) },
-                        label = { Text(stringResource(t.label)) },
+                        label = { Text(stringResource(t.label), style = navLabel(), maxLines = 1) },
                         colors = NavigationRailItemDefaults.colors(
-                            selectedIconColor = AutoVybzColors.Gold,
-                            selectedTextColor = AutoVybzColors.Gold,
-                            indicatorColor = AutoVybzColors.GreenContainer,
+                            selectedIconColor = AutoVybzColors.OnGreen,
+                            selectedTextColor = AutoVybzColors.Green,
+                            indicatorColor = AutoVybzColors.Green,
                             unselectedIconColor = AutoVybzColors.OnDarkMuted,
                             unselectedTextColor = AutoVybzColors.OnDarkMuted,
                         ),
@@ -190,6 +204,7 @@ private fun AutoVybzApp(wizardContent: @Composable (openHelp: () -> Unit) -> Uni
             Box(Modifier.weight(1f).fillMaxSize()) {
                 Column(Modifier.fillMaxSize()) {
                     when (tab) {
+                        Tab.HOME -> SoundScreen(onCalibrate = { tabIndex = Tab.WIZARD.ordinal })
                         Tab.WIZARD -> wizardContent { tabIndex = Tab.HELP.ordinal }
                         Tab.PRO -> ProScreen()
                         Tab.HELP -> HelpScreen()
@@ -200,3 +215,10 @@ private fun AutoVybzApp(wizardContent: @Composable (openHelp: () -> Unit) -> Uni
         }
     }
 }
+
+/**
+ * Tab labels: 11 sp without extra tracking - five tabs on a 360 dp phone leave 72 dp each, and "Einmessen" must fit
+ * there at 130 % font size (67 dp measured with Outfit Medium; with the default label style it needed 78 dp).
+ */
+@Composable
+private fun navLabel() = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, letterSpacing = 0.sp)

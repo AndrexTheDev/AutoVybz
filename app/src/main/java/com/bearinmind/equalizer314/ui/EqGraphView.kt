@@ -98,14 +98,14 @@ class EqGraphView @JvmOverloads constructor(
     // RANGE FEATURE COMMENTED OUT — parked code (in git history).
 
     private val mbcCrossoverLinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xAABBBBBB.toInt()
+        color = 0xAABAC3CB.toInt()
         strokeWidth = 2f
         style = Paint.Style.STROKE
         pathEffect = DashPathEffect(floatArrayOf(8f, 6f), 0f)
     }
 
     private val mbcCurvePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFFDDDDDD.toInt()
+        color = 0xFFDDE3E7.toInt()
         strokeWidth = 2.5f
         style = Paint.Style.STROKE
     }
@@ -121,7 +121,7 @@ class EqGraphView @JvmOverloads constructor(
     }
 
     private val mbcDotRingPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFFAAAAAA.toInt()
+        color = 0xFFA9B4BE.toInt()
         strokeWidth = 2f
         style = Paint.Style.STROKE
     }
@@ -129,19 +129,19 @@ class EqGraphView @JvmOverloads constructor(
     // RANGE FEATURE COMMENTED OUT — range paint objects (in git history).
 
     private val mbcTriTouchPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0x14AAAAAA.toInt()  // colorPrimary (#AAAAAA) at 8% alpha — exact Material3 Slider halo
+        color = 0x14A9B4BE.toInt()  // colorPrimary (#AAAAAA) at 8% alpha — exact Material3 Slider halo
         style = Paint.Style.FILL
     }
 
     // Graphic mode paints
     private val graphicBarPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0x88AAAAAA.toInt()
+        color = 0x88A9B4BE.toInt()
         strokeWidth = 3f
         style = Paint.Style.STROKE
     }
 
     private val graphicConnectLinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFFCCCCCC.toInt()
+        color = 0xFFCCD3DA.toInt()
         strokeWidth = 2f
         style = Paint.Style.STROKE
     }
@@ -165,7 +165,7 @@ class EqGraphView @JvmOverloads constructor(
 
     // Paint objects
     private val gridPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFF333333.toInt()
+        color = 0xFF3D4955.toInt()
         strokeWidth = 1f
         style = Paint.Style.STROKE
     }
@@ -173,41 +173,41 @@ class EqGraphView @JvmOverloads constructor(
 
 
     private val curvePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFFAAAAAA.toInt()  // grey curve
+        color = 0xFFA9B4BE.toInt()  // grey curve
         strokeWidth = 3f
         style = Paint.Style.STROKE
     }
 
     private val pointBgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFF1E1E1E.toInt()  // matches graph background to mask grid lines
+        color = 0xFF2D3742.toInt()  // matches graph background to mask grid lines
         style = Paint.Style.FILL
     }
 
     private val pointRingPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFFAAAAAA.toInt()  // grey ring
+        color = 0xFFA9B4BE.toInt()  // grey ring
         strokeWidth = 2f
         style = Paint.Style.STROKE
     }
 
     private val activePointRingPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFFCCCCCC.toInt()  // lighter grey when active
+        color = 0xFFCCD3DA.toInt()  // lighter grey when active
         strokeWidth = 3f
         style = Paint.Style.STROKE
     }
 
     private val activePointFillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFFBBBBBB.toInt()  // grey fill when active
+        color = 0xFFBAC3CB.toInt()  // grey fill when active
         style = Paint.Style.FILL
     }
 
     private val disabledPointPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFF555555.toInt()  // dim grey for disabled bands
+        color = 0xFF5E6C79.toInt()  // dim grey for disabled bands
         strokeWidth = 2f
         style = Paint.Style.STROKE
     }
 
     private val disabledPointNumberPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFF777777.toInt()
+        color = 0xFF828F9A.toInt()
         textSize = 14f
         textAlign = Paint.Align.CENTER
         typeface = Typeface.DEFAULT_BOLD
@@ -228,7 +228,7 @@ class EqGraphView @JvmOverloads constructor(
     }
 
     private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFF888888.toInt()
+        color = 0xFF8E9AA5.toInt()
         textSize = 24f
     }
 
@@ -245,7 +245,7 @@ class EqGraphView @JvmOverloads constructor(
     }
 
     private val spectrumLinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFF888888.toInt()
+        color = 0xFF8E9AA5.toInt()
         strokeWidth = 2f
         style = Paint.Style.STROKE
     }
@@ -482,7 +482,7 @@ class EqGraphView @JvmOverloads constructor(
 
     private fun drawGridLabels(canvas: Canvas, vPad: Float, graphWidth: Float, graphHeight: Float) {
         val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = 0xFF888888.toInt()
+            color = 0xFF8E9AA5.toInt()
             textSize = 24f
         }
 
@@ -661,7 +661,7 @@ class EqGraphView @JvmOverloads constructor(
 
             val gradient = LinearGradient(
                 0f, vPad, 0f, bottomY,
-                intArrayOf(0x80888888.toInt(), 0x40444444.toInt()),
+                intArrayOf(0x808E9AA5.toInt(), 0x404C5A67.toInt()),
                 null,
                 Shader.TileMode.CLAMP
             )
@@ -811,7 +811,7 @@ class EqGraphView @JvmOverloads constructor(
                     else bandPath.lineTo(x, yB)
                 }
                 if (!started || maxAbsDb < 0.1f) continue
-                val baseColor = getBandColor(b) ?: 0xFF888888.toInt()
+                val baseColor = getBandColor(b) ?: 0xFF8E9AA5.toInt()
                 val fillPath = Path(bandPath).apply {
                     lineTo(graphWidth, zeroY)
                     lineTo(0f, zeroY)
@@ -830,7 +830,7 @@ class EqGraphView @JvmOverloads constructor(
             }
             // Re-draw the 0 dB reference over the band fills, slightly brighter than the grid.
             canvas.drawLine(0f, zeroY, graphWidth, zeroY, Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = if (isLightTheme()) 0xFFADADAD.toInt() else 0xFF555555.toInt()
+                color = if (isLightTheme()) 0xFFACB7C0.toInt() else 0xFF5E6C79.toInt()
                 strokeWidth = 1f * density
                 style = Paint.Style.STROKE
             })
@@ -846,7 +846,7 @@ class EqGraphView @JvmOverloads constructor(
             val fillPaint = if (showGainHeat) heatPaint(curvePaint, vPad, graphHeight).apply {
                 style = Paint.Style.FILL; alpha = 64
             } else Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = 0x30AAAAAA.toInt()  // translucent grey fill
+                color = 0x30A9B4BE.toInt()  // translucent grey fill
                 style = Paint.Style.FILL
             }
             canvas.drawPath(fillPath, fillPaint)
@@ -904,7 +904,7 @@ class EqGraphView @JvmOverloads constructor(
     }
 
     private val coloredNumberPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFF222222.toInt()
+        color = 0xFF313C47.toInt()
         textSize = 14f
         textAlign = Paint.Align.CENTER
         typeface = Typeface.DEFAULT_BOLD
@@ -1012,7 +1012,7 @@ class EqGraphView @JvmOverloads constructor(
             // Ripple glow when dragging this crossover (full height of graph)
             if (i == draggingCrossover) {
                 val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                    color = if (isLightTheme()) 0xFF474747.toInt() else 0xFFBBBBBB.toInt()
+                    color = if (isLightTheme()) 0xFF4F5D6A.toInt() else 0xFFBAC3CB.toInt()
                     alpha = 40; style = Paint.Style.FILL
                 }
                 val glowPad = 24f
@@ -1095,7 +1095,7 @@ class EqGraphView @JvmOverloads constructor(
         if (readOnlyPoints) {
             val smallRadius = 6f
             val dotPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = if (isLightTheme()) 0xFF363636.toInt() else 0xFFCCCCCC.toInt()
+                color = if (isLightTheme()) 0xFF3F4C58.toInt() else 0xFFCCD3DA.toInt()
                 style = Paint.Style.FILL
             }
             for (point in bandPoints) {
@@ -1150,15 +1150,15 @@ class EqGraphView @JvmOverloads constructor(
 
 
     private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFFAAAAAA.toInt()
+        color = 0xFFA9B4BE.toInt()
         textSize = 20f
     }
     private val labelBgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFF1C1C1C.toInt()
+        color = 0xFF2B353F.toInt()
         style = Paint.Style.FILL
     }
     private val labelStrokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFF444444.toInt()
+        color = 0xFF4C5A67.toInt()
         style = Paint.Style.STROKE
         strokeWidth = 2f
     }
@@ -1167,35 +1167,35 @@ class EqGraphView @JvmOverloads constructor(
     init {
         if (isLightTheme()) {
             // Each grey keeps the same luminance distance from the light bg as its dark counterpart.
-            gridPaint.color = 0xFFCFCFCF.toInt()              // dark #333333
-            curvePaint.color = 0xFF585858.toInt()             // dark #AAAAAA
-            pointBgPaint.color = 0xFFE4E4E4.toInt()           // graph bg
-            pointRingPaint.color = 0xFF585858.toInt()         // dark #AAAAAA
-            activePointRingPaint.color = 0xFF363636.toInt()   // dark #CCCCCC
-            activePointFillPaint.color = 0xFF474747.toInt()   // dark #BBBBBB
+            gridPaint.color = 0xFFCFD6DC.toInt()              // dark #333333
+            curvePaint.color = 0xFF616F7C.toInt()             // dark #AAAAAA
+            pointBgPaint.color = 0xFFE5EAED.toInt()           // graph bg
+            pointRingPaint.color = 0xFF616F7C.toInt()         // dark #AAAAAA
+            activePointRingPaint.color = 0xFF3F4C58.toInt()   // dark #CCCCCC
+            activePointFillPaint.color = 0xFF4F5D6A.toInt()   // dark #BBBBBB
             activePointNumberPaint.color = 0xFFFFFFFF.toInt() // dark used black on light fill
-            disabledPointPaint.color = 0xFFADADAD.toInt()     // dark #555555
-            disabledPointNumberPaint.color = 0xFF8B8B8B.toInt() // dark #777777
-            pointNumberPaint.color = 0xFF111111.toInt()       // dark #FFFFFF
-            textPaint.color = 0xFF7A7A7A.toInt()              // dark #888888
-            titleTextPaint.color = 0xFF111111.toInt()         // dark #FFFFFF
-            spectrumLinePaint.color = 0xFF7A7A7A.toInt()      // dark #888888
-            mbcCurvePaint.color = 0xFF252525.toInt()          // dark #DDDDDD
+            disabledPointPaint.color = 0xFFACB7C0.toInt()     // dark #555555
+            disabledPointNumberPaint.color = 0xFF909CA7.toInt() // dark #777777
+            pointNumberPaint.color = 0xFF1D252B.toInt()       // dark #FFFFFF
+            textPaint.color = 0xFF84919C.toInt()              // dark #888888
+            titleTextPaint.color = 0xFF1D252B.toInt()         // dark #FFFFFF
+            spectrumLinePaint.color = 0xFF84919C.toInt()      // dark #888888
+            mbcCurvePaint.color = 0xFF333E49.toInt()          // dark #DDDDDD
             mbcFillPaint.color = 0x18000000                   // dark 0x18FFFFFF
-            mbcDotPaint.color = 0xFF111111.toInt()            // dark #FFFFFF
-            mbcDotRingPaint.color = 0xFF585858.toInt()        // dark #AAAAAA
-            mbcCrossoverLinePaint.color = 0xAA474747.toInt()  // dark 0xAABBBBBB
-            mbcTriTouchPaint.color = 0x14585858               // dark 0x14AAAAAA
-            graphicBarPaint.color = 0x88585858.toInt()        // dark 0x88AAAAAA
-            graphicConnectLinePaint.color = 0xFF363636.toInt() // dark #CCCCCC
-            labelPaint.color = 0xFF585858.toInt()             // dark #AAAAAA
-            labelBgPaint.color = 0xFFE6E6E6.toInt()           // dark #1C1C1C (container)
-            labelStrokePaint.color = 0xFFBEBEBE.toInt()       // dark #444444
+            mbcDotPaint.color = 0xFF1D252B.toInt()            // dark #FFFFFF
+            mbcDotRingPaint.color = 0xFF616F7C.toInt()        // dark #AAAAAA
+            mbcCrossoverLinePaint.color = 0xAA4F5D6A.toInt()  // dark 0xAABAC3CB
+            mbcTriTouchPaint.color = 0x14616F7C               // dark 0x14A9B4BE
+            graphicBarPaint.color = 0x88616F7C.toInt()        // dark 0x88A9B4BE
+            graphicConnectLinePaint.color = 0xFF3F4C58.toInt() // dark #CCCCCC
+            labelPaint.color = 0xFF616F7C.toInt()             // dark #AAAAAA
+            labelBgPaint.color = 0xFFE7EBEF.toInt()           // dark #1C1C1C (container)
+            labelStrokePaint.color = 0xFFBDC6CE.toInt()       // dark #444444
         }
     }
 
     // Surfaces come from the theme (bg = colorSurfaceVariant, label = colorSurfaceContainer) so the AMOLED overlay carries through.
-    private var graphBgColor = 0xFF1E1E1E.toInt()
+    private var graphBgColor = 0xFF2D3742.toInt()
     init {
         graphBgColor = com.google.android.material.color.MaterialColors.getColor(
             this, com.google.android.material.R.attr.colorSurfaceVariant, pointBgPaint.color)

@@ -289,7 +289,7 @@ class ExperimentalActivity : AppCompatActivity() {
         val density = resources.displayMetrics.density
         return android.widget.TextView(this).apply {
             this.text = text
-            setTextColor(0xFFE2E2E2.toInt())
+            setTextColor(0xFFE3E8EB.toInt())
             textSize = 20f
             setPadding(0, 0, 0, (12 * density).toInt())
         }
@@ -302,7 +302,7 @@ class ExperimentalActivity : AppCompatActivity() {
                 android.widget.LinearLayout.LayoutParams.MATCH_PARENT, (1 * density).toInt()).apply {
                 bottomMargin = (12 * density).toInt()
             }
-            setBackgroundColor(0xFF444444.toInt())
+            setBackgroundColor(0xFF4C5A67.toInt())
         }
     }
 
@@ -313,8 +313,8 @@ class ExperimentalActivity : AppCompatActivity() {
         ).apply {
             text = label
             cornerRadius = (12 * density).toInt()
-            setTextColor(if (isCancel) 0xFFEF9A9A.toInt() else 0xFFDDDDDD.toInt())
-            strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt())
+            setTextColor(if (isCancel) 0xFFEF9A9A.toInt() else 0xFFDDE3E7.toInt())
+            strokeColor = android.content.res.ColorStateList.valueOf(0xFF4C5A67.toInt())
             strokeWidth = (1 * density).toInt()
             setBackgroundColor(0x00000000)
             insetTop = 0; insetBottom = 0
@@ -339,7 +339,7 @@ class ExperimentalActivity : AppCompatActivity() {
         })
         root.addView(android.widget.TextView(this).apply {
             text = getString(R.string.enter_pin_on_remote_device)
-            setTextColor(0xFF888888.toInt())
+            setTextColor(0xFF8E9AA5.toInt())
             textSize = 13f
             gravity = android.view.Gravity.CENTER
             setPadding(0, 0, 0, (16 * density).toInt())
@@ -379,7 +379,7 @@ class ExperimentalActivity : AppCompatActivity() {
         }
         val placeholder = android.widget.TextView(this).apply {
             text = getString(R.string.searching)
-            setTextColor(0xFF888888.toInt())
+            setTextColor(0xFF8E9AA5.toInt())
             textSize = 13f
             gravity = android.view.Gravity.CENTER
             setPadding(0, (8 * density).toInt(), 0, (16 * density).toInt())
@@ -480,14 +480,14 @@ class ExperimentalActivity : AppCompatActivity() {
             }
             background = android.graphics.drawable.GradientDrawable().apply {
                 setColor(0x00000000)
-                setStroke((1 * density).toInt(), 0xFF555555.toInt())
+                setStroke((1 * density).toInt(), 0xFF5E6C79.toInt())
                 cornerRadius = 12 * density
             }
         }
         val input = android.widget.EditText(this).apply {
             hint = getString(R.string.pin_shown_on_device)
             setTextColor(0xFFFFFFFF.toInt())
-            setHintTextColor(0xFF888888.toInt())
+            setHintTextColor(0xFF8E9AA5.toInt())
             inputType = android.text.InputType.TYPE_CLASS_NUMBER
             background = null
             val pad = (14 * density).toInt()
@@ -689,7 +689,7 @@ class ExperimentalActivity : AppCompatActivity() {
                 val start = label.length
                 label.append("\n").append(info)
                 label.setSpan(android.text.style.RelativeSizeSpan(0.8f), start, label.length, 0)
-                label.setSpan(android.text.style.ForegroundColorSpan(0xFF888888.toInt()), start, label.length, 0)
+                label.setSpan(android.text.style.ForegroundColorSpan(0xFF8E9AA5.toInt()), start, label.length, 0)
             }
             row.addView(styledDialogButton("", isCancel = false).apply {
                 text = label

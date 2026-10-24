@@ -31,26 +31,26 @@ class DiffusionDensityColumnsView @JvmOverloads constructor(
 
     var onChanged: ((Float, Float) -> Unit)? = null
 
-    private val columnBgPaint = Paint().apply { color = 0xCC2A2A2A.toInt() }
-    private val fillPaint = Paint().apply { color = 0xFFBBBBBB.toInt() }
+    private val columnBgPaint = Paint().apply { color = 0xCC35414C.toInt() }
+    private val fillPaint = Paint().apply { color = 0xFFBAC3CB.toInt() }
     private val gridPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFF3A3A3A.toInt(); strokeWidth = 1f
+        color = 0xFF43505C.toInt(); strokeWidth = 1f
     }
     private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFF888888.toInt(); textSize = 16f; textAlign = Paint.Align.CENTER
+        color = 0xFF8E9AA5.toInt(); textSize = 16f; textAlign = Paint.Align.CENTER
     }
     private val titlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFFAAAAAA.toInt(); textSize = 22f; textAlign = Paint.Align.CENTER
+        color = 0xFFA9B4BE.toInt(); textSize = 22f; textAlign = Paint.Align.CENTER
     }
     private val valuePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFFDDDDDD.toInt(); textSize = 24f; textAlign = Paint.Align.CENTER
+        color = 0xFFDDE3E7.toInt(); textSize = 24f; textAlign = Paint.Align.CENTER
         typeface = Typeface.DEFAULT_BOLD
     }
     private val haloPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = 0x30FFFFFF.toInt(); style = Paint.Style.FILL
     }
     private val handleLinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFFBBBBBB.toInt(); strokeWidth = 2f
+        color = 0xFFBAC3CB.toInt(); strokeWidth = 2f
     }
 
     private val topPad = 50f

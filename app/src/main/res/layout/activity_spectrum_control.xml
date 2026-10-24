@@ -86,7 +86,7 @@
                         app:iconPadding="0dp"
                         app:iconTint="@null"
                         app:shapeAppearanceOverlay="@style/ShapeAppearance.SpectrumButton"
-                        app:strokeColor="#FF444444"
+                        app:strokeColor="#FF4C5A67"
                         app:strokeWidth="1dp"
                         android:contentDescription="@string/toggle_visualizer" />
                 </FrameLayout>

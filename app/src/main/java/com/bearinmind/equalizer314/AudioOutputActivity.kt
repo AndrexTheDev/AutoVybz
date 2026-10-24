@@ -404,19 +404,19 @@ class AudioOutputActivity : AppCompatActivity() {
         }
         dialogView.addView(TextView(this).apply {
             text = getString(R.string.remove_device)
-            setTextColor(0xFFE2E2E2.toInt()); textSize = 20f
+            setTextColor(0xFFE3E8EB.toInt()); textSize = 20f
             setPadding(0, 0, 0, (12 * density).toInt())
         })
         dialogView.addView(TextView(this).apply {
             text = getString(R.string.remove_device_confirm, label)
-            setTextColor(0xFFAAAAAA.toInt()); textSize = 14f
+            setTextColor(0xFFA9B4BE.toInt()); textSize = 14f
             setPadding(0, 0, 0, (16 * density).toInt())
         })
         dialogView.addView(View(this).apply {
             layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, (1 * density).toInt()).apply {
                 bottomMargin = (12 * density).toInt()
             }
-            setBackgroundColor(0xFF444444.toInt())
+            setBackgroundColor(0xFF4C5A67.toInt())
         })
         val btnRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -429,12 +429,12 @@ class AudioOutputActivity : AppCompatActivity() {
                     if (endMargin) marginEnd = (3 * density).toInt() else marginStart = (3 * density).toInt()
                 }
                 cornerRadius = (12 * density).toInt(); setTextColor(color)
-                strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt())
+                strokeColor = android.content.res.ColorStateList.valueOf(0xFF4C5A67.toInt())
                 strokeWidth = (1 * density).toInt()
                 setBackgroundColor(0x00000000); insetTop = 0; insetBottom = 0
             }
         val removeBtn = dlgBtn(getString(R.string.remove), 0xFFEF9A9A.toInt(), endMargin = true)
-        val cancelBtn = dlgBtn(getString(R.string.cancel), 0xFFDDDDDD.toInt(), endMargin = false)
+        val cancelBtn = dlgBtn(getString(R.string.cancel), 0xFFDDE3E7.toInt(), endMargin = false)
         btnRow.addView(removeBtn); btnRow.addView(cancelBtn)
         dialogView.addView(btnRow)
         val dialog = android.app.AlertDialog.Builder(this, R.style.Theme_Equalizer314_Dialog)

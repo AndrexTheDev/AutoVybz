@@ -41,21 +41,21 @@ class LimiterWaveformView @JvmOverloads constructor(
     private val grLinePath = Path()
     private val grFillPath = Path()
 
-    private val bgPaint = Paint().apply { color = 0xFF1A1A1A.toInt() }
+    private val bgPaint = Paint().apply { color = 0xFF28323D.toInt() }
     private val gridPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFF2A2A2A.toInt(); strokeWidth = 1f
+        color = 0xFF35414C.toInt(); strokeWidth = 1f
     }
     private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFF888888.toInt(); textSize = 24f
+        color = 0xFF8E9AA5.toInt(); textSize = 24f
     }
     private val ceilingLinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = 0xAAFF6666.toInt(); strokeWidth = 1.5f; style = Paint.Style.STROKE
         pathEffect = DashPathEffect(floatArrayOf(8f, 5f), 0f)
     }
     private val ceilingTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFFAAAAAA.toInt(); textSize = 20f; textAlign = Paint.Align.CENTER
+        color = 0xFFA9B4BE.toInt(); textSize = 20f; textAlign = Paint.Align.CENTER
     }
-    private val levelColor = 0xFFBBBBBB.toInt()
+    private val levelColor = 0xFFBAC3CB.toInt()
     private val inputFillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = levelColor; style = Paint.Style.FILL; alpha = 15
     }
@@ -69,10 +69,10 @@ class LimiterWaveformView @JvmOverloads constructor(
         color = 0xFFE57373.toInt(); style = Paint.Style.FILL; alpha = 25
     }
     private val lufsLinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFF666666.toInt(); strokeWidth = 1.5f; style = Paint.Style.STROKE
+        color = 0xFF717E8A.toInt(); strokeWidth = 1.5f; style = Paint.Style.STROKE
     }
     private val lufsFillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFF666666.toInt(); style = Paint.Style.FILL; alpha = 15
+        color = 0xFF717E8A.toInt(); style = Paint.Style.FILL; alpha = 15
     }
 
     // Light-theme overrides: keep colored accents (red ceiling/GR read on both), flip dark backdrop and light-grey traces for a light card.
@@ -82,14 +82,14 @@ class LimiterWaveformView @JvmOverloads constructor(
             android.content.res.Configuration.UI_MODE_NIGHT_MASK) !=
             android.content.res.Configuration.UI_MODE_NIGHT_YES
         if (isLight) {
-            bgPaint.color = 0xFFE6E6E6.toInt()
-            gridPaint.color = 0xFFCFCFCF.toInt()
-            labelPaint.color = 0xFF6A6A6A.toInt()
-            ceilingTextPaint.color = 0xFF585858.toInt()
-            inputFillPaint.color = 0xFF585858.toInt(); inputFillPaint.alpha = 30
-            inputStrokePaint.color = 0xFF585858.toInt(); inputStrokePaint.alpha = 70
-            lufsLinePaint.color = 0xFF8A8A8A.toInt()
-            lufsFillPaint.color = 0xFF8A8A8A.toInt(); lufsFillPaint.alpha = 25
+            bgPaint.color = 0xFFE7EBEF.toInt()
+            gridPaint.color = 0xFFCFD6DC.toInt()
+            labelPaint.color = 0xFF75828E.toInt()
+            ceilingTextPaint.color = 0xFF616F7C.toInt()
+            inputFillPaint.color = 0xFF616F7C.toInt(); inputFillPaint.alpha = 30
+            inputStrokePaint.color = 0xFF616F7C.toInt(); inputStrokePaint.alpha = 70
+            lufsLinePaint.color = 0xFF909CA6.toInt()
+            lufsFillPaint.color = 0xFF909CA6.toInt(); lufsFillPaint.alpha = 25
         }
     }
 

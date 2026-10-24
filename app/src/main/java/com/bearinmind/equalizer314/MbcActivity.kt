@@ -120,9 +120,9 @@ class MbcActivity : AppCompatActivity() {
 
     private fun updateNavIconTint(icon: android.widget.ImageButton, enabled: Boolean) {
         val tint = if (enabled)
-            com.google.android.material.color.MaterialColors.getColor(icon, com.google.android.material.R.attr.colorPrimary, 0xFFBB86FC.toInt())
+            com.google.android.material.color.MaterialColors.getColor(icon, com.google.android.material.R.attr.colorPrimary, 0xFF5CF28C.toInt())
         else
-            0xFF555555.toInt()
+            0xFF5E6C79.toInt()
         icon.imageTintList = android.content.res.ColorStateList.valueOf(tint)
     }
     private var isAnimating = false
@@ -257,23 +257,23 @@ class MbcActivity : AppCompatActivity() {
         }
         fun updateGraphToggleStyle(freqActive: Boolean) {
             if (freqActive) {
-                freqBtn.alpha = 1f; freqBtn.setBackgroundColor(0xFF555555.toInt())
-                freqBtn.strokeColor = android.content.res.ColorStateList.valueOf(0xFF888888.toInt())
+                freqBtn.alpha = 1f; freqBtn.setBackgroundColor(0xFF5E6C79.toInt())
+                freqBtn.strokeColor = android.content.res.ColorStateList.valueOf(0xFF8E9AA5.toInt())
                 freqBtn.strokeWidth = (2 * density).toInt()
-                freqBtn.iconTint = android.content.res.ColorStateList.valueOf(0xFFDDDDDD.toInt())
+                freqBtn.iconTint = android.content.res.ColorStateList.valueOf(0xFFDDE3E7.toInt())
                 timeBtn.alpha = 1f; timeBtn.setBackgroundColor(0x00000000)
-                timeBtn.strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt())
+                timeBtn.strokeColor = android.content.res.ColorStateList.valueOf(0xFF4C5A67.toInt())
                 timeBtn.strokeWidth = (1 * density).toInt()
-                timeBtn.iconTint = android.content.res.ColorStateList.valueOf(0xFF888888.toInt())
+                timeBtn.iconTint = android.content.res.ColorStateList.valueOf(0xFF8E9AA5.toInt())
             } else {
                 freqBtn.alpha = 1f; freqBtn.setBackgroundColor(0x00000000)
-                freqBtn.strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt())
+                freqBtn.strokeColor = android.content.res.ColorStateList.valueOf(0xFF4C5A67.toInt())
                 freqBtn.strokeWidth = (1 * density).toInt()
-                freqBtn.iconTint = android.content.res.ColorStateList.valueOf(0xFF888888.toInt())
-                timeBtn.alpha = 1f; timeBtn.setBackgroundColor(0xFF555555.toInt())
-                timeBtn.strokeColor = android.content.res.ColorStateList.valueOf(0xFF888888.toInt())
+                freqBtn.iconTint = android.content.res.ColorStateList.valueOf(0xFF8E9AA5.toInt())
+                timeBtn.alpha = 1f; timeBtn.setBackgroundColor(0xFF5E6C79.toInt())
+                timeBtn.strokeColor = android.content.res.ColorStateList.valueOf(0xFF8E9AA5.toInt())
                 timeBtn.strokeWidth = (2 * density).toInt()
-                timeBtn.iconTint = android.content.res.ColorStateList.valueOf(0xFFDDDDDD.toInt())
+                timeBtn.iconTint = android.content.res.ColorStateList.valueOf(0xFFDDE3E7.toInt())
             }
         }
         updateGraphToggleStyle(true) // freq active by default
@@ -455,16 +455,16 @@ class MbcActivity : AppCompatActivity() {
         fun updateVizStyle(active: Boolean) {
             if (active) {
                 vizToggle.alpha = 1.0f
-                vizToggle.setBackgroundColor(0xFF555555.toInt())
-                vizToggle.strokeColor = android.content.res.ColorStateList.valueOf(0xFF888888.toInt())
+                vizToggle.setBackgroundColor(0xFF5E6C79.toInt())
+                vizToggle.strokeColor = android.content.res.ColorStateList.valueOf(0xFF8E9AA5.toInt())
                 vizToggle.strokeWidth = (2 * density).toInt()
-                vizToggle.iconTint = android.content.res.ColorStateList.valueOf(0xFFDDDDDD.toInt())
+                vizToggle.iconTint = android.content.res.ColorStateList.valueOf(0xFFDDE3E7.toInt())
             } else {
                 vizToggle.alpha = 1.0f
                 vizToggle.setBackgroundColor(0x00000000)
-                vizToggle.strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt())
+                vizToggle.strokeColor = android.content.res.ColorStateList.valueOf(0xFF4C5A67.toInt())
                 vizToggle.strokeWidth = (1 * density).toInt()
-                vizToggle.iconTint = android.content.res.ColorStateList.valueOf(0xFF888888.toInt())
+                vizToggle.iconTint = android.content.res.ColorStateList.valueOf(0xFF8E9AA5.toInt())
             }
         }
 
@@ -476,13 +476,13 @@ class MbcActivity : AppCompatActivity() {
             }
             val titleTv = android.widget.TextView(this).apply {
                 text = getString(R.string.reset)
-                setTextColor(0xFFE2E2E2.toInt())
+                setTextColor(0xFFE3E8EB.toInt())
                 textSize = 20f
                 setPadding(0, 0, 0, (12 * density).toInt())
             }
             val messageTv = android.widget.TextView(this).apply {
                 text = getString(R.string.reset_screen_confirm)
-                setTextColor(0xFFAAAAAA.toInt())
+                setTextColor(0xFFA9B4BE.toInt())
                 textSize = 14f
                 setPadding(0, 0, 0, (16 * density).toInt())
             }
@@ -491,7 +491,7 @@ class MbcActivity : AppCompatActivity() {
                     android.widget.LinearLayout.LayoutParams.MATCH_PARENT, (1 * density).toInt()).apply {
                     bottomMargin = (12 * density).toInt()
                 }
-                setBackgroundColor(0xFF444444.toInt())
+                setBackgroundColor(0xFF4C5A67.toInt())
             }
             val btnRow = android.widget.LinearLayout(this).apply {
                 orientation = android.widget.LinearLayout.HORIZONTAL
@@ -506,7 +506,7 @@ class MbcActivity : AppCompatActivity() {
                 }
                 cornerRadius = (12 * density).toInt()
                 setTextColor(0xFFEF9A9A.toInt())
-                strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt())
+                strokeColor = android.content.res.ColorStateList.valueOf(0xFF4C5A67.toInt())
                 strokeWidth = (1 * density).toInt()
                 setBackgroundColor(0x00000000)
                 insetTop = 0; insetBottom = 0
@@ -517,9 +517,9 @@ class MbcActivity : AppCompatActivity() {
                     marginStart = (3 * density).toInt()
                 }
                 cornerRadius = (12 * density).toInt()
-                setTextColor(0xFFDDDDDD.toInt())
+                setTextColor(0xFFDDE3E7.toInt())
                 setBackgroundColor(0x00000000)
-                strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt())
+                strokeColor = android.content.res.ColorStateList.valueOf(0xFF4C5A67.toInt())
                 strokeWidth = (1 * density).toInt()
                 insetTop = 0; insetBottom = 0
             }
@@ -599,10 +599,10 @@ class MbcActivity : AppCompatActivity() {
             val vizToggle = findViewById<com.google.android.material.button.MaterialButton>(R.id.mbcVisualizerToggle)
             val d = resources.displayMetrics.density
             vizToggle.alpha = 1.0f
-            vizToggle.setBackgroundColor(0xFF555555.toInt())
-            vizToggle.strokeColor = android.content.res.ColorStateList.valueOf(0xFF888888.toInt())
+            vizToggle.setBackgroundColor(0xFF5E6C79.toInt())
+            vizToggle.strokeColor = android.content.res.ColorStateList.valueOf(0xFF8E9AA5.toInt())
             vizToggle.strokeWidth = (2 * d).toInt()
-            vizToggle.iconTint = android.content.res.ColorStateList.valueOf(0xFFDDDDDD.toInt())
+            vizToggle.iconTint = android.content.res.ColorStateList.valueOf(0xFFDDE3E7.toInt())
         }
     }
 
@@ -669,7 +669,7 @@ class MbcActivity : AppCompatActivity() {
         // val triBitmap = android.graphics.Bitmap.createBitmap(triWidth, triSize, android.graphics.Bitmap.Config.ARGB_8888)
         // val triCanvas = android.graphics.Canvas(triBitmap)
         // val triPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
-        //     color = 0xFF333333.toInt()
+        //     color = 0xFF3D4955.toInt()
         //     style = android.graphics.Paint.Style.FILL
         // }
         // val triPath = android.graphics.Path().apply {
@@ -831,7 +831,7 @@ class MbcActivity : AppCompatActivity() {
             insetTop = 0; insetBottom = 0
             minWidth = 0; minimumWidth = 0
             gravity = Gravity.CENTER
-            rippleColor = ColorStateList.valueOf(0x33AAAAAA)
+            rippleColor = ColorStateList.valueOf(0x33A9B4BE)
             setOnClickListener { selectBand(index) }
             setOnLongClickListener {
                 if (bandCount > MIN_BAND_COUNT) removeBand(index)
@@ -854,8 +854,8 @@ class MbcActivity : AppCompatActivity() {
             minWidth = 0; minimumWidth = 0
             gravity = Gravity.CENTER
             setBackgroundColor(0x00000000)
-            setTextColor(0xFF888888.toInt())
-            strokeColor = ColorStateList.valueOf(0xFF444444.toInt())
+            setTextColor(0xFF8E9AA5.toInt())
+            strokeColor = ColorStateList.valueOf(0xFF4C5A67.toInt())
             strokeWidth = (1 * resources.displayMetrics.density).toInt()
             setOnClickListener { addBand() }
         }
@@ -891,8 +891,8 @@ class MbcActivity : AppCompatActivity() {
                 btn.strokeColor = ColorStateList.valueOf(0xFFFFFFFF.toInt())
             } else {
                 btn.setBackgroundColor(0x00000000)
-                btn.setTextColor(0xFFBBBBBB.toInt())
-                btn.strokeColor = ColorStateList.valueOf(0xFF444444.toInt())
+                btn.setTextColor(0xFFBAC3CB.toInt())
+                btn.strokeColor = ColorStateList.valueOf(0xFF4C5A67.toInt())
             }
         }
     }
@@ -1680,15 +1680,15 @@ class MbcActivity : AppCompatActivity() {
     private fun updateMbcColorBox() {
         val density = resources.displayMetrics.density
         val color = mbcBandColors[selectedBand]
-        val boxColor = color ?: 0xFF333333.toInt()
+        val boxColor = color ?: 0xFF3D4955.toInt()
         bandColorBox.background = android.graphics.drawable.GradientDrawable().apply {
             setColor(boxColor)
             cornerRadius = 6 * density
-            setStroke((1 * density).toInt(), 0xFF666666.toInt())
+            setStroke((1 * density).toInt(), 0xFF717E8A.toInt())
         }
         if (color == null) {
             bandColorBox.text = "\u2014"
-            bandColorBox.setTextColor(0xFFAAAAAA.toInt())
+            bandColorBox.setTextColor(0xFFA9B4BE.toInt())
         } else {
             bandColorBox.text = ""
         }
@@ -1705,7 +1705,7 @@ class MbcActivity : AppCompatActivity() {
         val title = TextView(this).apply {
             text = getString(R.string.band_color)
             textSize = 16f
-            setTextColor(0xFFE2E2E2.toInt())
+            setTextColor(0xFFE3E8EB.toInt())
             setPadding(0, 0, 0, (12 * density).toInt())
         }
         sheetLayout.addView(title)
@@ -1718,21 +1718,21 @@ class MbcActivity : AppCompatActivity() {
         }
 
         for ((color, _) in com.bearinmind.equalizer314.ui.TableEqController.BAND_COLORS) {
-            val isNone = color == 0xFF333333.toInt()
+            val isNone = color == 0xFF3D4955.toInt()
             val size = (32 * density).toInt()
             val swatch = if (isNone) {
                 TextView(this).apply {
                     text = "\u2014"
                     textSize = 16f
-                    setTextColor(0xFFAAAAAA.toInt())
+                    setTextColor(0xFFA9B4BE.toInt())
                     gravity = Gravity.CENTER
                     layoutParams = LinearLayout.LayoutParams(size, size).apply {
                         setMargins((3 * density).toInt(), 0, (3 * density).toInt(), 0)
                     }
                     background = android.graphics.drawable.GradientDrawable().apply {
-                        setColor(0xFF333333.toInt())
+                        setColor(0xFF3D4955.toInt())
                         cornerRadius = 8 * density
-                        setStroke((1 * density).toInt(), 0xFF666666.toInt())
+                        setStroke((1 * density).toInt(), 0xFF717E8A.toInt())
                     }
                 }
             } else {
@@ -1743,7 +1743,7 @@ class MbcActivity : AppCompatActivity() {
                     background = android.graphics.drawable.GradientDrawable().apply {
                         setColor(color)
                         cornerRadius = 8 * density
-                        setStroke((1 * density).toInt(), 0xFF666666.toInt())
+                        setStroke((1 * density).toInt(), 0xFF717E8A.toInt())
                     }
                 }
             }

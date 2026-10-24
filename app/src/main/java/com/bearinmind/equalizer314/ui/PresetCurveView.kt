@@ -29,7 +29,7 @@ class PresetCurveView @JvmOverloads constructor(
     private var presetJson: JSONObject? = null
 
     private val density = resources.displayMetrics.density
-    private val curveColor = 0xFFAAAAAA.toInt()
+    private val curveColor = 0xFFA9B4BE.toInt()
 
     private val curvePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = curveColor
@@ -37,15 +37,15 @@ class PresetCurveView @JvmOverloads constructor(
         strokeWidth = 0.5f * density
     }
     private val gridPaint = Paint().apply {
-        color = 0xFF6A6A6A.toInt()
+        color = 0xFF75828E.toInt()
         strokeWidth = 1f
     }
     private val dividerPaint = Paint().apply {
-        color = 0xFF444444.toInt()
+        color = 0xFF4C5A67.toInt()
         strokeWidth = 1f
     }
     private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFF888888.toInt()
+        color = 0xFF8E9AA5.toInt()
         textSize = 10f * resources.displayMetrics.scaledDensity
         textAlign = Paint.Align.CENTER
     }

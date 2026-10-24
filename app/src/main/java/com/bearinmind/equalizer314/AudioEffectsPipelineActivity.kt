@@ -569,11 +569,11 @@ class AudioEffectsPipelineActivity : AppCompatActivity() {
             // for the main DynamicsProcessing FAB on the home screen.
             val density = view.resources.displayMetrics.density
             val on = enabled
-            val iconColor = if (on) 0xFFFFFFFF.toInt() else 0xFF555555.toInt()
-            val strokeColor = if (on) 0xFFFFFFFF.toInt() else 0xFF444444.toInt()
+            val iconColor = if (on) 0xFFFFFFFF.toInt() else 0xFF5E6C79.toInt()
+            val strokeColor = if (on) 0xFFFFFFFF.toInt() else 0xFF4C5A67.toInt()
             val shape = android.graphics.drawable.GradientDrawable().apply {
                 cornerRadius = 12 * density
-                setColor(0xFF2A2A2A.toInt())
+                setColor(0xFF35414C.toInt())
                 setStroke((1 * density).toInt(), strokeColor)
             }
             val mask = android.graphics.drawable.GradientDrawable().apply {

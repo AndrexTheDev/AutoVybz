@@ -134,19 +134,19 @@ class LanguageActivity : AppCompatActivity() {
         }
         view.addView(TextView(this).apply {
             text = getString(R.string.language)
-            setTextColor(0xFFE2E2E2.toInt()); textSize = 20f
+            setTextColor(0xFFE3E8EB.toInt()); textSize = 20f
             setPadding(0, 0, 0, (12 * density).toInt())
         })
         view.addView(TextView(this).apply {
             text = getString(R.string.switch_language_confirm, name)
-            setTextColor(0xFFAAAAAA.toInt()); textSize = 14f
+            setTextColor(0xFFA9B4BE.toInt()); textSize = 14f
             setPadding(0, 0, 0, (16 * density).toInt())
         })
         view.addView(View(this).apply {
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, (1 * density).toInt()
             ).apply { bottomMargin = (12 * density).toInt() }
-            setBackgroundColor(0xFF444444.toInt())
+            setBackgroundColor(0xFF4C5A67.toInt())
         })
         val btnRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -161,11 +161,11 @@ class LanguageActivity : AppCompatActivity() {
                     if (endMargin) marginEnd = (3 * density).toInt() else marginStart = (3 * density).toInt()
                 }
                 cornerRadius = (12 * density).toInt(); setTextColor(color)
-                strokeColor = android.content.res.ColorStateList.valueOf(0xFF444444.toInt())
+                strokeColor = android.content.res.ColorStateList.valueOf(0xFF4C5A67.toInt())
                 strokeWidth = (1 * density).toInt()
                 setBackgroundColor(0x00000000); insetTop = 0; insetBottom = 0
             }
-        val okBtn = dlgBtn(getString(R.string.switch_label), 0xFFDDDDDD.toInt(), endMargin = true)
+        val okBtn = dlgBtn(getString(R.string.switch_label), 0xFFDDE3E7.toInt(), endMargin = true)
         val cancelBtn = dlgBtn(getString(R.string.cancel), 0xFFEF9A9A.toInt(), endMargin = false)
         btnRow.addView(okBtn); btnRow.addView(cancelBtn)
         view.addView(btnRow)
@@ -195,7 +195,7 @@ class LanguageActivity : AppCompatActivity() {
             gravity = Gravity.CENTER_VERTICAL
             background = GradientDrawable().apply {
                 setColor(0x00000000)
-                setStroke((1 * density).toInt(), 0xFF444444.toInt())
+                setStroke((1 * density).toInt(), 0xFF4C5A67.toInt())
                 cornerRadius = 12 * density
             }
             val hPad = (12 * density).toInt(); val vPad = (10 * density).toInt()

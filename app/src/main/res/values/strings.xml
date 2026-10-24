@@ -210,7 +210,7 @@
     <string name="imported_quoted">Imported \"%1$s\"</string>
     <string name="import_failed">Import failed: %1$s</string>
     <string name="export_quoted">Export \"%1$s\"</string>
-    <string name="export_format_choices">EqualizerAPO (.txt)\nEqualizer314 (.json)</string>
+    <string name="export_format_choices">EqualizerAPO (.txt)\nAutoVybz (.json)</string>
     <string name="delete">Delete</string>
     <string name="delete_quoted_confirm">Delete \"%1$s\"?</string>
     <string name="backup_saved">Backup saved</string>
