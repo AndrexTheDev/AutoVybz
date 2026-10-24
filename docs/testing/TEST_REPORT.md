@@ -1,68 +1,74 @@
 # AutoVybz – test report (beta readiness)
 
 Campaign date: 2026-10-24 · App version 0.1.0-alpha · Branch `arena/c19a77a9-autovybz`
-Tested commit: `f397bbd` · Workflows: CI run `40105999804` ✅, Beta test campaign run `40105999805` ✅ (all six jobs green).
-Later commits on the branch only change this report and the test catalogue.
+Tested commit: `1d59823` · Workflows: CI run `40136239591` ✅, Beta test campaign run `40136239582` ✅ (all six jobs green).
+Later commits on the branch only change this report and the test catalogue. Campaigns 1–7 belong to the refinement
+pass (task 4), campaigns 8–15 to the follow-up pass (German translation of the inherited screens, Pro export test
+tag, landscape keyboard, inherited-screen coverage).
 
 This report collects the results of every test layer in [README.md](README.md) (L1–L16), the expert walkthrough of
-the temporary screenshot matrix (END_USER_TEST Part A) and the history of seven automated campaigns. The
+the temporary screenshot matrix (END_USER_TEST Part A) and the history of fifteen automated campaigns. The
 screenshot matrix itself is **temporary**: it is part of the campaign's results bundle and of
 `tmp_screenshot_matrix/` (git-ignored). It is never committed.
 
 ## 1. Verdict
 
 **Ready for the closed beta (phase 1 of BETA_TEST_PLAN).** Every automated layer is green on the tested commit.
-That covers 113 JVM tests, 59 instrumented tests on three Android versions, 7 × 44 screenshots with an accessibility
-audit per configuration, monkey, lint, OSV, secrets, APK and website. No S1/S2 finding from the matrix walkthrough is
-open. What automation cannot prove (acoustic benefit, real microphones and speakers, OEM audio stacks) is assigned to
-end-user test Part B and the beta gates in §8.
+That covers 114 JVM tests, 76 instrumented tests on three Android versions (68 functional, 1 permission flow,
+7 tour smoke), 7 × 82 screenshots with an accessibility audit per configuration, monkey, lint, OSV, secrets, APK and
+website. No S1/S2 finding from the matrix walkthrough is open. What automation cannot prove (acoustic benefit, real
+microphones and speakers, OEM audio stacks) is assigned to end-user test Part B and the beta gates in §8.
 
 | | Result |
 |---|---|
-| Functional E2E | **51/51** on API 28, 30 and 35 (+ permission 1/1, tour smoke 7/7 each) |
-| Screenshot matrix | **7/7 configurations, 308 screenshots**, tour 7/7 per configuration |
+| Functional E2E | **68/68** on API 28, 30 and 35 (+ permission 1/1, tour smoke 7/7 each) |
+| Screenshot matrix | **7/7 configurations, 574 screenshots**, 26/26 screen tests per configuration (tour 7 + inherited screens 19) |
 | Accessibility | **0 findings in 7/7 configurations** (+ default configuration on API 28/30/35) |
-| Robustness | monkey 4000 events × 3 API levels without crash/ANR, 0 FATAL, 0 StrictMode lines |
-| Static | Lint AutoVybz **0 findings**, OSV 0 advisories, secrets 0, APK 37.4 MB / 60 MB |
+| Robustness | monkey 4000 events × 3 API levels without crash/ANR, logcat ANR scan 0, 0 FATAL, 0 StrictMode lines |
+| Static | Lint AutoVybz **0 findings** (inherited code 841 → 426), OSV 0 advisories, secrets 0, APK 37.4 MB / 60 MB |
 | Open S1/S2 | **0** |
 
 ## 2. Results per layer
 
-| # | Layer | Result on `f397bbd` |
+| # | Layer | Result on `1d59823` |
 |---|---|---|
 | L1 | JVM unit, property and fuzz tests | ✅ 19 classes · 76 tests, 0 failed (property violations of the DSP 136 → 0 during task 4) |
-| L2 | Static audits as unit tests | ✅ 5 classes · 37 tests (strings 13, manifest 7, colour contrast 7, project info 6, licences 4) |
+| L2 | Static audits as unit tests | ✅ 5 classes · 38 tests (strings 14 incl. the German translation audit, manifest 7, colour contrast 7, project info 6, licences 4) |
 | L3 | Native host check | ✅ FFT vs. DFT, Oboe/JNI syntax |
-| L4 | Instrumented E2E | ✅ 51/51 functional + permission 1/1 + tour smoke 7/7 on API 28, 30 and 35 |
+| L4 | Instrumented E2E | ✅ 68/68 functional + permission 1/1 + tour smoke 7/7 on API 28, 30 and 35 |
 | L5 | Inherited `HrirConvolverTest` | ✅ part of the functional run |
-| L6 | Screenshot matrix + accessibility | ✅ 7 × (tour 7/7 + a11y 1/1), 308 screenshots, 0 accessibility findings |
+| L6 | Screenshot matrix + accessibility | ✅ 7 × (screens 26/26 + a11y 1/1), 574 screenshots, 0 accessibility findings. The 19 inherited Equalizer314 screens are part of the matrix since campaign 8 |
 | L7 | Monkey 4000 events, seed 4711 | ✅ API 28 / 30 / 35 without crash or ANR |
 | L8 | Performance | ✅ analysis 270 ms, Auto-EQ 3–6 ms, heap growth 0 (JVM budget test); cold start and PSS in §3 |
-| L9 | Android Lint | ✅ AutoVybz 0 findings (10 → 0 in campaign 5); inherited Equalizer314 code 841, mostly `MissingTranslation` |
+| L9 | Android Lint | ✅ AutoVybz 0 findings (10 → 0 in campaign 5); inherited Equalizer314 code 841 → 426. `MissingTranslation` for de/es is 0; the 23 that remain concern only the partial upstream translations ru/uk/zh |
 | L10 | OSV.dev | ✅ 115 resolved artifacts, 0 advisories |
-| L11 | Secret scan | ✅ 9389 tracked files, 0 findings (mutation check 4/4) |
+| L11 | Secret scan | ✅ 9390 tracked files, 0 findings (mutation check 4/4) |
 | L12 | APK audit | ✅ 37.4 MB (budget 60 MB), 14 dex, arm64-v8a + armeabi-v7a, minSdk 28 / target 36 |
 | L13 | Website audit | ✅ 16 pages, 0 errors, 0 warnings, 153 i18n keys in en/de/es, sitemap 15 URLs (mutation check 8/8) |
 | L14 | Mic profile DB | ✅ regenerates byte-identical |
-| L15 | End-user test | Part A ✅ (§5, W1–W13 fixed and verified); Part B prepared (tasks, script, SUS-lite) – needs participants |
+| L15 | End-user test | Part A ✅ (§5, W1–W18 fixed and verified); Part B prepared (tasks, script, SUS-lite) – needs participants |
 | L16 | Beta | prepared: issue template "Beta report", phases, gates (§8) |
 
 ## 3. Device campaign (emulators, API 28 / 30 / 35)
 
 | | API 28 | API 30 | API 35 |
 |---|---|---|---|
-| Functional (incl. a11y default config, Hrir) | 51/51 | 51/51 | 51/51 |
+| Functional (incl. a11y default config, Hrir) | 68/68 | 68/68 | 68/68 |
 | Permission flow | 1/1 | 1/1 | 1/1 |
 | Tour smoke | 7/7 | 7/7 | 7/7 |
 | Monkey 4000 events | ✅ | ✅ | ✅ |
 | FATAL EXCEPTION (all logcats) | 0 | 0 | 0 |
 | StrictMode lines of the app | 0 | 0 | 0 |
-| Cold start, 3 runs (ms) | 2795 / 1473 / 1528 | 839 / 906 / 956 | 2378 / 2455 / 2386 |
-| TOTAL PSS after start | 51.7 MB | 58.6 MB | 76.3 MB |
+| Cold start, 3 runs (ms) | 2994 / 1859 / 1731 | 979 / 969 / 981 | 2446 / 2041 / 2646 |
+| TOTAL PSS after start | 52.0 MB | 57.2 MB | 76.2 MB |
 
-Trend of the cold start (first / warm runs) and PSS over the campaigns: API 28 2997 → 3335 → 2512 → 2795 ms (first run on
-an emulator, so noisy), PSS 52.3 → 52.5 → 52.0 → 51.7 MB. API 35 PSS 78.3 → 78.1 → 76.4 → 76.3 MB. There is no
-regression from the refinements (FlowRow, rail, Visualizer thread).
+Trend of the cold start (first / warm runs) and PSS over the campaigns: API 28 2997 → 3335 → 2512 → 2795 ms in campaigns
+4–7 (first run on an emulator, so noisy), PSS 52.3 → 52.5 → 52.0 → 51.7 MB. API 35 PSS 78.3 → 78.1 → 76.4 → 76.3 MB.
+
+Campaigns 8–15 (PSS in MB, API 28 / 30 / 35): 8: 52.0 / 58.5 / 77.8 · 10: 52.0 / 57.0 / 84.6 · 11: 52.1 / 56.9 / – ·
+12: 56.8 / 57.6 / 78.7 · 13: 52.1 / 59.2 / 78.9 · 14: 52.2 / 58.3 / 76.6 · 15: 52.0 / 57.2 / 76.2. The single outliers
+(API 35 84.6 MB in campaign 10, API 28 56.8 MB in campaign 12) did not repeat with the same or newer code, so they are
+emulator variance, not a regression. The German strings and the extra screens did not change memory measurably.
 
 Cold start = `am start -W` TotalTime on a CI emulator (software rendering, no KVM-level GPU). It is an upper bound for
 real devices and is used to spot regressions between campaigns, not as an absolute value.
@@ -85,15 +91,15 @@ screen:
 
 Findings per configuration over the campaigns:
 
-| Configuration | Campaign 3 | Campaign 4 | Campaign 5 | Campaign 6 | Campaign 7 (final) |
-|---|---|---|---|---|---|
-| en-phone | 344 | 8 | 0 | 0 | **0** |
-| de-phone | 341 | 8 | 0 | 0 | **0** |
-| es-phone | 346 | 8 | 0 | 0 | **0** |
-| de-phone-font130 | 290 | 4 | 0 | 0 | **0** |
-| es-small-font130 | 242 | 7 | 2 | 0 | **0** |
-| en-tablet | 391 | 0 | 0 | 0 | **0** |
-| de-landscape | 341 | 8 | 0 | 0 | **0** |
+| Configuration | Campaign 3 | Campaign 4 | Campaign 5 | Campaign 6 | Campaign 7 | Campaigns 8–15 (final) |
+|---|---|---|---|---|---|---|
+| en-phone | 344 | 8 | 0 | 0 | 0 | **0** |
+| de-phone | 341 | 8 | 0 | 0 | 0 | **0** |
+| es-phone | 346 | 8 | 0 | 0 | 0 | **0** |
+| de-phone-font130 | 290 | 4 | 0 | 0 | 0 | **0** |
+| es-small-font130 | 242 | 7 | 2 | 0 | 0 | **0** |
+| en-tablet | 391 | 0 | 0 | 0 | 0 | **0** |
+| de-landscape | 341 | 8 | 0 | 0 | 0 | **0** |
 
 The last two findings (campaign 5, es-small-font130) were "Interior" and "Exterior · Fiesta" chips 0 dp above the tabs
 "Calibrar" and "Pro". On a 720 × 1280 screen the chip row happened to end exactly at the bottom edge of the scroll
@@ -132,6 +138,11 @@ checklist in END_USER_TEST A.3. Severity as in BETA_TEST_PLAN §6 (S1 blocker �
 | W11 | `es-small-font130/*` | Two-line tagline makes the header tall on small phones | S4 | compact header below 700 dp height | campaigns 6–7 |
 | W12 | `de-landscape/*` | Header + bottom bar take half of the height; countdown circle cut off | S2 | navigation rail + compact header below 480 dp height | campaign 7 |
 | W13 | `de-landscape` (campaign 4) | Configuration came out portrait: `settings put system user_rotation` silently ignored | S3 (tool) | rotation frozen through `UiAutomation.setRotation` before the activity starts; the screenshot is the ground truth, rotation re-applied in-test (see below) | campaign 7 |
+| W14 | `de-*/legacy_*` (19 inherited screens, campaign 8) | 440 English labels in the German Pro screens (MBC, limiter, AutoEQ, …) | S2 | `values-de/strings.xml` with all 440 inherited strings; audit `inheritedScreensAreFullyTranslated`; technical terms (Preset, Attack, Release, Knee, Ratio, Limiter, Gate, Pre-/Post-Gain) deliberately kept | campaigns 9–15 |
+| W15 | `de-landscape/mainEqualizer` (campaign 8) | **Crash** of the inherited 10-band EQ in landscape: "The specified child already has a parent" | **S1** | see §7: finish running transitions, detach from parent *or* overlay before re-adding | campaigns 9–15 |
+| W16 | `de-phone/legacy_*` (campaign 9) | German labels split across lines in the MBC, limiter, "experimental" and remote segments | S4 | 5 shorter German labels | campaign 10 |
+| W17 | `de-landscape/mainEqualizer_*` (campaign 10) | Band row 1–8 shown twice, also after scrolling | S3 | see §7: no layout transition when the system runs no animations | campaigns 11–15 |
+| W18 | `de-landscape/result_name_invalid` | With the keyboard open only a narrow strip above it remained (note from campaign 7) | S3 | compact landscape hides the header while the keyboard is visible; field, error and buttons fit | campaigns 9–15 |
 
 Checked with no finding: donate addresses complete and copyable (`donate`, `donate_copied`); error screens each
 say what happened, why and what to do, with a matching button; one green primary action per screen; safety
@@ -141,15 +152,19 @@ specified (#121212 / #009B3A / #FED100, WCAG values in `ColorContrastAuditTest`)
 Deliberately kept: the German wizard button reads "Speaker einmessen", not "Lautsprecher einmessen". The longer
 word does not fit the inner width of the 176 dp start circle at 130 % font without splitting.
 
-**Final matrix (campaign 7, `f397bbd`):** 7 configurations × 44 screens = 308 screenshots, tour 7/7 everywhere,
+**Matrix of the refinement pass (campaign 7, `f397bbd`):** 7 configurations × 44 screens = 308 screenshots, tour 7/7 everywhere,
 landscape verified on the screenshot itself. Re-check of the fixes: W5, the name field above the keyboard with the error
 text, is visible in all portrait configurations and the tablet. W9, the clock no longer overlaps the header. W10, there
 are no split words in de-130 % and es-small-130 %. W11, the compact header is used on the small phone. W12, the rail and
 compact header are used in landscape, and the countdown circle is complete.
 
-Note for the beta (not a defect): in landscape with the keyboard open, only a narrow strip above the keyboard remains
-(1080 px height). The name field and error stay visible, but the context does not. Beta participants who use landscape are asked about it in
-END_USER_TEST B.
+Landscape with the keyboard open (the beta note of campaign 7) is fixed as W18. The header returns as soon as the
+keyboard closes.
+
+**Final matrix (campaign 15, `1d59823`):** 7 configurations × (26 screens + accessibility) = 574 screenshots. The
+inherited screens are checked in all languages. German: no English text left apart from the deliberate technical
+terms. Landscape: the 10-band EQ opens without crash and shows band row 1–8 once. Bands 9+ and "+" sit below the
+parameter card, as in portrait.
 
 The matrix tooling needed three more fixes before landscape was reliable (campaigns 5–7):
 
@@ -172,6 +187,16 @@ The matrix tooling needed three more fixes before landscape was reliable (campai
 | 5 | `37939c1` | Device jobs all green for the first time (51/51 × 3, lint AutoVybz 10 → 0). Matrix: Espresso focus failures in the tour; de-landscape still portrait; 2 crowding findings on es-small-font130 | focus-free tour; crowding per scroll container |
 | 6 | `c4497e7` | 6 of 7 matrix configurations complete, a11y 7/7 green; landscape lost its rotation between tests. Monkey API 30: ANR in the inherited `MbcActivity` with **no app frame** on the main thread (Dialog dismiss → `destroyHardwareRenderer`, emulator composer at 50 % kernel CPU, load 3.8) | screenshot as rotation ground truth; strict monkey rule (§7) |
 | 7 | `f397bbd` | **Everything green**: 51/51 × 3, 7 × 44 screenshots, a11y 0, monkey 3/3 clean, lint 0 | release candidate for the closed beta |
+| – | `a6a5375` | First run with the 19 inherited screens hung for more than 55 min: `ActivityScenario` / `waitForIdleSync()` never return on the inherited activities (endless animations / messages) | run cancelled; inherited screens started by Intent, polled with `runOnMainSync`, 90 s `Timeout` rule |
+| 8 | `d602513` | Devices 68/68 × 3. Matrix 6/7: **crash of the inherited `MainActivity` in landscape** (W15) | §7 transition fix |
+| 9 | `1d6e3c8` | Matrix 7/7 (crash fixed). API 28: 67/68, `CalledFromWrongThreadException` in the wizard (see §7); API 30 monkey: systemui ANR without app frame, clean same-seed rerun (⚠️ rule) | progress updates posted to the main thread |
+| 10 | `2d0d2cb` | **Everything green**, zero warnings. Visual review: band row duplicated in landscape (W17) | transition only with system animations |
+| 11 | `8544903` | W17 verified fixed. API 35 job: `adb install` failed before the first test (identical APK installed fine in the shots job) | runner waits for the package manager, retries 3×, reports the error |
+| 12 | `0b15a7d` | Install OK. API 35: windows never got focus (permission dialog absent, clipboard empty, Espresso "no window focus") - no app crash, no ANR | runner records the focused window on failure |
+| 13 | `143c4bc` | Same code: API 35 all green (campaign 12 was the environment). **API 30 monkey: ANR with app frame** in the inherited spectrum visualizer | §7 visualizer on a HandlerThread |
+| 14 | `26f10fe` | Devices all green, **API 30 monkey clean** (visualizer fix). Matrix: in every configuration `t05_errors` failed - the new focus diagnostic showed `Application Not Responding: com.google.android.apps.nexuslauncher` holding window focus and swallowing the back key; 25/26 + a11y 1/1 otherwise, no app ANR in any logcat | runner hides error dialogs of other processes, closes system dialogs before each suite, and scans every logcat for ANRs of the app instead |
+| 15 | `1d59823` | **Everything green**: 68/68 × 3, 7 × 82 screenshots, a11y 0, monkey 3/3 clean, FATAL 0, StrictMode 0, lint AutoVybz 0 | release candidate for the closed beta |
+
 
 ## 7. Robustness change from the ANR analysis
 
@@ -191,6 +216,45 @@ reported failed injections. The runner treats this pattern strictly: an ANR is o
 app frame, is blocked in hwui/EGL, **and** does not reproduce in a second run with the same seed. Any ANR with an app frame,
 or a reproducible one, fails. In campaign 7 all three monkey runs were clean anyway. The ANR rate on real devices is a
 beta gate (< 0.47 % of sessions, 0 ANRs with an app frame).
+
+### Follow-up pass (campaigns 8–15)
+
+**Landscape crash in the inherited 10-band EQ (W15).** `reorderToggleRows` moves the band rows with
+`TransitionManager.beginDelayedTransition`. A row that is still fading out lives in the parent's `ViewGroupOverlay`:
+`removeView()` is then a no-op, and the following `addView()` throws "The specified child already has a parent".
+Landscape triggers a second reorder while the first transition is still running. Fix: `endTransitions(parent)` before
+the reorder, and `detachFromParent` removes the view from its layout parent *or* the overlay.
+
+**Ghost row (W17).** With system animations off (CI emulators, developer option, accessibility "Remove
+animations") the fade left a bitmap copy of the moved row in the overlay. The transition now only runs when
+`ValueAnimator.areAnimatorsEnabled()`; without animations the rows are moved directly. That matters for real users
+with "Remove animations" too, not only for CI.
+
+**Wrong-thread UI update on API 28 (campaign 9).** The measurement engine reports progress from its audio worker
+thread. `WizardViewModel` wrote it straight into its `StateFlow`; the Compose test clock resumed the collector inline
+on that worker thread, which reached `ViewRootImpl` → `CalledFromWrongThreadException`. Production uses a main-thread
+frame clock, so users were not affected, but nothing guaranteed it. `setStepFromProgress` now applies progress only on
+the main thread and drops stale updates once the step has moved on (result, error, cancel).
+
+**Spectrum visualizer ANR on API 30 (campaign 13).** The ANR trace showed the main thread inside the inherited
+`VisualizerHelper.onWaveFormDataCapture` → `Visualizer.native_getPeakRms`, after ~11 s of main-thread CPU in the monkey
+run. AOSP 9/11/15 deliver Visualizer capture callbacks on `Looper.myLooper()` of the thread that registers the
+listener, with the main looper as fallback. The worker thread introduced in campaign 4 (a plain executor without a
+Looper) therefore moved create/release off the UI thread, but *not* the callbacks: the 4096-point FFT, the PPO
+smoothing and the native peak/RMS call ran on the UI thread at the maximum capture rate. `avz-visualizer` is now a
+`HandlerThread`. Create, callbacks and release run serially there, and the UI thread only draws the arrays the renderer
+publishes through `@Volatile`. A first fix (`acb69f7`) assumed contention on the Visualizer's state lock. The trace
+contradicted it (the visualizer thread was idle), so it was replaced by the HandlerThread fix before the final campaign.
+Residual risk: `LimiterActivity` keeps its own Visualizer entirely on the UI thread. It did not show up in any monkey run
+ and stays under observation in the beta (ANR gate).
+
+**Test infrastructure.** Three API 35 jobs failed outside the app: a failed `adb install` (campaign 11) and, twice,
+windows without focus (campaigns 12 and 14). The focus diagnostic added after campaign 12 named the culprit in
+campaign 14: an ANR dialog of the Pixel launcher (`com.google.android.apps.nexuslauncher`) that stayed open and took the
+back key and clipboard of the app under test. The runner now waits for the package manager and retries the install,
+hides error dialogs of other processes (`hide_error_dialogs`), closes system dialogs before every suite, and records the
+focused window when a suite fails. Hidden dialogs must not hide our own ANRs, so every logcat of the instrumented runs
+is scanned for `ANR in com.andrexthedev.autovybz` (fails the job); monkey reports app ANRs independently.
 
 ## 8. What automation cannot prove (→ end-user test Part B and beta)
 

@@ -20,7 +20,7 @@ Companion documents:
 | L4 | Instrumented E2E (real Activity, simulated room engine) | `app/src/androidTest/.../e2e` | `e2e.yml` device, API 28/30/35 | 10 classes · 73 tests (incl. all 19 inherited Equalizer314 screens) |
 | L5 | Inherited Equalizer314 instrumented test | `HrirConvolverTest` | same | 3 |
 | L6 | Screenshot matrix + accessibility per configuration (labels, touch targets incl. WCAG 2.5.8 spacing, headings, ellipsis/max-lines, words split mid-word) | `ScreenshotTourE2ETest`, `AccessibilityE2ETest` | `e2e.yml` shots, API 35 | 7 configurations × ~40 screens |
-| L7 | Monkey (4000 random events, seed 4711) with ANR main-thread trace (only an AutoVybz crash/ANR fails the gate; system-process ANRs such as the notification shade on an overloaded emulator are reported as ⚠️ together with the AutoVybz main-thread stack at that moment), crash scan, StrictMode count | `tools/e2e/run_e2e.sh` | `e2e.yml` device | 3 API levels |
+| L7 | Monkey (4000 random events, seed 4711) with ANR main-thread trace (only an AutoVybz crash/ANR fails the gate; system-process ANRs such as the notification shade on an overloaded emulator are reported as ⚠️ together with the AutoVybz main-thread stack at that moment), crash scan, **logcat ANR scan of every instrumented run** (error dialogs of other processes are hidden, so an ANR of the app must still fail), StrictMode count; on a failed suite the focused window is recorded; APK install waits for the package manager and retries | `tools/e2e/run_e2e.sh` | `e2e.yml` device + shots | 3 API levels |
 | L8 | Performance: analysis budget (JVM), cold start, memory (device) | `PerformanceBudgetTest`, `run_e2e.sh` | both | — |
 | L9 | Android Lint (AutoVybz: 0 errors; current campaign 0 findings – exceptions only with `tools:ignore` and a reason) | `tools/audit/lint_summary.py` | `e2e.yml` build | — |
 | L10 | Dependency vulnerabilities (OSV.dev) | `tools/audit/osv_check.py` | `e2e.yml` build | all resolved artifacts |
@@ -105,7 +105,7 @@ real Bluetooth latency, real microphones, loudness comfort, and whether the EQ i
 | Accessibility (48 dp / WCAG 2.5.8 spacing, labels, headings, no clipped or mid-word split text) | `AccessibilityE2ETest` × 7 configurations (incl. font 130 %, small phone, landscape), `AdaptiveButtonRow` stacks buttons above 115 % font | EUT Q7, Part A |
 | EN / DE / ES complete, consistent, own quotation marks | `StringResourceAuditTest.*` (13 checks incl. plurals with Spanish `many` and `everyLanguageUsesItsOwnQuotationMarks`), `ManifestAuditTest.localeConfig…`, screenshot matrix per language, website i18n parity | EUT in tester's language |
 | GPL-3.0 open source, no trackers | `LicenseAuditTest.*`, OSV check, secret scan | — |
-| No crashes | monkey + crash scan on 3 API levels, all suites | beta crash-free rate |
+| No crashes / ANRs | monkey + crash scan + ANR scan on 3 API levels, all suites | beta crash-free rate |
 | Fast and lean | `PerformanceBudgetTest.*`, cold start + PSS on device, APK size budget | EUT Q4 |
 | Landing page incl. legal pages | website audit (L13) | — |
 | Android 9+ (minSdk 28: DynamicsProcessing) everywhere the same | `ManifestAuditTest.minSdkMatchesTheDocumentedAndroidVersion` (gradle, engine, README badge, website), device runs on API 28/30/35, `apk_audit.py` | beta device matrix |
