@@ -107,7 +107,7 @@ class ScreenshotTourE2ETest : E2eTest() {
     @Test fun t06_pro() {
         compose.quickCalibration()
         compose.tap("avz:result:saveOnly"); compose.await("avz:saved")
-        compose.tap("avz:saved:pro"); compose.await("avz:screen:pro"); shot("pro_top")
+        compose.savedToProTab(); shot("pro_top")
         val name = AutoVybzPresetStoreNames.first()
         scrollTo("avz:pro:cal:$name"); shot("pro_calibrations")
         compose.tap("avz:pro:delete:$name"); compose.await("avz:dialog:confirm"); shot("pro_delete_dialog")

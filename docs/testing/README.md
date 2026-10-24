@@ -17,7 +17,7 @@ Companion documents:
 | L1 | JVM unit + property + fuzz tests | `app/src/test` | `ci.yml`, `e2e.yml` build | 24 classes · 110 tests |
 | L2 | Static audits as unit tests (strings, colours, manifest, licences, project info) | `app/src/test/.../audit` | same | 5 classes · 34 tests (part of L1) |
 | L3 | Native host check (C++ FFT vs. DFT, Oboe/JNI syntax) | `tools/native/host_check.sh` | `ci.yml`, `e2e.yml` | 1 |
-| L4 | Instrumented E2E (real Activity, simulated room engine) | `app/src/androidTest/.../e2e` | `e2e.yml` device, API 24/30/35 | 10 classes · 55 tests |
+| L4 | Instrumented E2E (real Activity, simulated room engine) | `app/src/androidTest/.../e2e` | `e2e.yml` device, API 28/30/35 | 10 classes · 55 tests |
 | L5 | Inherited Equalizer314 instrumented test | `HrirConvolverTest` | same | 3 |
 | L6 | Screenshot matrix + accessibility per configuration | `ScreenshotTourE2ETest`, `AccessibilityE2ETest` | `e2e.yml` shots, API 35 | 7 configurations × ~40 screens |
 | L7 | Monkey (4000 random events, seed 4711), crash scan, StrictMode count | `tools/e2e/run_e2e.sh` | `e2e.yml` device | 3 API levels |

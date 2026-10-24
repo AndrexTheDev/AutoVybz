@@ -1,6 +1,6 @@
 # AutoVybz – beta test plan
 
-**Product:** AutoVybz 0.1.x (Android 7.0+, API 24–36) · **Owner:** AndrexTheDev · **Feedback:** GitHub issue
+**Product:** AutoVybz 0.1.x (Android 9+, API 28–36) · **Owner:** AndrexTheDev · **Feedback:** GitHub issue
 "Beta report" or hippie.highho@gmail.com
 
 ## 1. Goals
@@ -31,7 +31,7 @@ Testers record these values in the beta report. Each cell needs at least one pas
 
 | Dimension | Values to cover |
 |---|---|
-| Android version | 7–8 (API 24–27), 9–10, 11–12, 13, 14, 15, 16 |
+| Android version | 9–10 (API 28–29), 11–12, 13, 14, 15, 16 |
 | Manufacturer / audio stack | Samsung (One UI), Google Pixel, Xiaomi / Redmi / POCO (MIUI/HyperOS), OnePlus / OPPO / realme (ColorOS), Motorola, Sony, Fairphone, one tablet |
 | Output | Bluetooth speaker (JBL, Bose, Sony, UE, Marshall, Anker), BT soundbar, BT car radio, wired 3.5 mm active speakers, USB-C DAC + speakers, hi-fi via BT receiver |
 | Microphone | built-in (UNPROCESSED supported / not supported), USB measurement mic (UMIK-1 with calibration file), headset mic (must not be used: route blocked) |

@@ -38,7 +38,7 @@ def main():
         if not la or not la.group(1).endswith("AutoVybzActivity"): errors.append(f"launcher is {la.group(1) if la else '?'}")
         sdk = re.search(r"(?<![A-Za-z])(?:minSdkVersion|sdkVersion):'(\d+)'", out); tsdk = re.search(r"targetSdkVersion:'(\d+)'", out)
         facts.append(f"minSdk {sdk.group(1) if sdk else '?'} / targetSdk {tsdk.group(1) if tsdk else '?'}")
-        if sdk and sdk.group(1) != "24": errors.append(f"minSdk is {sdk.group(1)}, expected 24")
+        if sdk and sdk.group(1) != "28": errors.append(f"minSdk is {sdk.group(1)}, expected 28 (Android 9, DynamicsProcessing)")
         label = re.search(r"application-label:'([^']+)'", out)
         if not label or label.group(1) != "AutoVybz": errors.append(f"app label is {label.group(1) if label else '?'}")
         locales = re.search(r"locales: (.*)", out)

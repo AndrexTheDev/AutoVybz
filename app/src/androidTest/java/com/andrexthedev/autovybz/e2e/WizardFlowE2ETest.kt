@@ -4,6 +4,8 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTextReplacement
+import androidx.test.espresso.intent.Intents.intended
+import androidx.test.espresso.intent.matcher.IntentMatchers.hasComponent
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.andrexthedev.autovybz.e2e.SimulatedRoomEngine.Mode
 import com.andrexthedev.autovybz.measurement.eq.TargetType
@@ -36,8 +38,12 @@ class WizardFlowE2ETest : E2eTest() {
         assertEquals(name, AutoVybzPresetStore.lastAppliedName(E2e.app))
         assertEquals(1, E2e.engine.captures.get())
 
-        compose.tap("avz:saved:pro")
-        compose.await("avz:screen:pro")
+        // "Open in Pro EQ" hands over to the classic Equalizer314 parametric EQ for fine-tuning.
+        withIntents {
+            compose.tap("avz:saved:pro")
+            intended(hasComponent(com.bearinmind.equalizer314.MainActivity::class.java.name))
+        }
+        compose.savedToProTab()
         compose.await("avz:pro:cal:$name")
         shot("pro_list")
     }

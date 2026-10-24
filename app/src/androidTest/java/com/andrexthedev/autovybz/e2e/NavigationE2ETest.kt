@@ -41,15 +41,6 @@ class NavigationE2ETest : E2eTest() {
         return text
     }
 
-    private inline fun withIntents(block: () -> Unit) {
-        Intents.init()
-        try {
-            intending(anyIntent()).respondWith(Instrumentation.ActivityResult(Activity.RESULT_OK, null))
-            block()
-        } finally {
-            Intents.release()
-        }
-    }
 
     @Test
     fun allTabsAreReachable() {

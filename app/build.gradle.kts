@@ -14,7 +14,9 @@ android {
         // The Kotlin namespace stays com.bearinmind.equalizer314 to keep upstream merges painless;
         // all AutoVybz code lives in com.andrexthedev.autovybz.
         applicationId = "com.andrexthedev.autovybz"
-        minSdk = 24
+        // Android 9: the system-wide EQ is built on DynamicsProcessing (API 28). On 7-8.1 the engine class
+        // fails to load (NoClassDefFoundError, found by the API 24 emulator run), so don't install there.
+        minSdk = 28
         targetSdk = 36
         versionCode = 1
         versionName = "0.1.0-alpha"

@@ -2,6 +2,11 @@ package com.andrexthedev.autovybz.e2e
 
 import androidx.compose.ui.semantics.getOrNull
 import android.Manifest
+import android.app.Activity
+import android.app.Instrumentation
+import androidx.test.espresso.intent.Intents
+import androidx.test.espresso.intent.Intents.intending
+import androidx.test.espresso.intent.matcher.IntentMatchers.anyIntent
 import androidx.annotation.StringRes
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
@@ -42,32 +47,36 @@ fun ComposeTestRule.has(tag: String): Boolean = onAllNodesWithTag(tag).fetchSema
 fun ComposeTestRule.hasText(text: String, substring: Boolean = true): Boolean =
     onAllNodesWithText(text, substring = substring).fetchSemanticsNodes().isNotEmpty()
 
-fun ComposeTestRule.await(tag: String, timeoutMs: Long = TIMEOUT_MS) {
+/**
+ * waitUntil that survives transient synchronisation errors of the Compose test framework (seen on API 30:
+ * "performMeasureAndLayout called during measure layout" thrown from Espresso.onIdle). The condition is
+ * retried; only if it never becomes true is the last error reported as the cause.
+ */
+fun ComposeTestRule.waitRobust(what: String, timeoutMs: Long, condition: () -> Boolean) {
+    var last: Throwable? = null
     try {
-        waitUntil(timeoutMs) { has(tag) }
+        waitUntil(timeoutMs) {
+            try { condition() } catch (e: RuntimeException) { last = e; false }
+        }
     } catch (e: Throwable) {
-        throw AssertionError("'$tag' did not appear within $timeoutMs ms. Visible tags: ${visibleTags()}", e)
+        val tags = runCatching { visibleTags().toString() }.getOrElse { "unavailable: ${it.message}" }
+        throw AssertionError("$what within $timeoutMs ms. Visible tags: $tags", last ?: e)
     }
 }
 
-fun ComposeTestRule.awaitText(text: String, timeoutMs: Long = TIMEOUT_MS) {
-    try {
-        waitUntil(timeoutMs) { hasText(text) }
-    } catch (e: Throwable) {
-        throw AssertionError("text '$text' did not appear within $timeoutMs ms. Visible tags: ${visibleTags()}", e)
-    }
-}
+fun ComposeTestRule.await(tag: String, timeoutMs: Long = TIMEOUT_MS) =
+    waitRobust("'$tag' did not appear", timeoutMs) { has(tag) }
 
-fun ComposeTestRule.awaitGone(tag: String, timeoutMs: Long = TIMEOUT_MS) = waitUntil(timeoutMs) { !has(tag) }
+fun ComposeTestRule.awaitText(text: String, timeoutMs: Long = TIMEOUT_MS) =
+    waitRobust("text '$text' did not appear", timeoutMs) { hasText(text) }
+
+fun ComposeTestRule.awaitGone(tag: String, timeoutMs: Long = TIMEOUT_MS) =
+    waitRobust("'$tag' did not disappear", timeoutMs) { !has(tag) }
 
 /** Waits for the first of [tags] to appear and returns it. */
 fun ComposeTestRule.awaitAny(vararg tags: String, timeoutMs: Long = TIMEOUT_MS): String {
     var found: String? = null
-    try {
-        waitUntil(timeoutMs) { found = tags.firstOrNull { has(it) }; found != null }
-    } catch (e: Throwable) {
-        throw AssertionError("none of ${tags.toList()} appeared. Visible tags: ${visibleTags()}", e)
-    }
+    waitRobust("none of ${tags.toList()} appeared", timeoutMs) { found = tags.firstOrNull { has(it) }; found != null }
     return found!!
 }
 
@@ -121,4 +130,22 @@ fun ComposeTestRule.quickCalibration(environment: String = "INDOOR"): String {
     confirmSafetyAndStart()
     measureToResult()
     return editableText("avz:result:name")
+}
+
+/** Records outgoing intents and stubs them (no other app / activity is really opened). */
+inline fun withIntents(block: () -> Unit) {
+    Intents.init()
+    try {
+        intending(anyIntent()).respondWith(Instrumentation.ActivityResult(Activity.RESULT_OK, null))
+        block()
+    } finally {
+        Intents.release()
+    }
+}
+
+/** Saved screen -> Pro tab. (avz:saved:pro opens the classic Equalizer314 PEQ activity for fine-tuning instead.) */
+fun ComposeTestRule.savedToProTab() {
+    tap("avz:saved:done")
+    tap("avz:tab:PRO")
+    await("avz:screen:pro")
 }

@@ -2,7 +2,7 @@
 #
 #   build     unit tests, debug + test APKs, Android Lint, dependency tree, and all static audits
 #             (secret scan, website, lint, APK, OSV vulnerabilities, native host check, mic DB)
-#   device    instrumented E2E suites + monkey + crash scan + cold start on API 24 / 30 / 35
+#   device    instrumented E2E suites + monkey + crash scan + cold start on API 28 (minimum) / 30 / 35
 #   shots     screenshot matrix (7 configurations: languages, font 130 %, small phone, tablet,
 #             landscape) + accessibility audit per configuration, API 35
 #   report    merges everything into one TEST_REPORT, step summary, contact sheets
@@ -114,7 +114,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        api: [24, 30, 35]
+        api: [28, 30, 35]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/download-artifact@v8
@@ -203,6 +203,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          set +e   # missing optional files (no crash, no shots) must not abort the merge
           pip install --quiet pillow
           mkdir -p bundle
           {
@@ -221,7 +222,7 @@ jobs:
             [ -d "$d" ] || continue
             n=$(basename "$d"); mkdir -p "bundle/$n"
             cp "$d"/*.json "$d"/*.instrument.txt "$d"/summary.md "bundle/$n/" 2>/dev/null
-            cp "$d"/monkey.txt "$d"/crashes.txt "$d"/coldstart.txt "$d"/meminfo.txt "bundle/$n/" 2>/dev/null
+            cp "$d"/monkey.txt "$d"/monkey_problem.txt "$d"/crashes.txt "$d"/coldstart.txt "$d"/meminfo.txt "bundle/$n/" 2>/dev/null
             for l in "$d"/*.logcat.txt; do
               [ -f "$l" ] && grep -E "autovybz|AndroidRuntime|TestRunner|FATAL|StrictMode|ANR" "$l" | tail -4000 > "bundle/$n/$(basename "$l")"
             done
@@ -236,5 +237,6 @@ jobs:
           base64 -w0 bundle.tgz > bundle.b64
           jq -n --rawfile c bundle.b64 '{content: $c, encoding: "base64"}' > body.json
           SHA=$(gh api "repos/${GITHUB_REPOSITORY}/git/blobs" --input body.json --jq .sha)
+          [ -n "$SHA" ] || { echo "::error title=results-blob::upload failed ($(du -h bundle.tgz | cut -f1))"; exit 1; }
           echo "::notice title=results-blob::$SHA"
           echo "Results bundle: git blob \`$SHA\`" >> "$GITHUB_STEP_SUMMARY"

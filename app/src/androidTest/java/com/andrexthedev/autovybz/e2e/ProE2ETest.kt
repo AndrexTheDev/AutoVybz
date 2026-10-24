@@ -30,7 +30,7 @@ class ProE2ETest : E2eTest() {
     fun calibration_canBeAppliedFromPro() {
         val name = saveOneCalibration()
         assertEquals(null, AutoVybzPresetStore.lastAppliedName(E2e.app))
-        compose.tap("avz:saved:pro")
+        compose.savedToProTab()
         compose.tap("avz:pro:apply:$name")
         compose.waitUntil(10_000) { AutoVybzPresetStore.lastAppliedName(E2e.app) == name }
         // Also in the Equalizer314 preset pool, so the classic engine can load it.
@@ -40,7 +40,7 @@ class ProE2ETest : E2eTest() {
     @Test
     fun deleteAsksForConfirmation() {
         val name = saveOneCalibration()
-        compose.tap("avz:saved:pro")
+        compose.savedToProTab()
         compose.await("avz:pro:cal:$name")
         compose.tap("avz:pro:delete:$name")
         compose.await("avz:dialog:confirm")

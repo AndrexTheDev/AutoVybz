@@ -49,13 +49,17 @@ class AccessibilityE2ETest : E2eTest() {
             if (b.width < minPx || b.height < minPx) problems += "$screen: touch target %.0fx%.0f dp '%s'".format(b.width / dp, b.height / dp, l.take(40))
             if (l.isBlank()) problems += "$screen: control without label at $b"
         }
-        rule.runOnIdle {
-            for (n in rule.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsActions.GetTextLayoutResult)).fetchSemanticsNodes()) {
+        // Fetch on the test thread (synchronizing), then query the text layouts on the UI thread.
+        val textNodes = rule.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsActions.GetTextLayoutResult), useUnmergedTree = true)
+            .fetchSemanticsNodes()
+        val clipped = rule.runOnUiThread {
+            textNodes.filter { n ->
                 val results = mutableListOf<TextLayoutResult>()
-                n.config[SemanticsActions.GetTextLayoutResult].action?.invoke(results)
-                if (results.any { it.hasVisualOverflow }) problems += "$screen: clipped text '${label(n).take(60)}'"
-            }
+                runCatching { n.config[SemanticsActions.GetTextLayoutResult].action?.invoke(results) }
+                results.any { it.hasVisualOverflow }
+            }.map { label(it).take(60) }
         }
+        clipped.forEach { problems += "$screen: clipped text '$it'" }
         if (rule.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading)).fetchSemanticsNodes().isEmpty() &&
             !rule.has("avz:dialog:confirm") && !rule.has("avz:donate:close")
         ) problems += "$screen: no heading"
@@ -89,7 +93,7 @@ class AccessibilityE2ETest : E2eTest() {
         compose.tap("avz:dialog:dismiss")
         compose.tap("avz:result:saveApply"); compose.await("avz:saved"); audit("saved")
 
-        compose.tap("avz:saved:pro"); compose.await("avz:screen:pro")
+        compose.savedToProTab()
         expandAllCards(); audit("pro (all cards expanded)")
         compose.tap("avz:tab:HELP"); compose.await("avz:screen:help")
         expandAllCards(); audit("help (all expanded)")

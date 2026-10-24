@@ -68,7 +68,9 @@ if [ "$MODE" = functional ]; then
   adb shell monkey -p $PKG -s 4711 --throttle 40 --pct-syskeys 0 --pct-appswitch 5 --ignore-security-exceptions -v 4000 > "$OUT/monkey.txt" 2>&1
   adb logcat -d -v threadtime > "$OUT/monkey.logcat.txt" 2>&1
   if grep -q "// CRASH\|// NOT RESPONDING" "$OUT/monkey.txt"; then
-    note "- ❌ **Monkey**: crash/ANR (see monkey.txt)"; echo "::error title=Monkey API $API::crash or ANR"; FAIL=1
+    WHAT=$(grep -m1 -A12 "// CRASH\|// NOT RESPONDING" "$OUT/monkey.txt" | grep -E "CRASH|NOT RESPONDING|Short Msg|Long Msg|ANR in|Reason|at com\.(andrexthedev|bearinmind)" | head -6 | tr '\n' ' ' | cut -c1-600)
+    note "- ❌ **Monkey**: $WHAT"; echo "::error title=Monkey API $API::$WHAT"; FAIL=1
+    grep -B2 -A40 "// CRASH\|// NOT RESPONDING" "$OUT/monkey.txt" | head -120 > "$OUT/monkey_problem.txt"
   else
     note "- ✅ **Monkey**: 4000 events, seed 4711, no crash / ANR"
   fi
@@ -76,8 +78,10 @@ if [ "$MODE" = functional ]; then
   # 5) Crash scan over every logcat captured above.
   CRASHES=$(grep -h -A3 "FATAL EXCEPTION" "$OUT"/*.logcat.txt 2>/dev/null | grep -c "Process: $PKG" || true)
   if [ "${CRASHES:-0}" -gt 0 ]; then
-    note "- ❌ **Crash scan**: $CRASHES fatal exception(s) in $PKG"; echo "::error title=Crash scan API $API::$CRASHES fatal exceptions"; FAIL=1
     grep -h -A12 "FATAL EXCEPTION" "$OUT"/*.logcat.txt > "$OUT/crashes.txt"
+    FIRST=$(grep -A4 "Process: $PKG" "$OUT/crashes.txt" | grep -vE "^--$|Process:|PID:" | head -3 | sed 's/^.*AndroidRuntime: //' | tr '\n' ' ' | cut -c1-500)
+    note "- ❌ **Crash scan**: $CRASHES fatal exception(s) in $PKG – first: $FIRST"
+    echo "::error title=Crash scan API $API::$CRASHES fatal exceptions. First: $FIRST"; FAIL=1
   else
     note "- ✅ **Crash scan**: no FATAL EXCEPTION from $PKG in any logcat"
   fi

@@ -14,6 +14,25 @@ class ManifestAuditTest {
     private val application = manifest.children("application").single()
     private val components = listOf("activity", "service", "receiver", "provider").flatMap { application.children(it) }
 
+    /**
+     * The engine uses DynamicsProcessing (API 28). minSdk 24 let the app install on Android 7-8.1, where it
+     * crashed on launch (NoClassDefFoundError in the API 24 emulator run). README and website must say the same.
+     */
+    @Test
+    fun minSdkMatchesTheDocumentedAndroidVersion() {
+        val gradle = ProjectFiles.module("build.gradle.kts").readText()
+        val minSdk = Regex("""minSdk\s*=\s*(\d+)""").find(gradle)!!.groupValues[1].toInt()
+        assertEquals("DynamicsProcessing needs API 28", 28, minSdk)
+        val engine = ProjectFiles.module("src/main/java/com/bearinmind/equalizer314/audio/DynamicsProcessingManager.kt").readText()
+        assertTrue("engine no longer uses DynamicsProcessing? then revisit minSdk", "DynamicsProcessing(" in engine)
+        assertTrue("README must state Android 9+", "Android-9%2B" in ProjectFiles.root("README.md").readText())
+        for (lang in listOf("en", "de", "es")) {
+            val site = ProjectFiles.root("site/src/i18n/$lang.json").readText()
+            assertTrue("website ($lang) must state Android 9", "Android 9" in site)
+            assertFalse("website ($lang) mentions an older Android", Regex("""Android [5-8](\.\d)?\+""").containsMatchIn(site))
+        }
+    }
+
     @Test
     fun autoVybzIsTheLauncher() {
         val launchers = application.children("activity").filter { a ->
