@@ -1,5 +1,6 @@
 package com.andrexthedev.autovybz.e2e
 
+import androidx.compose.ui.semantics.getOrNull
 import android.Manifest
 import androidx.annotation.StringRes
 import androidx.compose.ui.semantics.SemanticsProperties
