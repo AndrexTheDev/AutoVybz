@@ -14,7 +14,7 @@ Companion documents:
 
 | # | Layer | Where | Runs in | Count |
 |---|---|---|---|---|
-| L1 | JVM unit + property + fuzz tests | `app/src/test` | `ci.yml`, `e2e.yml` build | 24 classes · 113 tests |
+| L1 | JVM unit + property + fuzz tests | `app/src/test` | `ci.yml`, `e2e.yml` build | 19 classes · 76 tests (with L2: 24 classes · 113 tests in one Gradle run) |
 | L2 | Static audits as unit tests (strings, colours, manifest, licences, project info) | `app/src/test/.../audit` | same | 5 classes · 37 tests (part of L1) |
 | L3 | Native host check (C++ FFT vs. DFT, Oboe/JNI syntax) | `tools/native/host_check.sh` | `ci.yml`, `e2e.yml` | 1 |
 | L4 | Instrumented E2E (real Activity, simulated room engine) | `app/src/androidTest/.../e2e` | `e2e.yml` device, API 28/30/35 | 10 classes · 56 tests |
