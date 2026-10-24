@@ -59,10 +59,10 @@ object Shots {
             shell("settings put system accelerometer_rotation 0")
             shell("settings put system user_rotation 1")
             shell("cmd window user-rotation lock 1")
-            inst.waitForIdleSync()
+            Thread.sleep(300) // no waitForIdleSync: never returns while a screen animates
             Thread.sleep(1_000)
         }
-        inst.waitForIdleSync()
+        Thread.sleep(300) // no waitForIdleSync: never returns while a screen animates
         Thread.sleep(500)
         return true
     }
@@ -81,7 +81,7 @@ object Shots {
     }
 
     /** Screens without Compose (the inherited Equalizer314 activities): synchronise on the main looper only. */
-    fun takeRaw(name: String, settle: () -> Unit = { InstrumentationRegistry.getInstrumentation().waitForIdleSync() }) {
+    fun takeRaw(name: String, settle: () -> Unit = { Thread.sleep(600) }) {
         if (!enabled) return
         settle()
         Thread.sleep(400) // let ripples / animations settle (and the frame reach the screen)

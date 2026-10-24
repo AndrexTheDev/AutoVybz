@@ -3,8 +3,9 @@ package com.andrexthedev.autovybz.e2e
 import android.Manifest
 import android.app.Activity
 import android.os.Build
-import androidx.lifecycle.Lifecycle
-import androidx.test.core.app.ActivityScenario
+import android.content.Intent
+import androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry
+import androidx.test.runner.lifecycle.Stage
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.rule.GrantPermissionRule
@@ -28,11 +29,11 @@ import com.bearinmind.equalizer314.SpectrumControlActivity
 import com.bearinmind.equalizer314.TargetCurveActivity
 import com.bearinmind.equalizer314.TargetSelectActivity
 import com.bearinmind.equalizer314.UiEqModesActivity
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.RuleChain
 import org.junit.rules.TestWatcher
+import org.junit.rules.Timeout
 import org.junit.runner.Description
 import org.junit.runner.RunWith
 
@@ -58,24 +59,52 @@ class LegacyScreensE2ETest {
         override fun starting(description: Description) = Shots.begin(description)
     }
 
+    /** Hard limit per screen: a hanging screen fails its own test instead of the whole device job. */
     @get:Rule
-    val rules: RuleChain = RuleChain.outerRule(permissions).around(shots)
+    val rules: RuleChain = RuleChain.outerRule(Timeout.seconds(90)).around(permissions).around(shots)
 
-    private fun <A : Activity> screen(cls: Class<A>) {
-        ActivityScenario.launch(cls).use { sc ->
-            sc.moveToState(Lifecycle.State.RESUMED)
-            assertTrue("${cls.simpleName}: ${sc.state}", sc.state.isAtLeast(Lifecycle.State.STARTED))
-            Thread.sleep(1200) // deferred initialisation (a crash would kill the process here)
-            val name = cls.simpleName.removeSuffix("Activity").lowercase()
-            Shots.takeRaw("${name}_top")
-            if (Shots.enabled) {
-                val d = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
-                d.swipe(d.displayWidth / 2, (d.displayHeight * 0.78).toInt(), d.displayWidth / 2, (d.displayHeight * 0.3).toInt(), 25)
-                Shots.takeRaw("${name}_scrolled")
-            }
-            sc.recreate()
-            assertTrue("${cls.simpleName} after recreate: ${sc.state}", sc.state.isAtLeast(Lifecycle.State.STARTED))
+    private val inst get() = InstrumentationRegistry.getInstrumentation()
+
+    /** Resumed instance of [cls], read on the main thread - no idle wait (see class comment). */
+    private fun resumed(cls: Class<*>): Activity? {
+        var a: Activity? = null
+        inst.runOnMainSync {
+            a = ActivityLifecycleMonitorRegistry.getInstance().getActivitiesInStage(Stage.RESUMED).firstOrNull { cls.isInstance(it) }
         }
+        return a
+    }
+
+    private fun awaitResumed(cls: Class<*>, what: String, other: Activity? = null): Activity {
+        val deadline = System.currentTimeMillis() + 20_000
+        while (System.currentTimeMillis() < deadline) {
+            resumed(cls)?.takeIf { it !== other }?.let { return it }
+            Thread.sleep(200)
+        }
+        throw AssertionError("${cls.simpleName} never reached RESUMED $what (crash, ANR or it finished itself)")
+    }
+
+    /**
+     * No ActivityScenario here: its lifecycle waits call waitForIdleSync(), which never returns for screens that
+     * animate continuously (spectrum previews) - campaign 8 hung all device jobs until their timeout.
+     */
+    private fun screen(cls: Class<out Activity>) {
+        val intent = Intent(inst.targetContext, cls).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+        inst.targetContext.startActivity(intent)
+        val first = awaitResumed(cls, "after start")
+        Thread.sleep(1200) // deferred initialisation (a crash would kill the process here)
+        val name = cls.simpleName.removeSuffix("Activity").lowercase()
+        Shots.takeRaw("${name}_top", settle = { Thread.sleep(600) })
+        if (Shots.enabled) {
+            val d = UiDevice.getInstance(inst)
+            d.swipe(d.displayWidth / 2, (d.displayHeight * 0.78).toInt(), d.displayWidth / 2, (d.displayHeight * 0.3).toInt(), 25)
+            Shots.takeRaw("${name}_scrolled", settle = { Thread.sleep(800) })
+        }
+        inst.runOnMainSync { first.recreate() }
+        val second = awaitResumed(cls, "after recreate", other = first)
+        Thread.sleep(500)
+        inst.runOnMainSync { second.finish() }
+        val deadline = System.currentTimeMillis() + 10_000
+        while (resumed(cls) != null && System.currentTimeMillis() < deadline) Thread.sleep(200)
     }
 
     @Test fun mainEqualizer() = screen(MainActivity::class.java)
