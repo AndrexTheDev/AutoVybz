@@ -19,6 +19,12 @@ data class FitConstraints(
     val minQ: Double = 0.4,
     val maxQ: Double = 4.0,
     val allowShelves: Boolean = true,
+    /**
+     * Excursion protection: below this frequency (well under the speaker's roll-off) the combined filters
+     * must not boost - a low shelf would otherwise keep lifting down to DC, costing cone excursion for no
+     * audible gain. 0 = off.
+     */
+    val noBoostBelowHz: Double = 0.0,
 )
 
 /**
@@ -100,6 +106,7 @@ class PeqFitter(
             val e = desired[i] - total
             err += weights[i] * e * e
             if (total > boostLimit) penalty += (total - boostLimit).pow(2)
+            if (total > 0.5 && grid.frequencies[i] < constraints.noBoostBelowHz) penalty += (total - 0.5).pow(2)
             if (total < cutLimit) penalty += (cutLimit - total).pow(2)
         }
         return err / weightSum + 10.0 * penalty / n

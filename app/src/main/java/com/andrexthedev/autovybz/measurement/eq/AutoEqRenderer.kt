@@ -90,7 +90,12 @@ object AutoEqRenderer {
     ): AutoEqResult {
         require(frequencies.size == measuredDb.size && frequencies.size > 8 && rollOffDb.size == measuredDb.size)
         require(snrDb == null || snrDb.size == measuredDb.size)
+        require(measuredDb.all { it.isFinite() } && rollOffDb.all { it.isFinite() }) { "measurement contains NaN/Inf" }
         val targetDb = target.sample(frequencies)
+        // Shapes only: the analyzer already normalises to 0 dB in 300 Hz - 3 kHz (then this is a no-op), but
+        // the EQ must never depend on the absolute recording level (AutoEqPropertyTest).
+        val measuredDb = normalise(frequencies, measuredDb)
+        val rollOffDb = normalise(frequencies, rollOffDb)
 
         val lowLimit = if (settings.autoLowLimit) detectLowLimit(frequencies, rollOffDb)
         else settings.manualLowLimitHz.coerceIn(20.0, 500.0)
@@ -123,6 +128,7 @@ object AutoEqRenderer {
             // position-dependent comb ripple from reflections.
             maxQ = if (settings.bandCount <= 5) 2.5 else 4.0,
             allowShelves = true,
+            noBoostBelowHz = lowLimit / 2,
         )
         val bands = PeqFitter(grid, desired, weights, constraints).fit()
         val response = grid.response(bands)
@@ -147,6 +153,11 @@ object AutoEqRenderer {
             maxFilterBoostDb = maxBoost,
             noiseGatedRanges = gatedRanges(frequencies, reliable, lowLimit, highLimit),
         )
+    }
+
+    private fun normalise(f: DoubleArray, v: DoubleArray): DoubleArray {
+        val ref = FrequencyGrid.bandMean(f, v, 300.0, 3000.0)
+        return if (ref == 0.0 || !ref.isFinite()) v else DoubleArray(v.size) { v[it] - ref }
     }
 
     internal fun reliability(snr: Double, min: Double, full: Double): Double =

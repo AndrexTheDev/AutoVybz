@@ -22,11 +22,13 @@ class ResponseCurve(points: List<Pair<Double, Double>>) {
     val levelsDb: DoubleArray
 
     init {
-        require(points.size >= 2) { "a curve needs at least two points" }
-        val sorted = points.sortedBy { it.first }
-        frequencies = DoubleArray(sorted.size) { sorted[it].first }
-        levelsDb = DoubleArray(sorted.size) { sorted[it].second }
-        require(frequencies.all { it > 0 }) { "frequencies must be positive" }
+        require(points.all { it.first > 0 && it.first.isFinite() && it.second.isFinite() }) { "frequencies must be positive and finite" }
+        // Duplicate frequencies (seen in hand-edited calibration files) are averaged - otherwise the log
+        // interpolation divides by zero.
+        val merged = points.groupBy { it.first }.map { (f, p) -> f to p.sumOf { it.second } / p.size }.sortedBy { it.first }
+        require(merged.size >= 2) { "a curve needs at least two distinct frequencies" }
+        frequencies = DoubleArray(merged.size) { merged[it].first }
+        levelsDb = DoubleArray(merged.size) { merged[it].second }
     }
 
     fun levelAt(f: Double): Double = FrequencyGrid.interpolateLog(frequencies, levelsDb, f)
@@ -109,15 +111,15 @@ object CalibrationFileParser {
         for (raw in text.lineSequence()) {
             val line = raw.trim()
             if (line.isEmpty()) continue
-            sensRe.find(line)?.let { sens = it.groupValues[1].toDoubleOrNull() }
+            sensRe.find(line)?.let { m -> m.groupValues[1].toDoubleOrNull()?.takeIf { it.isFinite() && it in -60.0..60.0 }?.let { sens = it } }
             if (!(line[0].isDigit() || line[0] == '.')) continue
             val parts = line.split(Regex("[\\s,;]+")).filter { it.isNotEmpty() }
             if (parts.size < 2) continue
             val f = parts[0].toDoubleOrNull() ?: continue
             val db = parts[1].toDoubleOrNull() ?: continue
-            if (f > 0 && db in -60.0..60.0) pts += f to db
+            if (f > 0 && f <= 100_000.0 && db in -60.0..60.0) pts += f to db
         }
-        require(pts.size >= 2) { "No frequency/dB pairs found" }
+        require(pts.map { it.first }.distinct().size >= 2) { "No frequency/dB pairs found" }
         return Calibration(ResponseCurve(pts), sens)
     }
 }

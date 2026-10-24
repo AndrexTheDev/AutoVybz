@@ -13,6 +13,8 @@ import com.andrexthedev.autovybz.measurement.audio.RouteInspector
  */
 object AutoVybzServices {
 
+    const val DEFAULT_COUNTDOWN_SECONDS = 3
+
     /** Creates the audio engine used for one calibration (Oboe with Java fallback). */
     @Volatile var engineFactory: () -> MeasurementAudioEngine = DEFAULT_ENGINE
 
@@ -21,8 +23,6 @@ object AutoVybzServices {
 
     /** "Please be quiet" countdown before each position, so the user can step back from the phone. */
     @Volatile var countdownSeconds: Int = DEFAULT_COUNTDOWN_SECONDS
-
-    const val DEFAULT_COUNTDOWN_SECONDS = 3
 
     fun reset() {
         engineFactory = DEFAULT_ENGINE

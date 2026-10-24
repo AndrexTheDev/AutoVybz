@@ -11,7 +11,7 @@ object AutoVybzPalette {
     const val SURFACE = 0xFF181818
     const val SURFACE_HIGH = 0xFF222222
     /** Borders of text fields / outlined controls: >= 3:1 against the background (WCAG 1.4.11). */
-    const val OUTLINE = 0xFF6B6B6B
+    const val OUTLINE = 0xFF737373
     const val GREEN = 0xFF009B3A
     const val GREEN_BRIGHT = 0xFF2BC266
     const val GREEN_CONTAINER = 0xFF0B3A1F

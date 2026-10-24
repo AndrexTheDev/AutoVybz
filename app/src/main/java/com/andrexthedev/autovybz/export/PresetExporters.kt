@@ -70,11 +70,16 @@ object PresetExporters {
         val bands = mutableListOf<PeqBand>()
         val preampRe = Regex("""(?i)^\s*preamp\s*:\s*(-?[\d.]+)\s*db""")
         val filterRe = Regex("""(?i)^\s*filter\s*\d*\s*:\s*on\s+(\w+)\s+fc\s+([\d.]+)\s*hz\s+gain\s+(-?[\d.]+)\s*db\s+q\s+([\d.]+)""")
+        // Imported files come from anywhere: malformed numbers ("1.2.3", "-") and values no filter can
+        // realise (Fc 0 Hz, Q 0, +100 dB) are skipped instead of crashing or producing NaN coefficients.
         for (line in text.lineSequence()) {
-            preampRe.find(line)?.let { preamp = it.groupValues[1].toDouble() }
+            preampRe.find(line)?.let { m -> m.groupValues[1].toDoubleOrNull()?.takeIf { it in -30.0..30.0 }?.let { preamp = it } }
             filterRe.find(line)?.let { m ->
                 val type = PeqType.fromApoCode(m.groupValues[1]) ?: return@let
-                bands += PeqBand(type, m.groupValues[2].toDouble(), m.groupValues[3].toDouble(), m.groupValues[4].toDouble())
+                val fc = m.groupValues[2].toDoubleOrNull()?.takeIf { it > 0.0 && it < 24_000.0 } ?: return@let
+                val gain = m.groupValues[3].toDoubleOrNull()?.takeIf { it in -30.0..30.0 } ?: return@let
+                val q = m.groupValues[4].toDoubleOrNull()?.takeIf { it > 0.0 && it <= 100.0 } ?: return@let
+                bands += PeqBand(type, fc, gain, q)
             }
         }
         return preamp to bands

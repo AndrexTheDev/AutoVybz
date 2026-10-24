@@ -98,6 +98,22 @@ android {
         includeInApk = false
         includeInBundle = false
     }
+
+    // Speaker / room simulator shared by the JVM tests and the on-device end-to-end tests.
+    sourceSets {
+        getByName("test") { java.srcDir("src/sharedTest/java") }
+        getByName("androidTest") { java.srcDir("src/sharedTest/java") }
+    }
+
+    // Lint runs in CI and is summarised by tools/audit/lint_summary.py (AutoVybz code must stay error-free;
+    // the inherited Equalizer314 code is reported but does not fail the build).
+    lint {
+        abortOnError = false
+        checkReleaseBuilds = false
+        xmlReport = true
+        htmlReport = true
+        sarifReport = false
+    }
 }
 
 dependencies {
@@ -152,6 +168,15 @@ dependencies {
     testImplementation("org.json:json:20231013")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
+    // End-to-end / screenshot tests (tools/e2e): Compose UI test, UiAutomator for system dialogs,
+    // Espresso-Intents to verify share / settings intents without leaving the app.
+    androidTestImplementation(composeBom)
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
+    androidTestImplementation("androidx.test:runner:1.5.2")
+    androidTestImplementation("androidx.test:rules:1.5.0")
+    androidTestImplementation("androidx.test.uiautomator:uiautomator:2.3.0")
+    androidTestImplementation("androidx.test.espresso:espresso-intents:3.5.1")
 }
 
 // F-Droid reproducible builds: disable baseline profile generation. The

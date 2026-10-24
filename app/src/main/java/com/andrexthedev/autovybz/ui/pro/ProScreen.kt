@@ -311,8 +311,7 @@ private fun CurveFileRow(title: String, settings: AutoVybzSettings, file: File) 
     val invalidFmt = stringResource(R.string.avz_pro_file_invalid, "%s")
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
-        val text = runCatching { context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() } }.getOrNull()
-        val result = runCatching { settings.storeCurve(file, text ?: "") }
+        val result = runCatching { settings.storeCurve(file, readSmallText(context, uri) ?: "") }
         result.onSuccess { points = it.frequencies.size }
             .onFailure { Toast.makeText(context, invalidFmt.replace("%s", it.message ?: "?"), Toast.LENGTH_LONG).show() }
     }
@@ -376,3 +375,19 @@ private fun avzSliderColors() = SliderDefaults.colors(
     activeTrackColor = AutoVybzColors.Green,
     inactiveTrackColor = AutoVybzColors.SurfaceHigh,
 )
+
+/** Calibration files are a few kB; refuse anything above 1 MB (a picked video must not cause an OOM). */
+private fun readSmallText(context: android.content.Context, uri: android.net.Uri, maxBytes: Int = 1 shl 20): String? =
+    context.contentResolver.openInputStream(uri)?.use { input ->
+        val out = java.io.ByteArrayOutputStream()
+        val chunk = ByteArray(8192)
+        var total = 0
+        while (true) {
+            val n = input.read(chunk)
+            if (n < 0) break
+            total += n
+            require(total <= maxBytes) { "file larger than 1 MB" }
+            out.write(chunk, 0, n)
+        }
+        out.toString("UTF-8")
+    }
