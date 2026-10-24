@@ -8,23 +8,27 @@ import com.andrexthedev.autovybz.export.PresetNaming
 import com.andrexthedev.autovybz.measurement.MeasurementController
 import com.andrexthedev.autovybz.measurement.MeasurementOutcome
 import com.andrexthedev.autovybz.measurement.MeasurementProgress
+import com.andrexthedev.autovybz.measurement.MeasurementRequest
 import com.andrexthedev.autovybz.measurement.audio.CaptureException
 import com.andrexthedev.autovybz.measurement.audio.RouteClassifier
 import com.andrexthedev.autovybz.measurement.audio.RouteInspector
 import com.andrexthedev.autovybz.measurement.audio.VolumeGuard
 import com.andrexthedev.autovybz.measurement.audio.VolumeMath
 import com.andrexthedev.autovybz.measurement.dsp.MeasurementException
+import com.andrexthedev.autovybz.measurement.dsp.MeasurementWarning
 import com.andrexthedev.autovybz.measurement.eq.TargetType
 import com.andrexthedev.autovybz.preset.AutoVybzPresetStore
 import com.andrexthedev.autovybz.preset.model.AutoVybzPreset
 import com.andrexthedev.autovybz.settings.AutoVybzSettings
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 enum class WizardError { PERMISSION_DENIED, NO_SIGNAL, CAPTURE_FAILED, UNKNOWN }
 
@@ -41,10 +45,19 @@ sealed interface WizardStep {
         val volumeFixed: Boolean,
     ) : WizardStep
     object Preparing : WizardStep
-    data class Measuring(val fraction: Float, val inputPeak: Float, val phase: MeasurementProgress.Phase) : WizardStep
+    data class Measuring(
+        val fraction: Float,
+        val inputPeak: Float,
+        val phase: MeasurementProgress.Phase,
+        /** 1-based position index and total positions of a multi-position calibration. */
+        val position: Int = 1,
+        val totalPositions: Int = 1,
+    ) : WizardStep
+    /** Multi-position calibration: [completed] of [total] positions are done, user moves the phone. */
+    data class MovePhone(val completed: Int, val total: Int, val lastWarnings: List<MeasurementWarning>) : WizardStep
     object Analyzing : WizardStep
     data class Result(val outcome: MeasurementOutcome, val presetName: String, val nameValid: Boolean = true) : WizardStep
-    data class Saved(val presetName: String, val applied: Boolean) : WizardStep
+    data class Saved(val presetName: String, val applied: Boolean, val outcome: MeasurementOutcome? = null) : WizardStep
     data class Error(val error: WizardError, val detail: String?) : WizardStep
 }
 
@@ -53,6 +66,8 @@ data class WizardUiState(
     val speakerName: String = "",
     val target: TargetType = TargetType.SMART,
     val bandCount: Int = 10,
+    /** 1 = quick, 3 = precise (multi-position average). */
+    val positions: Int = 1,
 )
 
 class WizardViewModel(app: Application) : AndroidViewModel(app) {
@@ -63,7 +78,12 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
     private var job: Job? = null
 
     private val _state = MutableStateFlow(
-        WizardUiState(speakerName = settings.lastSpeakerName, target = settings.target, bandCount = settings.bandCount),
+        WizardUiState(
+            speakerName = settings.lastSpeakerName,
+            target = settings.target,
+            bandCount = settings.bandCount,
+            positions = settings.positions,
+        ),
     )
     val state: StateFlow<WizardUiState> = _state.asStateFlow()
 
@@ -81,6 +101,11 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
         settings.bandCount = count
         _state.update { it.copy(bandCount = settings.bandCount) }
         refitIfShowingResult()
+    }
+
+    fun onPositionsChanged(count: Int) {
+        settings.positions = count
+        _state.update { it.copy(positions = settings.positions) }
     }
 
     /** Step 1: big button pressed (permission already checked by the screen). */
@@ -112,47 +137,107 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
         setStep(step.copy(volume = volume.currentFraction))
     }
 
-    /** Step 2: user confirmed the safety warning -> 10 s measurement. */
+    /** Measurements of the current (multi-position) calibration, in order. */
+    private val partial = mutableListOf<MeasurementOutcome>()
+    private var activeRequest: MeasurementRequest? = null
+    private var activeTotal = 1
+
+    /** Step 2: user confirmed the safety warning -> first 10 s measurement. */
     fun onConfirmStart() {
         if (job?.isActive == true) return
         val s = _state.value
         settings.lastSpeakerName = s.speakerName
-        val request = settings.buildRequest(s.speakerName, s.target)
+        partial.clear()
+        activeRequest = settings.buildRequest(s.speakerName, s.target)
+        activeTotal = s.positions
+        measureNextPosition()
+    }
+
+    /** Multi-position: phone was moved, measure the next position. */
+    fun onNextPosition() {
+        if (job?.isActive == true || activeRequest == null) return
+        measureNextPosition()
+    }
+
+    /** Multi-position: stop early and use the positions measured so far. */
+    fun onFinishWithMeasured() {
+        if (job?.isActive == true || partial.isEmpty()) return
+        finish()
+    }
+
+    private fun measureNextPosition() {
+        val request = activeRequest ?: return
+        val total = activeTotal
+        val position = partial.size + 1
         job = viewModelScope.launch {
             setStep(WizardStep.Preparing)
             try {
                 val outcome = controller.run(request) { p ->
                     when (p) {
                         MeasurementProgress.Preparing -> setStep(WizardStep.Preparing)
-                        is MeasurementProgress.Measuring -> setStep(WizardStep.Measuring(p.fraction, p.inputPeak, p.phase))
+                        is MeasurementProgress.Measuring ->
+                            setStep(WizardStep.Measuring(p.fraction, p.inputPeak, p.phase, position, total))
                         MeasurementProgress.Analyzing -> setStep(WizardStep.Analyzing)
                     }
                 }
-                if (settings.restoreVolumeAfter) volume.restore()
-                val name = AutoVybzPresetStore.defaultName(getApplication(), request.speakerName)
-                setStep(WizardStep.Result(outcome, name))
+                partial += outcome
+                if (partial.size < total) {
+                    setStep(WizardStep.MovePhone(partial.size, total, outcome.result.warnings))
+                } else {
+                    finish()
+                }
             } catch (c: CancellationException) {
-                volume.restore()
+                resetSession()
                 setStep(WizardStep.Idle)
                 throw c
             } catch (e: MeasurementException) {
-                volume.restore()
+                resetSession()
                 setStep(WizardStep.Error(WizardError.NO_SIGNAL, e.message))
             } catch (e: CaptureException) {
-                volume.restore()
+                resetSession()
                 setStep(WizardStep.Error(WizardError.CAPTURE_FAILED, e.message))
             } catch (e: Exception) {
                 Log.e("AutoVybz", "measurement failed", e)
-                volume.restore()
+                resetSession()
                 setStep(WizardStep.Error(WizardError.UNKNOWN, e.message))
             }
         }
     }
 
+    /** Averages all measured positions, fits the EQ and shows the result. */
+    private fun finish() {
+        val request = activeRequest ?: return
+        val measured = partial.toList()
+        job = viewModelScope.launch {
+            setStep(WizardStep.Analyzing)
+            val outcome = try {
+                withContext(Dispatchers.Default) { controller.combine(measured, request) }
+            } catch (c: CancellationException) {
+                throw c
+            } catch (e: Exception) {
+                Log.e("AutoVybz", "combining positions failed", e)
+                resetSession()
+                setStep(WizardStep.Error(WizardError.UNKNOWN, e.message))
+                return@launch
+            }
+            if (settings.restoreVolumeAfter) volume.restore()
+            partial.clear()
+            activeRequest = null
+            val name = AutoVybzPresetStore.defaultName(getApplication(), request.speakerName)
+            setStep(WizardStep.Result(outcome, name))
+        }
+    }
+
+    private fun resetSession() {
+        partial.clear()
+        activeRequest = null
+        volume.restore()
+    }
+
     fun onCancel() {
         job?.cancel()
         job = null
-        volume.restore()
+        resetSession()
         setStep(WizardStep.Idle)
     }
 
@@ -170,7 +255,7 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
         val app = getApplication<Application>()
         AutoVybzPresetStore.save(app, preset)
         if (apply) AutoVybzPresetStore.apply(app, preset, settings.enableLimiterOnApply)
-        setStep(WizardStep.Saved(name, apply))
+        setStep(WizardStep.Saved(name, apply, step.outcome))
     }
 
     /** Preset built from the current result (for exports before saving). */
@@ -180,7 +265,8 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun onReset() {
-        volume.restore()
+        job?.cancel()
+        resetSession()
         setStep(WizardStep.Idle)
     }
 
@@ -189,7 +275,7 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
         val s = _state.value
         val req = step.outcome.request.copy(target = s.target, bandCount = s.bandCount, customTarget = settings.customTarget())
         viewModelScope.launch {
-            val refit = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) { controller.refit(step.outcome, req) }
+            val refit = withContext(Dispatchers.Default) { controller.refit(step.outcome, req) }
             val now = _state.value.step as? WizardStep.Result ?: return@launch
             setStep(now.copy(outcome = refit))
         }

@@ -29,6 +29,11 @@ class AutoVybzSettings(context: Context) {
         get() = prefs.getInt("bandCount", 10).let { if (it == 5) 5 else 10 }
         set(v) = prefs.edit().putInt("bandCount", if (v == 5) 5 else 10).apply()
 
+    /** Microphone positions per calibration: 1 = quick (10 s), 3 = precise (spatial average, ~30 s). */
+    var positions: Int
+        get() = if (prefs.getInt("positions", 1) == 3) 3 else 1
+        set(v) = prefs.edit().putInt("positions", if (v == 3) 3 else 1).apply()
+
     var smoothing: SmoothingChoice
         get() = runCatching { SmoothingChoice.valueOf(prefs.getString("smoothing", null) ?: "") }.getOrDefault(SmoothingChoice.DYNAMIC)
         set(v) = prefs.edit().putString("smoothing", v.name).apply()

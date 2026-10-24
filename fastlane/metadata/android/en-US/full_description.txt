@@ -11,13 +11,16 @@ AutoVybz automatically calibrates your external loudspeaker (Bluetooth, AUX, USB
 <li>Dynamic smoothing (strong in the bass, 1/3 octave in mids and highs)</li>
 <li>Up to 10 parametric filters fitted to your target, without boosting bass your speaker can't play</li>
 <li>Automatic pre-gain and limiter against clipping</li>
+<li>Optional precise mode: 3 positions, power-averaged – ignores dips that exist only at one spot</li>
 </ul>
 
 <b>Targets</b>: Smart (gentle bass boost), Neutral/Flat, Bass Boost, Harman/Loudness, Custom.
 
 <b>Pro area</b>: full Equalizer314 engine – 10-band parametric EQ with graph, multiband compressor, limiter, presets, AutoEQ.
 
-<b>Export</b>: Equalizer APO / Peace text, parametric EQ JSON, CSV for REW.
+<b>Export &amp; share</b>: Equalizer APO / Peace text, parametric EQ JSON, CSV for REW, and a share card with your real measurement.
+
+Available in English, German and Spanish.
 
 Headphones are intentionally excluded – AutoVybz is made for loudspeakers.
 

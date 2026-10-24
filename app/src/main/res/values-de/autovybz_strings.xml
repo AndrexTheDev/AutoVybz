@@ -180,4 +180,31 @@
     <string name="avz_copied">%1$s-Adresse kopiert</string>
     <string name="avz_close">Schließen</string>
     <string name="avz_permission_rationale">AutoVybz nimmt nur während einer Messung 10 Sekunden Audio auf. Nichts verlässt dein Handy.</string>
+
+    <!-- Multi-position calibration + share card -->
+    <string name="avz_positions_label">Genauigkeit</string>
+    <string name="avz_positions_quick">Schnell · 1 Position</string>
+    <string name="avz_positions_precise">Präzise · 3 Positionen</string>
+    <string name="avz_positions_quick_desc">Eine 10-Sekunden-Messung an deinem Hörplatz.</string>
+    <string name="avz_positions_precise_desc">Drei 10-Sekunden-Messungen rund um deinen Hörplatz (ca. 30 s plus Umstellen). Die Mittelung behält das Raumdröhnen, das überall hörbar ist, und ignoriert Senken, die es nur an einer Stelle gibt – empfohlen für Räume und Bass.</string>
+    <string name="avz_position_of">Position %1$d von %2$d</string>
+    <string name="avz_move_title">Position %1$d von %2$d fertig ✓</string>
+    <string name="avz_move_text">Bewege das Handy jetzt um etwa 30–50 cm – zur Seite, nach vorn oder hinten oder etwas höher oder tiefer.</string>
+    <string name="avz_move_tip_1">Bleib in der Nähe deines Hörplatzes und halte das Handy auf Ohrhöhe.</string>
+    <string name="avz_move_tip_2">Mikrofon zum Lautsprecher, während der Messung stillhalten und leise sein.</string>
+    <string name="avz_move_warn">Die letzte Messung hatte eine Warnung (zu laut oder zu leise). Du kannst weitermachen oder abbrechen und die Lautstärke anpassen.</string>
+    <string name="avz_move_continue">Position %1$d messen</string>
+    <string name="avz_move_finish">Mit %1$d fertigstellen</string>
+    <string name="avz_result_positions">Gemittelt über %1$d Positionen · Streuung ±%2$s dB</string>
+    <string name="avz_result_spread_high">Die Positionen unterscheiden sich stark. In sehr ungleichmäßigen Räumen ist das normal – sonst näher am Hörplatz bleiben oder messen, wenn es ruhiger ist.</string>
+    <string name="avz_share_result">Teilen</string>
+    <string name="avz_share_invite">Zufrieden mit dem Klang? Zeig es deinen Freunden – die Share-Karte zeigt deine echte Messung.</string>
+    <string name="avz_share_chooser">AutoVybz-Ergebnis teilen</string>
+    <string name="avz_share_text">Ich habe gerade meinen Lautsprecher mit AutoVybz auf meinen Raum eingemessen – kostenlose Open-Source-App, dauert 10 Sekunden 🔊 %1$s #AutoVybz #10SecondVybz</string>
+    <string name="avz_share_failed">Das Share-Bild konnte nicht erstellt werden.</string>
+    <string name="avz_share_card_headline">Mein Lautsprecher, auf meinen Raum eingemessen</string>
+    <string name="avz_share_card_deviation">Abweichung von der Zielkurve: vorher → nachher</string>
+    <string name="avz_share_card_filters">%1$d Filter · Preamp %2$s dB</string>
+    <string name="avz_share_card_positions">%1$d Positionen</string>
+    <string name="avz_share_card_free">kostenlos · Open Source · werbefrei</string>
 </resources>

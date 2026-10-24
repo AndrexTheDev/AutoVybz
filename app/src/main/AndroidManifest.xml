@@ -282,6 +282,17 @@
                 android:value="true" />
         </service>
 
+        <!-- AutoVybz: shares the rendered result card (cache/share only). -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.avzfiles"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/autovybz_file_paths" />
+        </provider>
+
     </application>
 
 </manifest>

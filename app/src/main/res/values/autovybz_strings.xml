@@ -180,4 +180,31 @@
     <string name="avz_copied">%1$s address copied</string>
     <string name="avz_close">Close</string>
     <string name="avz_permission_rationale">AutoVybz records 10 seconds of audio only during a measurement. Nothing leaves your phone.</string>
+
+    <!-- Multi-position calibration + share card -->
+    <string name="avz_positions_label">Accuracy</string>
+    <string name="avz_positions_quick">Quick · 1 position</string>
+    <string name="avz_positions_precise">Precise · 3 positions</string>
+    <string name="avz_positions_quick_desc">One 10-second measurement at your listening spot.</string>
+    <string name="avz_positions_precise_desc">Three 10-second measurements around your listening spot (about 30 s plus moving the phone). Averaging keeps the room booms everyone hears and ignores dips that only exist at one spot – recommended for rooms and bass.</string>
+    <string name="avz_position_of">Position %1$d of %2$d</string>
+    <string name="avz_move_title">Position %1$d of %2$d done ✓</string>
+    <string name="avz_move_text">Now move the phone about 30–50 cm – to the side, forward or back, or a little up or down.</string>
+    <string name="avz_move_tip_1">Stay around your listening spot and keep the phone at ear height.</string>
+    <string name="avz_move_tip_2">Microphone towards the speaker, hold still and stay quiet during the measurement.</string>
+    <string name="avz_move_warn">The last measurement had a warning (too loud or too quiet). You can continue, or cancel and adjust the volume.</string>
+    <string name="avz_move_continue">Measure position %1$d</string>
+    <string name="avz_move_finish">Finish with %1$d</string>
+    <string name="avz_result_positions">Averaged over %1$d positions · spread ±%2$s dB</string>
+    <string name="avz_result_spread_high">The positions differ a lot. That is normal in very uneven rooms – otherwise stay closer to your listening spot or measure when it is quieter.</string>
+    <string name="avz_share_result">Share</string>
+    <string name="avz_share_invite">Happy with the sound? Show your friends – the share card shows your real measurement.</string>
+    <string name="avz_share_chooser">Share your AutoVybz result</string>
+    <string name="avz_share_text">I just calibrated my speaker to my room with AutoVybz – a free, open-source app that does it in 10 seconds 🔊 %1$s #AutoVybz #10SecondVybz</string>
+    <string name="avz_share_failed">Could not create the share image.</string>
+    <string name="avz_share_card_headline">My speaker, tuned to my room</string>
+    <string name="avz_share_card_deviation">Deviation from the target curve: before → after</string>
+    <string name="avz_share_card_filters">%1$d filters · preamp %2$s dB</string>
+    <string name="avz_share_card_positions">%1$d positions</string>
+    <string name="avz_share_card_free">free · open source · no ads</string>
 </resources>

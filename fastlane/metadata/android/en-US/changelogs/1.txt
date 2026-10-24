@@ -6,3 +6,6 @@ AutoVybz 0.1.0-alpha – first release
 • Auto pre-gain + limiter, presets in the Equalizer314 list
 • Export: Equalizer APO, JSON, REW CSV
 • Jamaica dark theme, help guide, crypto donate dialog
+• Precise mode: 3-position spatial average
+• Share card with your measured curves
+• English, German and Spanish

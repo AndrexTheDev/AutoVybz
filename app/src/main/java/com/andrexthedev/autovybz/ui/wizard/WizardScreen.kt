@@ -32,8 +32,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -79,6 +81,7 @@ import com.andrexthedev.autovybz.ui.components.ExportButton
 import com.andrexthedev.autovybz.ui.components.FrequencyResponseChart
 import com.andrexthedev.autovybz.ui.components.LevelMeter
 import com.andrexthedev.autovybz.ui.components.SectionTitle
+import com.andrexthedev.autovybz.ui.share.ResultSharer
 import com.andrexthedev.autovybz.ui.theme.AutoVybzColors
 import com.bearinmind.equalizer314.R
 import java.util.Locale
@@ -113,6 +116,7 @@ fun WizardScreen(
                     is WizardStep.ConfirmSafety -> SafetyStep(step, vm)
                     WizardStep.Preparing -> BusyStep(stringResource(R.string.avz_preparing), null)
                     is WizardStep.Measuring -> MeasuringStep(step, vm::onCancel)
+                    is WizardStep.MovePhone -> MovePhoneStep(step, vm::onNextPosition, vm::onFinishWithMeasured, vm::onCancel)
                     WizardStep.Analyzing -> BusyStep(stringResource(R.string.avz_analyzing), null)
                     is WizardStep.Result -> ResultStep(step, state, vm)
                     is WizardStep.Saved -> SavedStep(step, onOpenProEq, vm::onReset)
@@ -157,6 +161,26 @@ private fun IdleStep(state: WizardUiState, vm: WizardViewModel, onStart: () -> U
 
     SectionTitle(stringResource(R.string.avz_target_label))
     TargetChooser(state.target, vm::onTargetChanged)
+
+    SectionTitle(stringResource(R.string.avz_positions_label))
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        for ((count, label) in listOf(1 to R.string.avz_positions_quick, 3 to R.string.avz_positions_precise)) {
+            FilterChip(
+                selected = state.positions == count,
+                onClick = { vm.onPositionsChanged(count) },
+                label = { Text(stringResource(label)) },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = AutoVybzColors.GreenContainer,
+                    selectedLabelColor = AutoVybzColors.GreenBright,
+                ),
+            )
+        }
+    }
+    Text(
+        stringResource(if (state.positions == 3) R.string.avz_positions_precise_desc else R.string.avz_positions_quick_desc),
+        style = MaterialTheme.typography.bodySmall,
+        color = AutoVybzColors.OnDarkMuted,
+    )
 
     AvzCard {
         Text(stringResource(R.string.avz_wizard_before_title), style = MaterialTheme.typography.titleMedium)
@@ -367,6 +391,13 @@ private fun MeasuringStep(step: WizardStep.Measuring, onCancel: () -> Unit) {
             }
         }
         Spacer(Modifier.height(20.dp))
+        if (step.totalPositions > 1) {
+            Text(
+                stringResource(R.string.avz_position_of, step.position, step.totalPositions),
+                style = MaterialTheme.typography.labelLarge,
+                color = AutoVybzColors.Gold,
+            )
+        }
         Text(stringResource(phaseText), style = MaterialTheme.typography.titleLarge)
         Text(stringResource(R.string.avz_measuring_hint), color = AutoVybzColors.OnDarkMuted, textAlign = TextAlign.Center)
     }
@@ -376,6 +407,55 @@ private fun MeasuringStep(step: WizardStep.Measuring, onCancel: () -> Unit) {
         Text(stringResource(R.string.avz_eq_paused), style = MaterialTheme.typography.bodySmall, color = AutoVybzColors.OnDarkMuted)
     }
     OutlinedButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.avz_cancel)) }
+}
+
+/** Between two positions of a multi-position calibration. */
+@Composable
+private fun MovePhoneStep(step: WizardStep.MovePhone, onContinue: () -> Unit, onFinish: () -> Unit, onCancel: () -> Unit) {
+    Column(Modifier.fillMaxWidth().padding(top = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            for (i in 1..step.total) {
+                Box(
+                    Modifier.size(18.dp).clip(CircleShape)
+                        .background(if (i <= step.completed) AutoVybzColors.Green else AutoVybzColors.SurfaceHigh),
+                )
+            }
+        }
+        Spacer(Modifier.height(16.dp))
+        Icon(Icons.Filled.LocationOn, contentDescription = null, tint = AutoVybzColors.Gold, modifier = Modifier.size(56.dp))
+        Spacer(Modifier.height(8.dp))
+        Text(
+            stringResource(R.string.avz_move_title, step.completed, step.total),
+            style = MaterialTheme.typography.headlineSmall,
+            textAlign = TextAlign.Center,
+        )
+    }
+    AvzCard {
+        Text(stringResource(R.string.avz_move_text), style = MaterialTheme.typography.bodyLarge)
+        Bullet(stringResource(R.string.avz_move_tip_1))
+        Bullet(stringResource(R.string.avz_move_tip_2))
+    }
+    if (step.lastWarnings.any { it == MeasurementWarning.CLIPPING || it == MeasurementWarning.LOW_SNR }) {
+        Row(
+            Modifier.fillMaxWidth().clip(MaterialTheme.shapes.small).background(AutoVybzColors.GoldContainer).padding(12.dp),
+        ) {
+            Icon(Icons.Filled.Warning, contentDescription = null, tint = AutoVybzColors.Gold)
+            Spacer(Modifier.width(10.dp))
+            Text(stringResource(R.string.avz_move_warn), style = MaterialTheme.typography.bodyMedium)
+        }
+    }
+    Button(
+        onClick = onContinue,
+        colors = ButtonDefaults.buttonColors(containerColor = AutoVybzColors.Green),
+        modifier = Modifier.fillMaxWidth().height(56.dp),
+    ) {
+        Icon(Icons.Filled.PlayArrow, contentDescription = null)
+        Text("  " + stringResource(R.string.avz_move_continue, step.completed + 1), style = MaterialTheme.typography.titleMedium)
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+        OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.avz_cancel)) }
+        OutlinedButton(onClick = onFinish, modifier = Modifier.weight(1.6f)) { Text(stringResource(R.string.avz_move_finish, step.completed)) }
+    }
 }
 
 @Composable
@@ -417,6 +497,23 @@ private fun ResultStep(step: WizardStep.Result, state: WizardUiState, vm: Wizard
             style = MaterialTheme.typography.bodyMedium,
             color = AutoVybzColors.OnDarkMuted,
         )
+        if (o.positions > 1) {
+            Text(
+                stringResource(R.string.avz_result_positions, o.positions, fmt1(o.positionSpreadDb ?: 0.0)),
+                style = MaterialTheme.typography.bodyMedium,
+                color = AutoVybzColors.GreenBright,
+            )
+        }
+    }
+
+    if ((o.positionSpreadDb ?: 0.0) > HIGH_POSITION_SPREAD_DB) {
+        Row(
+            Modifier.fillMaxWidth().clip(MaterialTheme.shapes.small).background(AutoVybzColors.SurfaceHigh).padding(12.dp),
+        ) {
+            Icon(Icons.Filled.Info, contentDescription = null, tint = AutoVybzColors.Gold)
+            Spacer(Modifier.width(10.dp))
+            Text(stringResource(R.string.avz_result_spread_high), style = MaterialTheme.typography.bodyMedium)
+        }
     }
 
     // Warnings
@@ -479,7 +576,10 @@ private fun ResultStep(step: WizardStep.Result, state: WizardUiState, vm: Wizard
         OutlinedButton(onClick = { vm.onSave(apply = false) }, enabled = step.nameValid) { Text(stringResource(R.string.avz_save_only)) }
         OutlinedButton(onClick = vm::onReset) { Text(stringResource(R.string.avz_measure_again)) }
     }
-    ExportButton(preset = vm::currentPreset)
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+        ExportButton(preset = vm::currentPreset, modifier = Modifier.weight(1f), fillWidth = true)
+        ShareResultButton(o, step.presetName, Modifier.weight(1f))
+    }
 
     // Details for the curious
     com.andrexthedev.autovybz.ui.components.CollapsibleCard(title = stringResource(R.string.avz_result_details)) {
@@ -505,6 +605,7 @@ private fun ResultStep(step: WizardStep.Result, state: WizardUiState, vm: Wizard
 
 @Composable
 private fun SavedStep(step: WizardStep.Saved, onOpenProEq: () -> Unit, onDone: () -> Unit) {
+    val outcome = step.outcome
     Column(Modifier.fillMaxWidth().padding(top = 32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = AutoVybzColors.GreenBright, modifier = Modifier.size(96.dp))
         Spacer(Modifier.height(12.dp))
@@ -520,6 +621,31 @@ private fun SavedStep(step: WizardStep.Saved, onOpenProEq: () -> Unit, onDone: (
         }
         Spacer(Modifier.height(8.dp))
         OutlinedButton(onClick = onOpenProEq, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.avz_open_pro_eq)) }
+        if (outcome != null) {
+            Spacer(Modifier.height(24.dp))
+            Text(
+                stringResource(R.string.avz_share_invite),
+                style = MaterialTheme.typography.bodyMedium,
+                color = AutoVybzColors.OnDarkMuted,
+                textAlign = TextAlign.Center,
+            )
+            Spacer(Modifier.height(8.dp))
+            ShareResultButton(outcome, step.presetName, Modifier.fillMaxWidth())
+        }
+    }
+}
+
+/** Renders the result card and opens the system share sheet. */
+@Composable
+private fun ShareResultButton(outcome: com.andrexthedev.autovybz.measurement.MeasurementOutcome, presetName: String, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    OutlinedButton(
+        onClick = { ResultSharer.share(context, outcome, presetName) },
+        border = BorderStroke(1.dp, AutoVybzColors.Gold),
+        modifier = modifier,
+    ) {
+        Icon(Icons.Filled.Share, contentDescription = null, tint = AutoVybzColors.Gold, modifier = Modifier.size(18.dp))
+        Text("  " + stringResource(R.string.avz_share_result), color = AutoVybzColors.Gold)
     }
 }
 
@@ -564,5 +690,8 @@ internal fun avzTextFieldColors() = OutlinedTextFieldDefaults.colors(
     focusedLabelColor = AutoVybzColors.GreenBright,
     cursorColor = AutoVybzColors.Gold,
 )
+
+/** Above this RMS disagreement between positions the result gets a gentle hint. */
+private const val HIGH_POSITION_SPREAD_DB = 4.0
 
 private fun fmt1(v: Double) = String.format(Locale.getDefault(), "%.1f", v)

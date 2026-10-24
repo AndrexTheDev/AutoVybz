@@ -1,0 +1,7 @@
+AutoVybz 0.1.0-alpha – primera versión
+• Asistente de 1 clic para calibrar altavoz y sala (barrido de 10 s + ruido rosa)
+• Modo preciso: promedio de 3 posiciones
+• Perfiles de micrófono del móvil, micrófonos de medición USB
+• Objetivos Smart / Plano / Bass Boost / Harman / Personalizado, 5 o 10 bandas PEQ
+• Pre-ganancia automática + limitador; exportar: Equalizer APO, JSON, REW CSV
+• Tarjeta para compartir, ayuda, donaciones cripto, inglés/alemán/español

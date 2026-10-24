@@ -1,0 +1,25 @@
+<b>Un toque. 10 segundos. Tu altavoz, ajustado a tu sala.</b>
+
+AutoVybz calibra automáticamente tu altavoz externo (Bluetooth, AUX, USB, HDMI) para tu sala usando el micrófono de tu móvil y aplica la corrección en todo el sistema.
+
+<b>Cómo funciona</b>
+<ul>
+<li>Prueba de exactamente 10 s: ruido de la sala, ruido rosa y un barrido senoidal logarítmico de 20 Hz a 20 kHz</li>
+<li>Entrada de micrófono sin procesar (UNPROCESSED, alternativa VOICE_RECOGNITION) mediante un motor nativo Oboe/C++</li>
+<li>Detección automática de latencia: funciona con altavoces Bluetooth</li>
+<li>Perfiles de compensación de micrófono por modelo de móvil; micrófonos de medición USB con archivo de calibración (Pro)</li>
+<li>Suavizado dinámico (fuerte en graves, 1/3 de octava en medios y agudos)</li>
+<li>Hasta 10 filtros paramétricos ajustados a tu objetivo, sin realzar graves que tu altavoz no puede reproducir</li>
+<li>Pre-ganancia automática y limitador contra la saturación</li>
+<li>Modo preciso opcional: 3 posiciones promediadas en potencia; ignora los huecos que solo existen en un punto</li>
+</ul>
+
+<b>Objetivos</b>: Smart (realce suave de graves), Neutro/Plano, Bass Boost, Harman/Loudness, Personalizado.
+
+<b>Área Pro</b>: motor completo de Equalizer314: EQ paramétrico de 10 bandas con gráfico, compresor multibanda, limitador, presets, AutoEQ.
+
+<b>Exportar y compartir</b>: Equalizer APO / Peace, JSON de EQ paramétrico, CSV para REW y una tarjeta para compartir con tu medición real.
+
+Los auriculares se excluyen a propósito: AutoVybz está hecho para altavoces.
+
+100 % código abierto (GPL-3.0), donationware, sin anuncios, sin rastreo. Basado en Equalizer314 de bearinmindcat.

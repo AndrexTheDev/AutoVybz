@@ -5,8 +5,9 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -46,7 +47,7 @@ private fun render(preset: AutoVybzPreset, format: ExportFormat): String = when 
 
 /** "Export" button with APO / JSON / REW CSV / AutoVybz options, written via the Storage Access Framework. */
 @Composable
-fun ExportButton(preset: () -> AutoVybzPreset?, modifier: Modifier = Modifier) {
+fun ExportButton(preset: () -> AutoVybzPreset?, modifier: Modifier = Modifier, fillWidth: Boolean = false) {
     val context = LocalContext.current
     var menu by remember { mutableStateOf(false) }
     var pending by remember { mutableStateOf<String?>(null) }
@@ -80,9 +81,9 @@ fun ExportButton(preset: () -> AutoVybzPreset?, modifier: Modifier = Modifier) {
     }
 
     Box(modifier) {
-        OutlinedButton(onClick = { menu = true }) {
-            Icon(Icons.Filled.Share, contentDescription = null)
-            Text("  " + stringResource(R.string.avz_export))
+        OutlinedButton(onClick = { menu = true }, modifier = if (fillWidth) Modifier.fillMaxWidth() else Modifier) {
+            Text(stringResource(R.string.avz_export))
+            Icon(Icons.Filled.ArrowDropDown, contentDescription = null)
         }
         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
             DropdownMenuItem(text = { Text(stringResource(R.string.avz_export_apo)) }, onClick = { start(ExportFormat.APO) })

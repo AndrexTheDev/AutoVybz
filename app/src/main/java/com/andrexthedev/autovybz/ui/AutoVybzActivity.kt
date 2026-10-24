@@ -61,7 +61,8 @@ class AutoVybzActivity : ComponentActivity() {
             AutoVybzTheme {
                 val state by wizard.state.collectAsState()
                 // Keep the screen on while measuring - a screen-off would stop audio on some OEMs.
-                val busy = state.step is WizardStep.Measuring || state.step is WizardStep.Preparing || state.step is WizardStep.Analyzing
+                val busy = state.step is WizardStep.Measuring || state.step is WizardStep.Preparing ||
+                    state.step is WizardStep.Analyzing || state.step is WizardStep.MovePhone
                 LaunchedEffect(busy) {
                     if (busy) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                     else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)

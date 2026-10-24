@@ -13,6 +13,7 @@ import com.andrexthedev.autovybz.measurement.dsp.AnalyzerConfig
 import com.andrexthedev.autovybz.measurement.dsp.MeasurementAnalyzer
 import com.andrexthedev.autovybz.measurement.dsp.MeasurementResult
 import com.andrexthedev.autovybz.measurement.dsp.SmoothingProfile
+import com.andrexthedev.autovybz.measurement.dsp.SpatialAverager
 import com.andrexthedev.autovybz.measurement.dsp.StimulusGenerator
 import com.andrexthedev.autovybz.measurement.eq.AutoEqRenderer
 import com.andrexthedev.autovybz.measurement.eq.AutoEqResult
@@ -64,6 +65,10 @@ class MeasurementOutcome(
     val micDescription: String,
     val fftEngine: String,
     val createdAtMillis: Long = System.currentTimeMillis(),
+    /** Number of microphone positions that were averaged (1 = single measurement). */
+    val positions: Int = 1,
+    /** RMS disagreement between the positions in dB (null for a single position). */
+    val positionSpreadDb: Double? = null,
 )
 
 /**
@@ -119,7 +124,25 @@ class MeasurementController(
         MeasurementOutcome(
             request, outcome.result, render(outcome.result, request), outcome.capture,
             outcome.micProfile, outcome.micDescription, outcome.fftEngine, outcome.createdAtMillis,
+            outcome.positions, outcome.positionSpreadDb,
         )
+
+    /**
+     * Multi-position calibration: power-averages the individual measurements (see [SpatialAverager])
+     * and fits the EQ to the average. A single outcome is returned unchanged.
+     */
+    fun combine(outcomes: List<MeasurementOutcome>, request: MeasurementRequest): MeasurementOutcome {
+        require(outcomes.isNotEmpty()) { "no measurements" }
+        if (outcomes.size == 1) return outcomes[0]
+        val results = outcomes.map { it.result }
+        val averaged = SpatialAverager.average(results)
+        val last = outcomes.last()
+        return MeasurementOutcome(
+            request, averaged, render(averaged, request), last.capture, last.micProfile, last.micDescription,
+            last.fftEngine, last.createdAtMillis, positions = outcomes.size,
+            positionSpreadDb = SpatialAverager.spreadDb(results, averaged),
+        )
+    }
 
     private fun render(result: MeasurementResult, request: MeasurementRequest): AutoEqResult =
         AutoEqRenderer.render(
