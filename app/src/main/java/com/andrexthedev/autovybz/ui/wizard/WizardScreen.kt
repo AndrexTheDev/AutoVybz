@@ -2,6 +2,10 @@
 
 package com.andrexthedev.autovybz.ui.wizard
 
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ime
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import com.andrexthedev.autovybz.ui.components.AdaptiveButtonRow
@@ -215,7 +219,7 @@ private fun IdleStep(state: WizardUiState, vm: WizardViewModel, onStart: () -> U
     )
 
     SectionTitle(stringResource(R.string.avz_env_label))
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { // wraps instead of splitting words (W10)
         for ((env, label) in listOf(
             ListeningEnvironment.INDOOR to R.string.avz_env_indoor,
             ListeningEnvironment.OUTDOOR to R.string.avz_env_outdoor,
@@ -246,7 +250,7 @@ private fun IdleStep(state: WizardUiState, vm: WizardViewModel, onStart: () -> U
     TargetChooser(state.target, vm::onTargetChanged)
 
     SectionTitle(stringResource(R.string.avz_positions_label))
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { // wraps instead of splitting words (W10)
         for ((count, label) in listOf(1 to R.string.avz_positions_quick, 3 to R.string.avz_positions_precise)) {
             FilterChip(
                 selected = state.positions == count,
@@ -739,7 +743,7 @@ private fun ResultStep(step: WizardStep.Result, state: WizardUiState, vm: Wizard
     SectionTitle(stringResource(R.string.avz_target_label))
     TargetChooser(state.target, vm::onTargetChanged)
     SectionTitle(stringResource(R.string.avz_result_precision))
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { // wraps instead of splitting words (W10)
         for ((count, label) in listOf(5 to R.string.avz_bands_5, 10 to R.string.avz_bands_10)) {
             FilterChip(
                 selected = state.bandCount == count,
@@ -755,6 +759,7 @@ private fun ResultStep(step: WizardStep.Result, state: WizardUiState, vm: Wizard
     }
 
     val nameInView = remember { BringIntoViewRequester() }
+    var nameFocused by remember { mutableStateOf(false) }
     OutlinedTextField(
         value = step.presetName,
         onValueChange = vm::onPresetNameChanged,
@@ -769,12 +774,17 @@ private fun ResultStep(step: WizardStep.Result, state: WizardUiState, vm: Wizard
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
         keyboardActions = KeyboardActions(onDone = { focus.clearFocus() }),
         colors = avzTextFieldColors(),
-        modifier = Modifier.fillMaxWidth().bringIntoViewRequester(nameInView).testTag("avz:result:name"),
+        modifier = Modifier.fillMaxWidth().bringIntoViewRequester(nameInView)
+            .onFocusChanged { nameFocused = it.isFocused }.testTag("avz:result:name"),
     )
-    // The focused-field auto-scroll only reveals the text line; bring the whole field incl. the error /
-    // "already exists" hint above the keyboard (end-user test W5).
+    // Edge-to-edge: the keyboard shrinks the content via imePadding, but nothing scrolled the field back into
+    // view, and the focused-field auto-scroll would only reveal the text line. Bring the whole field incl. the
+    // error / "already exists" hint above the keyboard whenever the keyboard height changes (end-user test W5).
     val hint = !step.nameValid || step.nameExists
-    LaunchedEffect(hint) { if (hint) runCatching { nameInView.bringIntoView() } }
+    val imeBottom = WindowInsets.ime.getBottom(LocalDensity.current)
+    LaunchedEffect(hint, nameFocused, imeBottom) {
+        if (hint || (nameFocused && imeBottom > 0)) runCatching { nameInView.bringIntoView() }
+    }
 
     Button(
         onClick = { vm.onSave(apply = true) },

@@ -14,13 +14,13 @@ Companion documents:
 
 | # | Layer | Where | Runs in | Count |
 |---|---|---|---|---|
-| L1 | JVM unit + property + fuzz tests | `app/src/test` | `ci.yml`, `e2e.yml` build | 24 classes · 110 tests |
-| L2 | Static audits as unit tests (strings, colours, manifest, licences, project info) | `app/src/test/.../audit` | same | 5 classes · 34 tests (part of L1) |
+| L1 | JVM unit + property + fuzz tests | `app/src/test` | `ci.yml`, `e2e.yml` build | 24 classes · 113 tests |
+| L2 | Static audits as unit tests (strings, colours, manifest, licences, project info) | `app/src/test/.../audit` | same | 5 classes · 37 tests (part of L1) |
 | L3 | Native host check (C++ FFT vs. DFT, Oboe/JNI syntax) | `tools/native/host_check.sh` | `ci.yml`, `e2e.yml` | 1 |
-| L4 | Instrumented E2E (real Activity, simulated room engine) | `app/src/androidTest/.../e2e` | `e2e.yml` device, API 28/30/35 | 10 classes · 55 tests |
+| L4 | Instrumented E2E (real Activity, simulated room engine) | `app/src/androidTest/.../e2e` | `e2e.yml` device, API 28/30/35 | 10 classes · 56 tests |
 | L5 | Inherited Equalizer314 instrumented test | `HrirConvolverTest` | same | 3 |
-| L6 | Screenshot matrix + accessibility per configuration | `ScreenshotTourE2ETest`, `AccessibilityE2ETest` | `e2e.yml` shots, API 35 | 7 configurations × ~40 screens |
-| L7 | Monkey (4000 random events, seed 4711), crash scan, StrictMode count | `tools/e2e/run_e2e.sh` | `e2e.yml` device | 3 API levels |
+| L6 | Screenshot matrix + accessibility per configuration (labels, touch targets incl. WCAG 2.5.8 spacing, headings, ellipsis/max-lines, words split mid-word) | `ScreenshotTourE2ETest`, `AccessibilityE2ETest` | `e2e.yml` shots, API 35 | 7 configurations × ~40 screens |
+| L7 | Monkey (4000 random events, seed 4711) with ANR main-thread trace, crash scan, StrictMode count | `tools/e2e/run_e2e.sh` | `e2e.yml` device | 3 API levels |
 | L8 | Performance: analysis budget (JVM), cold start, memory (device) | `PerformanceBudgetTest`, `run_e2e.sh` | both | — |
 | L9 | Android Lint (AutoVybz must be error-free) | `tools/audit/lint_summary.py` | `e2e.yml` build | — |
 | L10 | Dependency vulnerabilities (OSV.dev) | `tools/audit/osv_check.py` | `e2e.yml` build | all resolved artifacts |
@@ -28,7 +28,7 @@ Companion documents:
 | L12 | APK audit (size, ABIs, assets, manifest via aapt2) | `tools/audit/apk_audit.py` | `e2e.yml` build | — |
 | L13 | Website audit (16 pages EN/DE/ES: links, anchors, hreflang, headings, alt, legal links, addresses, sitemap, manifest, i18n parity) | `tools/audit/site_audit.py` | `e2e.yml` build | — |
 | L14 | Mic profile DB regenerates identically | `tools/micdb/generate_mic_profiles.py` | both | — |
-| L15 | Moderated end-user test | [END_USER_TEST.md](END_USER_TEST.md) | humans | 8 tasks |
+| L15 | End-user test: Part A expert walkthrough of the screenshot matrix, Part B moderated sessions | [END_USER_TEST.md](END_USER_TEST.md) | humans | 8 tasks |
 | L16 | Closed / open beta with field reports | [BETA_TEST_PLAN.md](BETA_TEST_PLAN.md), issue template "Beta report" | humans | — |
 
 The audits are tested themselves (mutation check): injected faults such as a broken link, missing alt text, a
@@ -102,10 +102,14 @@ real Bluetooth latency, real microphones, loudness comfort, and whether the EQ i
 | Donate modal with exact addresses + copy | `ProjectInfoAuditTest.*` (checksums: Bech32, base58/32 bytes, EIP-55), `NavigationE2ETest.donateDialog_copiesAllThreeAddressesExactly`, website audit | EUT T6 |
 | Contact e-mail, developer name | `ProjectInfoAuditTest.valuesAreExactlyTheRequestedOnes`, `NavigationE2ETest.feedbackMail_isAddressedToTheDeveloper`, website audit (imprint) | — |
 | Theme #121212 / green #009B3A / gold #FED100, WCAG | `ColorContrastAuditTest.*` | Q7 |
-| Accessibility (48 dp, labels, headings, no clipped text) | `AccessibilityE2ETest` × 7 configurations (incl. font 130 %, small phone, landscape) | EUT Q7 |
-| EN / DE / ES complete, consistent | `StringResourceAuditTest.*` (11 checks), `ManifestAuditTest.localeConfig…`, screenshot matrix per language, website i18n parity | EUT in tester's language |
+| Accessibility (48 dp / WCAG 2.5.8 spacing, labels, headings, no clipped or mid-word split text) | `AccessibilityE2ETest` × 7 configurations (incl. font 130 %, small phone, landscape), `AdaptiveButtonRow` stacks buttons above 115 % font | EUT Q7, Part A |
+| EN / DE / ES complete, consistent, own quotation marks | `StringResourceAuditTest.*` (13 checks incl. plurals with Spanish `many` and `everyLanguageUsesItsOwnQuotationMarks`), `ManifestAuditTest.localeConfig…`, screenshot matrix per language, website i18n parity | EUT in tester's language |
 | GPL-3.0 open source, no trackers | `LicenseAuditTest.*`, OSV check, secret scan | — |
 | No crashes | monkey + crash scan on 3 API levels, all suites | beta crash-free rate |
 | Fast and lean | `PerformanceBudgetTest.*`, cold start + PSS on device, APK size budget | EUT Q4 |
 | Landing page incl. legal pages | website audit (L13) | — |
+| Android 9+ (minSdk 28: DynamicsProcessing) everywhere the same | `ManifestAuditTest.minSdkMatchesTheDocumentedAndroidVersion` (gradle, engine, README badge, website), device runs on API 28/30/35, `apk_audit.py` | beta device matrix |
+| Edge-to-edge (Android 15+), landscape, keyboard | screenshot matrix (`de-landscape`, `en-tablet`, `result_name_invalid` with keyboard), `AccessibilityE2ETest` | Part A |
+| Live A/B: switch the correction off/on while music plays | `ProE2ETest.soundCorrectionSwitch_isAccessibleAndFollowsTheEngine` (role, on/off state, engine sync) | EUT T2/T3 |
+| No developer toasts over the AutoVybz UI | screenshot matrix (`move_*`, `result_*`, `pro_*`) | Part A |
 | Classic Equalizer314 still works | `LegacyActivitiesE2ETest.*`, `HrirConvolverTest`, `HrirLoaderTest`, `BiquadParityTest` | — |

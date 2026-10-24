@@ -311,7 +311,7 @@ private fun MeasurementSettings(settings: AutoVybzSettings) {
     var restoreVol by remember { mutableStateOf(settings.restoreVolumeAfter) }
 
     Text(stringResource(R.string.avz_pro_bands), style = MaterialTheme.typography.titleSmall)
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { // wraps instead of splitting words (W10)
         for ((n, label) in listOf(5 to R.string.avz_bands_5, 10 to R.string.avz_bands_10)) {
             AvzChip(bands == n, stringResource(label)) { bands = n; settings.bandCount = n }
         }

@@ -11,11 +11,21 @@ class VisualizerHelper {
 
     companion object {
         private const val TAG = "VisualizerHelper"
+
+        /**
+         * AutoVybz: Visualizer(0) construction / release are synchronous binder calls into audioserver that can
+         * block for seconds while the EQ engine reconfigures session 0 (API 30 monkey: "Input dispatching timed
+         * out" in MbcActivity). They run serially on this thread instead of the UI thread.
+         */
+        private val audioThread = java.util.concurrent.Executors.newSingleThreadExecutor { r ->
+            Thread(r, "avz-visualizer").apply { isDaemon = true }
+        }
     }
 
-    private var visualizer: Visualizer? = null
+    @Volatile private var visualizer: Visualizer? = null   // only touched on audioThread
+    @Volatile private var generation = 0                   // bumped by every start()/stop() on the UI thread
     val renderer = SpectrumAnalyzerRenderer()
-    var isRunning = false
+    @Volatile var isRunning = false                        // the requested state, set synchronously for the UI
         private set
 
     // Playback state detection (no permissions needed, API 26+)
@@ -58,8 +68,15 @@ class VisualizerHelper {
             audioManager?.registerAudioPlaybackCallback(playbackCallback!!, null)
         }
 
+        isRunning = true
+        val gen = ++generation
+        audioThread.execute { createVisualizer(gen, graphView) }
+    }
+
+    private fun createVisualizer(gen: Int, graphView: EqGraphView) {
+        if (gen != generation) return  // stopped or restarted before we got here
         try {
-            visualizer = Visualizer(0).apply {
+            val v = Visualizer(0).apply {
                 captureSize = Visualizer.getCaptureSizeRange()[1]
                 scalingMode = Visualizer.SCALING_MODE_NORMALIZED
                 measurementMode = Visualizer.MEASUREMENT_MODE_PEAK_RMS
@@ -113,12 +130,16 @@ class VisualizerHelper {
 
                 enabled = true
             }
-            isRunning = true
-            Log.d(TAG, "Visualizer started (waveform mode), capture size: ${visualizer?.captureSize}")
+            if (gen != generation) { // stop() was called while audioserver was busy
+                runCatching { v.enabled = false; v.release() }
+                return
+            }
+            visualizer = v
+            Log.d(TAG, "Visualizer started (waveform mode), capture size: ${v.captureSize}")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to start Visualizer", e)
             visualizer = null
-            isRunning = false
+            if (gen == generation) isRunning = false
         }
     }
 
@@ -131,14 +152,18 @@ class VisualizerHelper {
         audioManager = null
         graphViewRef = null
 
-        try {
-            visualizer?.enabled = false
-            visualizer?.release()
-        } catch (e: Exception) {
-            Log.e(TAG, "Error releasing Visualizer", e)
-        }
-        visualizer = null
+        generation++
         isRunning = false
+        audioThread.execute {
+            val v = visualizer
+            visualizer = null
+            try {
+                v?.enabled = false
+                v?.release()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error releasing Visualizer", e)
+            }
+        }
         // Don't call renderer.release() — it kills opacity and smoothedLinear.
         // The renderer will reset naturally when new waveform data arrives.
     }

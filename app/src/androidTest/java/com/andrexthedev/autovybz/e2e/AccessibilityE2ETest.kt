@@ -49,24 +49,32 @@ class AccessibilityE2ETest : E2eTest() {
         val minPx = with(rule.density) { 48.dp.toPx() } - 1.5f
         val absMinPx = with(rule.density) { 24.dp.toPx() } - 1.5f
         val dp = rule.density.density
-        val clickables = rule.onAllNodes(hasClickAction()).fetchSemanticsNodes()
+        val all = rule.onAllNodes(hasClickAction()).fetchSemanticsNodes()
             .filter { it.boundsInRoot.width > 0f && it.boundsInRoot.height > 0f } // off-screen / not laid out
+        // With a dialog open only the dialog can be operated (the scrim blocks the screen behind it).
+        val dialogRoot = all.firstOrNull { it.config.getOrNull(SemanticsProperties.TestTag).let { t -> t == "avz:dialog:confirm" || t == "avz:donate:close" } }?.let(::rootOf)
+        val clickables = if (dialogRoot == null) all else all.filter { rootOf(it) == dialogRoot }
         for (n in clickables) {
             val b = n.boundsInRoot
             val l = label(n)
             if (l.isBlank()) problems += "$screen: control without label at $b"
             // Text fields: the semantics node is the inner text line, the tappable area is the whole field.
             if (n.config.contains(SemanticsActions.SetText)) continue
-            if (b.width >= minPx && b.height >= minPx) continue
+            // Size = laid-out size; boundsInRoot is clipped by the scroll viewport (a chip half under the bottom bar
+            // measured "110x12 dp" in campaign 3). Partially visible controls are judged when fully on screen.
+            val w = n.size.width.toFloat(); val h = n.size.height.toFloat()
+            if (w >= minPx && h >= minPx) continue
+            if (b.width < w - 1.5f || b.height < h - 1.5f) continue
             // Smaller visuals are fine when Compose's 48 dp touch expansion has room (Material chips/buttons
             // reserve it via minimumInteractiveComponentSize) - the WCAG 2.5.8 spacing rule: >= 24 dp, and the
             // 48 dp box around the centre overlaps no other control.
             val c = b.center
-            val box = androidx.compose.ui.geometry.Rect(c.x - maxOf(b.width, minPx) / 2, c.y - maxOf(b.height, minPx) / 2,
-                c.x + maxOf(b.width, minPx) / 2, c.y + maxOf(b.height, minPx) / 2)
-            val crowded = clickables.any { o -> o.id != n.id && rootOf(o) == rootOf(n) && o.boundsInRoot.overlaps(box) && !o.boundsInRoot.contains(c) && !b.contains(o.boundsInRoot.center) }
-            if (b.width < absMinPx || b.height < absMinPx || crowded)
-                problems += "$screen: touch target %.0fx%.0f dp%s '%s'".format(b.width / dp, b.height / dp, if (crowded) " (crowded)" else "", l.take(40))
+            val box = androidx.compose.ui.geometry.Rect(c.x - maxOf(w, minPx) / 2, c.y - maxOf(h, minPx) / 2,
+                c.x + maxOf(w, minPx) / 2, c.y + maxOf(h, minPx) / 2)
+            val neighbour = clickables.firstOrNull { o -> o.id != n.id && rootOf(o) == rootOf(n) && o.boundsInRoot.overlaps(box) && !o.boundsInRoot.contains(c) && !b.contains(o.boundsInRoot.center) }
+            if (w < absMinPx || h < absMinPx || neighbour != null)
+                problems += "$screen: touch target %.0fx%.0f dp%s '%s'".format(w / dp, h / dp,
+                    neighbour?.let { " (crowded by '${label(it).take(30)}' %.0f dp away)".format(gap(b, it.boundsInRoot) / dp) } ?: "", l.take(40))
         }
         // Fetch on the test thread (synchronizing), then query the text layouts on the UI thread.
         val textNodes = rule.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsActions.GetTextLayoutResult), useUnmergedTree = true)
@@ -94,6 +102,13 @@ class AccessibilityE2ETest : E2eTest() {
         if (rule.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading)).fetchSemanticsNodes().isEmpty() &&
             !rule.has("avz:dialog:confirm") && !rule.has("avz:donate:close")
         ) problems += "$screen: no heading"
+    }
+
+    /** Smallest edge distance between two rectangles (0 when they touch or overlap). */
+    private fun gap(a: androidx.compose.ui.geometry.Rect, b: androidx.compose.ui.geometry.Rect): Float {
+        val dx = maxOf(0f, maxOf(a.left, b.left) - minOf(a.right, b.right))
+        val dy = maxOf(0f, maxOf(a.top, b.top) - minOf(a.bottom, b.bottom))
+        return maxOf(dx, dy)
     }
 
     /** The first word that a soft line break cuts in two, or null. */

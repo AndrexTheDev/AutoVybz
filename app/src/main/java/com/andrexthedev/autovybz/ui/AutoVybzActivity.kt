@@ -128,10 +128,13 @@ private fun AutoVybzApp(wizardContent: @Composable (openHelp: () -> Unit) -> Uni
     BackHandler(enabled = tab != Tab.WIZARD) { tabIndex = Tab.WIZARD.ordinal }
     // Landscape phones (and split screen) have little height: header + bottom bar would eat half of it.
     // There the navigation moves to a side rail and the header drops its subtitle.
-    val compact = LocalConfiguration.current.screenHeightDp < 480
+    val heightDp = LocalConfiguration.current.screenHeightDp
+    val compact = heightDp < 480
+    // Small phones (720x1280 ≈ 640 dp): the tagline wrapped to two lines and pushed the content down.
+    val compactHeader = heightDp < 700
     Scaffold(
         containerColor = AutoVybzColors.Background,
-        topBar = { AutoVybzHeader(subtitle = stringResource(R.string.avz_tagline), compact = compact) },
+        topBar = { AutoVybzHeader(subtitle = stringResource(R.string.avz_tagline), compact = compactHeader) },
         bottomBar = {
             if (!compact) NavigationBar(containerColor = AutoVybzColors.BackgroundDeep) {
                 for (t in Tab.values()) {

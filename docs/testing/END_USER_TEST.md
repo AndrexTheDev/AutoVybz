@@ -73,6 +73,15 @@ Mark every finding with the cell ID (e.g. `de-phone-font130 / result_actions`) a
 10. **Heuristics** (Nielsen): visibility of system status (countdown, progress, position x/y), match with the
     real world, user control (cancel/back everywhere), error prevention (name validation, discard dialogs),
     recognition rather than recall, minimalist design, help and documentation.
+11. **System bars & overlays:** the status bar (clock, cut-out) never overlaps the header (Android 15+ is
+    always edge-to-edge); no toasts or developer messages cover the navigation or buttons.
+12. **Keyboard:** with the keyboard open, the focused field **and** its error / hint text stay visible
+    (`result_name_invalid` is shot with the keyboard on purpose); shots that are not about typing show no keyboard.
+13. **Tour sanity:** each screen shows what its name says (no "Analyzing…" in `result_*`, no identical
+    `*_expanded_<n>` frames) – otherwise the tour, not the app, needs fixing.
+
+The findings of the latest walkthrough (W1–W12) and how each was fixed are in
+[TEST_REPORT.md §5](TEST_REPORT.md).
 
 ---
 
@@ -87,7 +96,7 @@ Mark every finding with the cell ID (e.g. `de-phone-font130 / result_actions`) a
 | 1× non-native speaker of the UI language | wording |
 | 1× audio enthusiast (knows REW / APO) | Pro area, exports, credibility |
 | 1× low-vision user (font 130 %+ or TalkBack) | accessibility |
-| optional: 1–2 owners of unusual devices (Xiaomi, old Android 7–9) | audio stack coverage |
+| optional: 1–2 owners of unusual devices (Xiaomi, old Android 9–10) | audio stack coverage |
 
 ### B.2 Set-up
 

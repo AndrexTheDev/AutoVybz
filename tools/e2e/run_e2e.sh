@@ -71,14 +71,23 @@ if [ "$MODE" = functional ]; then
   adb logcat -d -v threadtime > "$OUT/monkey.logcat.txt" 2>&1
   if grep -q "// CRASH\|// NOT RESPONDING" "$OUT/monkey.txt"; then
     WHAT=$(grep -m1 -A12 "// CRASH\|// NOT RESPONDING" "$OUT/monkey.txt" | grep -E "CRASH|NOT RESPONDING|Short Msg|Long Msg|ANR in|Reason|at com\.(andrexthedev|bearinmind)" | head -6 | tr '\n' ' ' | cut -c1-600)
-    note "- ❌ **Monkey**: $WHAT"; echo "::error title=Monkey API $API::$WHAT"; FAIL=1
+    # Only a crash / ANR of AutoVybz fails the gate. Monkey can pull down the notification shade despite -p;
+    # a system-process ANR on an overloaded emulator is recorded as an environment finding.
+    WHO=$(grep -m1 -oE "// (CRASH|NOT RESPONDING): [^ ]+" "$OUT/monkey.txt" | awk '{print $NF}')
+    if [ "$WHO" = "$PKG" ]; then
+      note "- ❌ **Monkey**: $WHAT"; echo "::error title=Monkey API $API::$WHAT"; FAIL=1
+    else
+      note "- ⚠️ **Monkey**: 4000 events, no AutoVybz crash / ANR; environment: $WHO – $WHAT"
+      echo "::warning title=Monkey API $API (system process)::$WHAT"
+    fi
     grep -B2 -A40 "// CRASH\|// NOT RESPONDING" "$OUT/monkey.txt" | head -120 > "$OUT/monkey_problem.txt"
     # Main-thread stack of the ANR (what the UI thread was blocked on)
     T=$(adb shell 'ls -t /data/anr/ 2>/dev/null | head -1' | tr -d '\r')
     if [ -n "$T" ]; then
       adb shell "cat /data/anr/$T" > "$OUT/anr_trace.txt" 2>/dev/null
       awk '/^Cmd line: '"$PKG"'$/{p=1} p&&/^"main"/{m=1} m{print} m&&/^$/{exit}' "$OUT/anr_trace.txt" > "$OUT/anr_main.txt"
-      STACK=$(grep -E "^\s+(at|- waiting|- locked|- sleeping|native)" "$OUT/anr_main.txt" | head -8 | sed 's/^\s*//' | tr '\n' ' ' | cut -c1-700)
+      # Java frames tell which call blocked; native frames only show "binder transact".
+      STACK=$( { grep -E "^\s+(- waiting|- locked|- sleeping)" "$OUT/anr_main.txt"; grep -E "^\s+at " "$OUT/anr_main.txt" | head -12; } | sed 's/^\s*//' | tr '\n' ' ' | cut -c1-1200)
       note "  - ANR main thread: $STACK"
       echo "::error title=ANR main thread API $API::$STACK"
     fi
@@ -138,7 +147,7 @@ de-landscape|de-DE|1080x2400|420|1.0|1"
     sleep 2
     run "shots_$NAME" -e class $E2E.ScreenshotTourE2ETest -e avz_shots true -e avz_config "$NAME"
     # The accessibility / clipped-text audit in the same configuration.
-    run "a11y_$NAME" -e class $E2E.AccessibilityE2ETest
+    run "a11y_$NAME" -e class $E2E.AccessibilityE2ETest -e avz_config "$NAME"   # same rotation freeze
     pull_shots "$NAME"
   done
   adb shell wm size reset; adb shell wm density reset
