@@ -10,6 +10,11 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.windowInsetsTopHeight
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.isImeVisible
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.material3.NavigationRail
@@ -132,9 +137,15 @@ private fun AutoVybzApp(wizardContent: @Composable (openHelp: () -> Unit) -> Uni
     val compact = heightDp < 480
     // Small phones (720x1280 ≈ 640 dp): the tagline wrapped to two lines and pushed the content down.
     val compactHeader = heightDp < 700
+    val imeVisible = WindowInsets.isImeVisible
     Scaffold(
         containerColor = AutoVybzColors.Background,
-        topBar = { AutoVybzHeader(subtitle = stringResource(R.string.avz_tagline), compact = compactHeader) },
+        topBar = {
+            // Landscape with the keyboard open: only ~40 % of the height is left above the keyboard. The header goes
+            // (the rail keeps the navigation reachable), the field being edited gets the whole strip.
+            if (compact && imeVisible) Spacer(Modifier.windowInsetsTopHeight(WindowInsets.safeDrawing))
+            else AutoVybzHeader(subtitle = stringResource(R.string.avz_tagline), compact = compactHeader)
+        },
         bottomBar = {
             if (!compact) NavigationBar(containerColor = AutoVybzColors.BackgroundDeep) {
                 for (t in Tab.values()) {

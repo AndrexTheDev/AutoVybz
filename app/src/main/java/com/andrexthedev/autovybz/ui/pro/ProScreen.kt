@@ -258,7 +258,7 @@ private fun CalibrationList() {
                     },
                     modifier = Modifier.testTag("avz:pro:apply:${p.name}"),
                 ) { Text(stringResource(R.string.avz_apply)) }
-                ExportButton(preset = { p })
+                ExportButton(preset = { p }, openTag = "avz:pro:export:${p.name}")
                 TextButton(onClick = { toDelete = p.name }, modifier = Modifier.testTag("avz:pro:delete:${p.name}")) {
                     Text(stringResource(R.string.avz_delete), color = AutoVybzColors.Error)
                 }

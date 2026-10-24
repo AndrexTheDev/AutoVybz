@@ -49,7 +49,13 @@ private fun render(preset: AutoVybzPreset, format: ExportFormat): String = when 
 
 /** "Export" button with APO / JSON / REW CSV / AutoVybz options, written via the Storage Access Framework. */
 @Composable
-fun ExportButton(preset: () -> AutoVybzPreset?, modifier: Modifier = Modifier, fillWidth: Boolean = false) {
+/** [openTag] must be unique per screen: the Pro list shows one export button per saved calibration. */
+fun ExportButton(
+    preset: () -> AutoVybzPreset?,
+    modifier: Modifier = Modifier,
+    fillWidth: Boolean = false,
+    openTag: String = "avz:export:open",
+) {
     val context = LocalContext.current
     var menu by remember { mutableStateOf(false) }
     // Only the chosen format survives a configuration change while the file picker is open; the text is
@@ -86,7 +92,7 @@ fun ExportButton(preset: () -> AutoVybzPreset?, modifier: Modifier = Modifier, f
     }
 
     Box(modifier) {
-        OutlinedButton(onClick = { menu = true }, modifier = (if (fillWidth) Modifier.fillMaxWidth() else Modifier).testTag("avz:export:open")) {
+        OutlinedButton(onClick = { menu = true }, modifier = (if (fillWidth) Modifier.fillMaxWidth() else Modifier).testTag(openTag)) {
             Text(stringResource(R.string.avz_export))
             Icon(Icons.Filled.ArrowDropDown, contentDescription = null)
         }

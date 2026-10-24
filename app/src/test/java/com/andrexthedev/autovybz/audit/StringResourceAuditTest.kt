@@ -194,5 +194,37 @@ class StringResourceAuditTest {
         report("hardcoded UI text", problems)
     }
 
+    /**
+     * The inherited Equalizer314 screens (Pro area: 10-band EQ, compressor, limiter, presets) live in strings.xml.
+     * Upstream shipped Spanish but no German, so German users saw English there (lint MissingTranslation x440).
+     * Every translatable key must exist in de and es with the same placeholders, and German uses its own quotes.
+     */
+    @Test
+    fun inheritedScreensAreFullyTranslated() {
+        fun translatable(loc: String): Map<String, String> {
+            val f = ProjectFiles.module("src/main/res/$loc/strings.xml")
+            val doc = ProjectFiles.xml(f).documentElement
+            val skip = (0 until doc.childNodes.length).map { doc.childNodes.item(it) }.filterIsInstance<org.w3c.dom.Element>()
+                .filter { it.getAttribute("translatable") == "false" }.map { it.getAttribute("name") }.toSet()
+            return ProjectFiles.strings(f).filterKeys { it !in skip }
+        }
+        val en = translatable("values")
+        val anyPlaceholder = Regex("""%(\d+\$)?[-#+ 0,(]*\d*(\.\d+)?[sdfx]""")
+        val problems = mutableListOf<String>()
+        for (loc in listOf("values-de", "values-es")) {
+            val map = translatable(loc)
+            (en.keys - map.keys).forEach { problems += "$loc missing $it" }
+            for ((key, text) in map) {
+                val ref = en[key] ?: continue
+                val a = anyPlaceholder.findAll(ref).map { it.value }.sorted().toList()
+                val b = anyPlaceholder.findAll(text).map { it.value }.sorted().toList()
+                if (a != b) problems += "$loc/$key: $b instead of $a"
+                if (loc == "values-de" && "\"" in text) problems += "$loc/$key uses English quotes: $text"
+            }
+        }
+        report("inherited strings not translated", problems)
+        assertTrue("suspiciously few inherited strings: ${en.size}", en.size > 300)
+    }
+
     private fun unescape(raw: String) = raw.replace("\\'", "'").replace("\\\"", "\"").replace("\\n", "\n").replace("\\@", "@").replace("\\?", "?")
 }

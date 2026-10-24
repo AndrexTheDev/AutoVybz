@@ -77,11 +77,18 @@ object Shots {
     fun take(rule: ComposeTestRule, name: String) {
         if (!enabled) return
         rule.waitForIdle()
+        takeRaw(name) { rule.waitForIdle() }
+    }
+
+    /** Screens without Compose (the inherited Equalizer314 activities): synchronise on the main looper only. */
+    fun takeRaw(name: String, settle: () -> Unit = { InstrumentationRegistry.getInstrumentation().waitForIdleSync() }) {
+        if (!enabled) return
+        settle()
         Thread.sleep(400) // let ripples / animations settle (and the frame reach the screen)
         if (landscape && !isLandscapeNow()) {
             // Rotation lost mid-test: turn back (the wizard state lives in the ViewModel and survives the recreation).
             check(ensureLandscape()) { "config $config expects landscape but the screen stayed portrait (${rotationDiagnostics()})" }
-            rule.waitForIdle()
+            settle()
         }
         val bmp = InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot() ?: return
         check(!landscape || bmp.width > bmp.height) { "config $config expects landscape but the screen is ${bmp.width}x${bmp.height} (${rotationDiagnostics()})" }

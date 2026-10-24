@@ -14,10 +14,10 @@ Companion documents:
 
 | # | Layer | Where | Runs in | Count |
 |---|---|---|---|---|
-| L1 | JVM unit + property + fuzz tests | `app/src/test` | `ci.yml`, `e2e.yml` build | 19 classes · 76 tests (with L2: 24 classes · 113 tests in one Gradle run) |
-| L2 | Static audits as unit tests (strings, colours, manifest, licences, project info) | `app/src/test/.../audit` | same | 5 classes · 37 tests (part of L1) |
+| L1 | JVM unit + property + fuzz tests | `app/src/test` | `ci.yml`, `e2e.yml` build | 19 classes · 76 tests (with L2: 24 classes · 114 tests in one Gradle run) |
+| L2 | Static audits as unit tests (strings, colours, manifest, licences, project info) | `app/src/test/.../audit` | same | 5 classes · 38 tests (part of L1) |
 | L3 | Native host check (C++ FFT vs. DFT, Oboe/JNI syntax) | `tools/native/host_check.sh` | `ci.yml`, `e2e.yml` | 1 |
-| L4 | Instrumented E2E (real Activity, simulated room engine) | `app/src/androidTest/.../e2e` | `e2e.yml` device, API 28/30/35 | 10 classes · 56 tests |
+| L4 | Instrumented E2E (real Activity, simulated room engine) | `app/src/androidTest/.../e2e` | `e2e.yml` device, API 28/30/35 | 10 classes · 73 tests (incl. all 19 inherited Equalizer314 screens) |
 | L5 | Inherited Equalizer314 instrumented test | `HrirConvolverTest` | same | 3 |
 | L6 | Screenshot matrix + accessibility per configuration (labels, touch targets incl. WCAG 2.5.8 spacing, headings, ellipsis/max-lines, words split mid-word) | `ScreenshotTourE2ETest`, `AccessibilityE2ETest` | `e2e.yml` shots, API 35 | 7 configurations × ~40 screens |
 | L7 | Monkey (4000 random events, seed 4711) with ANR main-thread trace (only an AutoVybz crash/ANR fails the gate; system-process ANRs such as the notification shade on an overloaded emulator are reported as ⚠️ together with the AutoVybz main-thread stack at that moment), crash scan, StrictMode count | `tools/e2e/run_e2e.sh` | `e2e.yml` device | 3 API levels |
@@ -94,9 +94,9 @@ real Bluetooth latency, real microphones, loudness comfort, and whether the EQ i
 | Safe file names, presets survive | `PresetFilesTest.*`, `AutoVybzPresetCodecTest.*`, `AutoVybzPresetTest.*` | — |
 | Exports internal / APO / REW CSV / PEQ JSON | `PresetExportersTest.*`, `PresetNamingAndApoFuzzTest.apo*`, `ExportShareE2ETest.allExportFormats_produceValidFiles` | EUT T5 |
 | Share card | `ExportShareE2ETest.shareCard_isAPngGrantedThroughTheFileProvider`, `ManifestAuditTest.fileProviderIsPrivate…` | EUT T5 |
-| Pro area (PEQ, MBC, limiter, calibrations) | `ProE2ETest.*`, `NavigationE2ETest.proLinks_openTheEqualizer314Engine`, `LegacyActivitiesE2ETest.*`, `BiquadParityTest` | EUT T3 |
+| Pro area (PEQ, MBC, limiter, calibrations) | `ProE2ETest.*`, `NavigationE2ETest.proLinks_openTheEqualizer314Engine`, `LegacyScreensE2ETest.*`, `BiquadParityTest` | EUT T3 |
 | Navigation Wizard / Pro / Help / About | `NavigationE2ETest.allTabsAreReachable`, `.helpSections_expandAndCollapse`, `.wizardHelpLink_opensHelp`, `WizardLifecycleE2ETest.backFromOtherTabs_returnsToWizard` | EUT all |
-| Survives rotation / process recreation | `WizardLifecycleE2ETest.resultAndOpenDialog_surviveActivityRecreation`, `.measurementSurvivesRecreation`, `LegacyActivitiesE2ETest.*` (recreate) | — |
+| Survives rotation / process recreation | `WizardLifecycleE2ETest.resultAndOpenDialog_surviveActivityRecreation`, `.measurementSurvivesRecreation`, `LegacyScreensE2ETest.*` (recreate) | — |
 | Unsaved-result protection | `WizardLifecycleE2ETest.back*AsksBeforeDiscarding…`, `.measureAgain_asksBeforeDiscarding…` | EUT T2 |
 | Settings persist | `WizardLifecycleE2ETest.wizardChoices_arePersisted`, `ProE2ETest.wizardPicksUpSettingsChangedElsewhere` | — |
 | Donate modal with exact addresses + copy | `ProjectInfoAuditTest.*` (checksums: Bech32, base58/32 bytes, EIP-55), `NavigationE2ETest.donateDialog_copiesAllThreeAddressesExactly`, website audit | EUT T6 |
@@ -112,4 +112,4 @@ real Bluetooth latency, real microphones, loudness comfort, and whether the EQ i
 | Edge-to-edge (Android 15+), landscape, keyboard | screenshot matrix (`de-landscape`, `en-tablet`, `result_name_invalid` with keyboard), `AccessibilityE2ETest` | Part A |
 | Live A/B: switch the correction off/on while music plays | `ProE2ETest.soundCorrectionSwitch_isAccessibleAndFollowsTheEngine` (role, on/off state, engine sync) | EUT T2/T3 |
 | No developer toasts over the AutoVybz UI | screenshot matrix (`move_*`, `result_*`, `pro_*`) | Part A |
-| Classic Equalizer314 still works | `LegacyActivitiesE2ETest.*`, `HrirConvolverTest`, `HrirLoaderTest`, `BiquadParityTest` | — |
+| Classic Equalizer314 still works | `LegacyScreensE2ETest.*`, `HrirConvolverTest`, `HrirLoaderTest`, `BiquadParityTest` | — |

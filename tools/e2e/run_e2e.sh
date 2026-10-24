@@ -168,7 +168,7 @@ de-landscape|de-DE|1080x2400|420|1.0|1"
     adb shell settings put system user_rotation "$ROT"
     adb shell cmd window user-rotation lock "$ROT" >/dev/null 2>&1 || true   # API 31+, more reliable than the setting
     sleep 2
-    run "shots_$NAME" -e class $E2E.ScreenshotTourE2ETest -e avz_shots true -e avz_config "$NAME"
+    run "shots_$NAME" -e class $E2E.ScreenshotTourE2ETest,$E2E.LegacyScreensE2ETest -e avz_shots true -e avz_config "$NAME"
     # The accessibility / clipped-text audit in the same configuration.
     run "a11y_$NAME" -e class $E2E.AccessibilityE2ETest -e avz_config "$NAME"   # same rotation freeze
     pull_shots "$NAME"

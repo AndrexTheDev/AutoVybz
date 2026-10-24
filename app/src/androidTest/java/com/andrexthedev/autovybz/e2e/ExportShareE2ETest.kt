@@ -8,6 +8,8 @@ import androidx.test.espresso.intent.Intents
 import androidx.test.espresso.intent.Intents.intended
 import androidx.test.espresso.intent.Intents.intending
 import androidx.test.espresso.intent.matcher.IntentMatchers.hasAction
+import androidx.test.espresso.intent.matcher.IntentMatchers.hasExtra
+import org.hamcrest.CoreMatchers.allOf
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.json.JSONArray
 import org.json.JSONObject
@@ -36,6 +38,24 @@ class ExportShareE2ETest : E2eTest() {
         compose.tap("avz:export:$format")
         compose.waitUntil(10_000) { file.exists() && file.length() > 0 }
         return file.readText()
+    }
+
+    /** Pro list: each saved calibration has its own export button (unique tag) and exports exactly that preset. */
+    @Test
+    fun exportFromPro_exportsTheChosenCalibration() {
+        val name = compose.quickCalibration()
+        compose.tap("avz:result:saveOnly")
+        compose.await("avz:saved")
+        compose.savedToProTab()
+        val file = File(E2e.app.cacheDir, "export_pro.out").apply { delete() }
+        intending(hasAction(Intent.ACTION_CREATE_DOCUMENT))
+            .respondWith(Instrumentation.ActivityResult(Activity.RESULT_OK, Intent().setData(Uri.fromFile(file))))
+        compose.tap("avz:pro:export:$name")
+        compose.tap("avz:export:APO")
+        compose.waitUntil(10_000) { file.exists() && file.length() > 0 }
+        intended(allOf(hasAction(Intent.ACTION_CREATE_DOCUMENT), hasExtra(Intent.EXTRA_TITLE, "${name}_ParametricEQ.txt")))
+        val apo = file.readText()
+        assertTrue(apo, apo.lines().any { it.startsWith("Preamp: -") } && apo.contains("Filter 1: ON"))
     }
 
     @Test
