@@ -114,11 +114,12 @@ class AutoVybzActivity : ComponentActivity() {
                 var intro by remember { mutableStateOf(playIntro) }
                 AutoVybzApp(
                     startTab = startTab,
-                    wizardContent = { openHelp ->
+                    wizardContent = { openHelp, openSound ->
                         WizardScreen(
                             vm = wizard,
                             state = state,
                             onOpenHelp = openHelp,
+                            onOpenSound = openSound,
                             onOpenProEq = { startActivity(Intent(this, MainActivity::class.java)) },
                         )
                     },
@@ -140,7 +141,7 @@ private enum class Tab(val label: Int, val icon: ImageVector) {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun AutoVybzApp(startTab: Tab, wizardContent: @Composable (openHelp: () -> Unit) -> Unit) {
+private fun AutoVybzApp(startTab: Tab, wizardContent: @Composable (openHelp: () -> Unit, openSound: () -> Unit) -> Unit) {
     var tabIndex by rememberSaveable { mutableIntStateOf(startTab.ordinal) }
     val tab = Tab.values()[tabIndex]
     // System back on the other tabs returns to the start tab instead of closing the app.
@@ -205,7 +206,7 @@ private fun AutoVybzApp(startTab: Tab, wizardContent: @Composable (openHelp: () 
                 Column(Modifier.fillMaxSize()) {
                     when (tab) {
                         Tab.HOME -> SoundScreen(onCalibrate = { tabIndex = Tab.WIZARD.ordinal })
-                        Tab.WIZARD -> wizardContent { tabIndex = Tab.HELP.ordinal }
+                        Tab.WIZARD -> wizardContent({ tabIndex = Tab.HELP.ordinal }, { tabIndex = Tab.HOME.ordinal })
                         Tab.PRO -> ProScreen()
                         Tab.HELP -> HelpScreen()
                         Tab.ABOUT -> AboutScreen()

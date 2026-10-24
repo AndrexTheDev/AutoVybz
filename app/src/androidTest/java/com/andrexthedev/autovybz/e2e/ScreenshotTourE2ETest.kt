@@ -154,8 +154,7 @@ class ScreenshotTourE2ETest : E2eTest() {
     @Test fun t08_soundStyles() {
         compose.quickCalibration()
         compose.tap("avz:result:saveApply"); compose.await("avz:saved")
-        compose.tap("avz:saved:done")
-        compose.tap("avz:tab:HOME"); compose.await("avz:screen:home"); shot("sound_top")
+        compose.tap("avz:saved:sound"); compose.await("avz:screen:home"); shot("sound_top")
         compose.tap("avz:style:ELECTRONIC"); scrollTo("avz:style:ELECTRONIC"); shot("sound_styles")
         scrollTo("avz:home:curve"); shot("sound_curve")
         compose.tap("avz:tab:PRO"); compose.await("avz:screen:pro"); shot("studio_top")

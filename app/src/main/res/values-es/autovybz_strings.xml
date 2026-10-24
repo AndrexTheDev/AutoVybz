@@ -73,6 +73,7 @@
     <string name="avz_wizard_start">Calibrar altavoz</string>
     <string name="avz_speaker_name_label">Nombre del altavoz (opcional)</string>
     <string name="avz_speaker_name_hint">p. ej. JBL Flip 6</string>
+    <string name="avz_speaker_name_profile_hint">El nombre será tu perfil de altavoz; en la pantalla Sonido cambias entre perfiles.</string>
     <string name="avz_target_label">Objetivo de sonido</string>
     <string name="avz_target_smart">Smart (recomendado)</string>
     <string name="avz_target_smart_desc">Graves suavemente realzados, medios y agudos claros</string>
@@ -156,6 +157,8 @@
     <string name="avz_saved_title">¡Guardado!</string>
     <string name="avz_saved_applied">«%1$s» ya está activo en el ecualizador.</string>
     <string name="avz_saved_only">«%1$s» se ha añadido a tus presets.</string>
+    <string name="avz_saved_to_sound">Continuar a Sonido</string>
+    <string name="avz_saved_next_hint">Siguiente: elige un estilo para tu música en la pantalla Sonido; tu calibración se mantiene debajo.</string>
     <string name="avz_open_pro_eq">Abrir EQ de 10 bandas</string>
     <string name="avz_done">Listo</string>
     <string name="avz_err_title">La medición falló</string>

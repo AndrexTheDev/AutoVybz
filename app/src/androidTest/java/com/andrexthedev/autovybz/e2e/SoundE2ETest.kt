@@ -55,9 +55,8 @@ class SoundE2ETest : E2eTest() {
         compose.await("avz:saved")
         val cal = AutoVybzPresetStore.loadFull(E2e.app, name)!!.bands.size
         awaitBands(cal, "calibration applied")
-        compose.tap("avz:saved:done")
-
-        compose.tap("avz:tab:HOME")
+        compose.tap("avz:saved:sound") // the saved screen leads straight to the styles
+        compose.await("avz:screen:home")
         compose.await("avz:home:speaker:$name")
         compose.tap("avz:style:REGGAE_DANCEHALL")
         awaitBands(cal + SoundStyle.REGGAE_DANCEHALL.bands.size, "calibration + style")

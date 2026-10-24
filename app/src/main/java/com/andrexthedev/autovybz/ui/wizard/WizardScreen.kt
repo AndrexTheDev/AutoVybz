@@ -105,6 +105,7 @@ import com.andrexthedev.autovybz.ui.components.ExportButton
 import com.andrexthedev.autovybz.ui.components.FrequencyResponseChart
 import com.andrexthedev.autovybz.ui.components.LevelMeter
 import com.andrexthedev.autovybz.ui.components.SectionTitle
+import com.andrexthedev.autovybz.ui.components.HintRow
 import com.andrexthedev.autovybz.ui.components.VybzIcons
 import com.andrexthedev.autovybz.ui.components.VybzRings
 import com.andrexthedev.autovybz.ui.components.rememberPulse
@@ -122,6 +123,7 @@ fun WizardScreen(
     state: WizardUiState,
     onOpenHelp: () -> Unit,
     onOpenProEq: () -> Unit,
+    onOpenSound: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -172,7 +174,7 @@ fun WizardScreen(
                     )
                     WizardStep.Analyzing -> BusyStep(stringResource(R.string.avz_analyzing), null)
                     is WizardStep.Result -> ResultStep(step, state, vm, onMeasureAgain = { confirm = ConfirmKind.DISCARD_RESULT })
-                    is WizardStep.Saved -> SavedStep(step, onOpenProEq, vm::onReset)
+                    is WizardStep.Saved -> SavedStep(step, onOpenProEq, onOpenSound = { vm.onReset(); onOpenSound() }, onDone = vm::onReset)
                     is WizardStep.Error -> ErrorStep(
                         step,
                         onRetry = startMeasurement,
@@ -222,6 +224,7 @@ private fun IdleStep(state: WizardUiState, vm: WizardViewModel, onStart: () -> U
         colors = avzTextFieldColors(),
         modifier = Modifier.fillMaxWidth().testTag("avz:speakerName"),
     )
+    HintRow(stringResource(R.string.avz_speaker_name_profile_hint))
 
     SectionTitle(stringResource(R.string.avz_env_label))
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { // wraps instead of splitting words (W10)
@@ -831,7 +834,7 @@ private fun ResultStep(step: WizardStep.Result, state: WizardUiState, vm: Wizard
 /* ----------------------------------------------------------------- saved -- */
 
 @Composable
-private fun SavedStep(step: WizardStep.Saved, onOpenProEq: () -> Unit, onDone: () -> Unit) {
+private fun SavedStep(step: WizardStep.Saved, onOpenProEq: () -> Unit, onOpenSound: () -> Unit, onDone: () -> Unit) {
     val outcome = step.outcome
     Column(Modifier.fillMaxWidth().padding(top = 32.dp).testTag("avz:saved"), horizontalAlignment = Alignment.CenterHorizontally) {
         Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = AutoVybzColors.GreenBright, modifier = Modifier.size(96.dp))
@@ -842,12 +845,18 @@ private fun SavedStep(step: WizardStep.Saved, onOpenProEq: () -> Unit, onDone: (
             stringResource(if (step.applied) R.string.avz_saved_applied else R.string.avz_saved_only, step.presetName),
             textAlign = TextAlign.Center,
         )
-        Spacer(Modifier.height(24.dp))
-        Button(onClick = onDone, modifier = Modifier.fillMaxWidth().testTag("avz:saved:done"), colors = ButtonDefaults.buttonColors(containerColor = AutoVybzColors.Green)) {
-            Text(stringResource(R.string.avz_done))
+        Spacer(Modifier.height(12.dp))
+        HintRow(stringResource(R.string.avz_saved_next_hint))
+        Spacer(Modifier.height(16.dp))
+        Button(onClick = onOpenSound, modifier = Modifier.fillMaxWidth().testTag("avz:saved:sound"), colors = ButtonDefaults.buttonColors(containerColor = AutoVybzColors.Green)) {
+            Icon(VybzIcons.Sound, contentDescription = null, modifier = Modifier.size(20.dp))
+            Text("  " + stringResource(R.string.avz_saved_to_sound))
         }
         Spacer(Modifier.height(8.dp))
         OutlinedButton(onClick = onOpenProEq, modifier = Modifier.fillMaxWidth().testTag("avz:saved:pro")) { Text(stringResource(R.string.avz_open_pro_eq)) }
+        TextButton(onClick = onDone, modifier = Modifier.fillMaxWidth().testTag("avz:saved:done")) {
+            Text(stringResource(R.string.avz_done), color = AutoVybzColors.OnDarkMuted)
+        }
         if (outcome != null) {
             Spacer(Modifier.height(24.dp))
             Text(

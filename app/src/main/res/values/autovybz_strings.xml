@@ -73,6 +73,7 @@
     <string name="avz_wizard_start">Calibrate speaker</string>
     <string name="avz_speaker_name_label">Speaker name (optional)</string>
     <string name="avz_speaker_name_hint">e.g. JBL Flip 6</string>
+    <string name="avz_speaker_name_profile_hint">The name becomes your speaker profile – you switch between profiles on the Sound screen.</string>
     <string name="avz_target_label">Sound target</string>
     <string name="avz_target_smart">Smart (recommended)</string>
     <string name="avz_target_smart_desc">Gentle bass boost, clear mids and highs</string>
@@ -155,6 +156,8 @@
     <string name="avz_saved_title">Saved!</string>
     <string name="avz_saved_applied">“%1$s” is now active in the equalizer.</string>
     <string name="avz_saved_only">“%1$s” was added to your presets.</string>
+    <string name="avz_saved_to_sound">Continue to Sound</string>
+    <string name="avz_saved_next_hint">Next: pick a style for your music on the Sound screen – your calibration stays underneath.</string>
     <string name="avz_open_pro_eq">Open 10-band EQ</string>
     <string name="avz_done">Done</string>
     <string name="avz_err_title">Measurement failed</string>
