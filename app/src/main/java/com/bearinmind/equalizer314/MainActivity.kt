@@ -3752,8 +3752,10 @@ class  MainActivity : AppCompatActivity() {
         // "The specified child already has a parent". Finish running transitions first and detach defensively.
         android.transition.TransitionManager.endTransitions(parent)
 
-        // Animate the transition
-        if (animate) {
+        // Animate the transition - only if the system runs animations at all. With animations off (developer option,
+        // accessibility "Remove animations", CI emulators) the fade left a bitmap copy of the moved row in the overlay:
+        // the landscape matrix showed band row 1-8 twice.
+        if (animate && android.animation.ValueAnimator.areAnimatorsEnabled()) {
             val transition = android.transition.AutoTransition().apply {
                 duration = 200
                 interpolator = android.view.animation.DecelerateInterpolator()
