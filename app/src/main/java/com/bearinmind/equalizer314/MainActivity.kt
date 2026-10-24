@@ -3700,6 +3700,12 @@ class  MainActivity : AppCompatActivity() {
         if (prevMode == EqUiMode.SIMPLE && mode != EqUiMode.SIMPLE) stateManager.resetUndoHistory()
     }
 
+    /** Removes [v] from whatever holds it - its layout parent or, mid-transition, the parent's overlay. */
+    private fun detachFromParent(v: View) {
+        (v.parent as? android.view.ViewGroup)?.let { p -> p.endViewTransition(v); p.removeView(v) }
+        (v.parent as? android.view.ViewGroup)?.removeView(v)
+    }
+
     private fun reorderToggleRows(animate: Boolean = true) {
         if (stateManager.currentEqUiMode == EqUiMode.TABLE || stateManager.currentEqUiMode == EqUiMode.SIMPLE) return
         val parent = findViewById<LinearLayout>(R.id.eqControlsContainer)
@@ -3731,7 +3737,7 @@ class  MainActivity : AppCompatActivity() {
             if (idx < 0) return
             // Already directly below the inactive row → leave it (avoids churn / resetting the scroll position on every selection).
             if (parent.indexOfChild(bandToggleExtraScroll) == idx + 1) return
-            parent.removeView(bandToggleExtraScroll)
+            detachFromParent(bandToggleExtraScroll)
             val idx2 = parent.indexOfChild(inactiveRow)
             parent.addView(bandToggleExtraScroll, idx2 + 1)
         }
@@ -3740,6 +3746,11 @@ class  MainActivity : AppCompatActivity() {
             positionExtraBandViews()
             return
         }
+
+        // AutoVybz fix (crash found by the landscape screenshot matrix): while an earlier animated reorder is still
+        // fading out, the removed rows live in the parent's overlay, so removeView() is a no-op and addView() throws
+        // "The specified child already has a parent". Finish running transitions first and detach defensively.
+        android.transition.TransitionManager.endTransitions(parent)
 
         // Animate the transition
         if (animate) {
@@ -3751,9 +3762,9 @@ class  MainActivity : AppCompatActivity() {
         }
 
         // Remove movable views
-        parent.removeView(bandToggleGroup)
-        parent.removeView(bandToggleGroup2)
-        parent.removeView(triContainer)
+        detachFromParent(bandToggleGroup)
+        detachFromParent(bandToggleGroup2)
+        detachFromParent(triContainer)
 
         // Active row at top of controls container
         (activeRow.layoutParams as? LinearLayout.LayoutParams)?.topMargin = 0
