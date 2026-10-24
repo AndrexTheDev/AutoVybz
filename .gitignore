@@ -22,7 +22,15 @@ docs/*
 !docs/MIC_PROFILES.md
 !docs/UPSTREAM_README.md
 !docs/upstream_changelogs/
+!docs/testing/
 
 # landing page build output / local screenshots
 site/_site/
 site/_shots/
+
+# Python bytecode
+__pycache__/
+*.pyc
+
+# temporary screenshot matrix for the end-user test (regenerated per build, never committed)
+tmp_screenshot_matrix/

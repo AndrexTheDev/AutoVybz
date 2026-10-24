@@ -129,7 +129,7 @@ object ResultCardRenderer {
 
         val details = buildList {
             add(res.getString(targetName(outcome.request.target)))
-            add(res.getString(R.string.avz_share_card_filters, e.bands.size, String.format(loc, "%.1f", e.preampDb)))
+            add(res.getQuantityString(R.plurals.avz_share_card_filters, e.bands.size, e.bands.size, String.format(loc, "%.1f", e.preampDb)))
             if (outcome.positions > 1) add(res.getString(R.string.avz_share_card_positions, outcome.positions))
         }.joinToString("  ·  ")
         c.drawText(ellipsize(details, text(28f, MUTED), WIDTH - 128f), 64f, 1248f, text(28f, MUTED))

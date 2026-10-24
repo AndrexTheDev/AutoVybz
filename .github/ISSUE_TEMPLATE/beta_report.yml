@@ -1,0 +1,96 @@
+name: Beta report
+description: Report how AutoVybz worked for you, including when everything went fine. Thank you!
+title: "[Beta] <device> + <speaker>: <short summary>"
+labels: ["beta"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for testing AutoVybz! Reports in English, Deutsch or Español are all welcome.
+        Please don't post personal data. AutoVybz collects nothing, so this report is our only source.
+  - type: input
+    id: version
+    attributes:
+      label: AutoVybz version
+      description: About → version line, e.g. 0.1.0-beta2
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Phone and Android version
+      placeholder: e.g. Samsung Galaxy A54, Android 14 (One UI 6.1)
+    validations:
+      required: true
+  - type: input
+    id: speaker
+    attributes:
+      label: Speaker and connection
+      placeholder: e.g. JBL Flip 6 via Bluetooth (AAC) / active speakers via 3.5 mm / USB-C DAC
+    validations:
+      required: true
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Where did you measure?
+      options: [Small room, Living room, Large room / hall, Garden / terrace, Beach / park (wind), Party with background noise, Car, Other]
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Mode and target
+      multiple: true
+      options: [Quick (1 position), Precise (3 positions), Indoor, Outdoor, Smart, Neutral, Bass Boost, Harman, Custom, 5 bands, 10 bands, USB measurement mic]
+  - type: dropdown
+    id: outcome
+    attributes:
+      label: Did the calibration finish?
+      options: [Yes on the first try, Yes after retrying, No]
+    validations:
+      required: true
+  - type: dropdown
+    id: ab
+    attributes:
+      label: Blind comparison, EQ on vs. off (ideally someone else toggles it)
+      options: [EQ clearly better, EQ slightly better, No difference, Without EQ slightly better, Without EQ clearly better, Did not compare]
+    validations:
+      required: true
+  - type: dropdown
+    id: loudness
+    attributes:
+      label: Was the measurement comfortable in volume?
+      options: [Yes, Too quiet, Too loud]
+    validations:
+      required: true
+  - type: dropdown
+    id: ease
+    attributes:
+      label: How easy was it? (1 = very hard, 5 = very easy)
+      options: ["5", "4", "3", "2", "1"]
+    validations:
+      required: true
+  - type: textarea
+    id: problems
+    attributes:
+      label: Problems, confusing moments, crashes
+      description: What did you expect, what happened? Which screen? Screenshots help a lot.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Crash log (optional)
+      description: "With USB debugging: `adb logcat -d | grep -iE 'autovybz|AndroidRuntime' > log.txt` and attach the file."
+      render: text
+  - type: textarea
+    id: export
+    attributes:
+      label: Exported preset (optional)
+      description: Paste the APO / REW CSV export so we can see what the EQ did.
+      render: text
+  - type: checkboxes
+    id: consent
+    attributes:
+      label: Confirmation
+      options:
+        - label: The report contains no personal data that I don't want to be public.
+          required: true

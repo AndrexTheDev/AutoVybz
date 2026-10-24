@@ -1,5 +1,6 @@
 package com.andrexthedev.autovybz.measurement.audio
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.media.AudioAttributes
@@ -47,6 +48,8 @@ object InputSourceResolver {
     }
 
     /** First USB input (measurement mics such as miniDSP UMIK-1 / Dayton iMM-6C via USB-C). */
+    // TYPE_USB_HEADSET (API 26) is an inlined int; on API 24-25 such mics report TYPE_USB_DEVICE, checked too.
+    @SuppressLint("InlinedApi")
     fun findUsbMic(context: Context): AudioDeviceInfo? {
         val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
         return am.getDevices(AudioManager.GET_DEVICES_INPUTS).firstOrNull {

@@ -33,7 +33,7 @@
     <string name="avz_retry">Erneut prüfen</string>
     <string name="avz_back">Zurück</string>
     <string name="avz_safety_title">Sicherheitshinweis</string>
-    <string name="avz_safety_text">Der Test spielt 10 Sekunden lang Rauschen und einen Sweep vom tiefsten Bass (20 Hz) bis zu sehr hohen Tönen (20 kHz). Die Medienlautstärke wurde auf ca. 70 % gesetzt.</string>
+    <string name="avz_safety_text" formatted="false">Der Test spielt 10 Sekunden lang Rauschen und einen Sweep vom tiefsten Bass (20 Hz) bis zu sehr hohen Tönen (20 kHz). Die Medienlautstärke wurde auf ca. 70 % gesetzt.</string>
     <string name="avz_safety_b1">Handy oder Lautsprecher niemals ans Ohr halten.</string>
     <string name="avz_safety_b2">Moderate Lautsprecher-Lautstärke wählen – zu laut kann kleine Lautsprecher beschädigen.</string>
     <string name="avz_safety_b3">Menschen und Tiere in der Nähe könnten den Ton als unangenehm empfinden.</string>
@@ -59,7 +59,10 @@
     <string name="avz_legend_measured">Gemessen</string>
     <string name="avz_legend_target">Ziel</string>
     <string name="avz_legend_corrected">Mit AutoVybz</string>
-    <string name="avz_result_summary">%1$d Filter · Vorverstärkung %2$s dB · Abweichung %3$s → %4$s dB</string>
+    <plurals name="avz_result_summary">
+        <item quantity="one">%1$d Filter · Vorverstärkung %2$s dB · Abweichung %3$s → %4$s dB</item>
+        <item quantity="other">%1$d Filter · Vorverstärkung %2$s dB · Abweichung %3$s → %4$s dB</item>
+    </plurals>
     <string name="avz_result_precision">Präzision</string>
     <string name="avz_bands_5">5 Bänder (schnell)</string>
     <string name="avz_bands_10">10 Bänder (max.)</string>
@@ -108,9 +111,9 @@
     <string name="avz_pro_measure_title">Mess-Einstellungen</string>
     <string name="avz_pro_bands">Filterbänder</string>
     <string name="avz_pro_smoothing">Glättung</string>
-    <string name="avz_smoothing_dynamic">Dynamisch (1 Okt. Bass → 1/3 Okt.)</string>
-    <string name="avz_smoothing_fine">Fein (1/2 → 1/6 Okt.)</string>
-    <string name="avz_smoothing_strong">Stark (1,5 → 1/2 Okt.)</string>
+    <string name="avz_smoothing_dynamic">Dynamisch (1 Okt. Bass → ⅓ Okt.)</string>
+    <string name="avz_smoothing_fine">Fein (½ → ⅙ Okt.)</string>
+    <string name="avz_smoothing_strong">Stark (1,5 → ½ Okt.)</string>
     <string name="avz_pro_max_boost">Max. Anhebung: %1$s dB</string>
     <string name="avz_pro_limiter_on_apply">Limiter beim Aktivieren einer Einmessung einschalten</string>
     <string name="avz_pro_restore_volume">Lautstärke nach der Messung zurücksetzen</string>
@@ -134,6 +137,11 @@
     <string name="avz_pro_custom_tilt">Neigung: %1$s dB/Okt.</string>
     <string name="avz_pro_calibrations">Gespeicherte Einmessungen</string>
     <string name="avz_pro_no_calibrations">Noch keine Einmessungen – starte eine im Assistenten.</string>
+    <string name="avz_pro_ab_title">Klangkorrektur</string>
+    <string name="avz_pro_ab_on">An</string>
+    <string name="avz_pro_ab_active">An – %1$s</string>
+    <string name="avz_pro_ab_off">Aus – Originalklang</string>
+    <string name="avz_pro_ab_hint">Schalte sie aus und wieder an, während Musik läuft, um den Unterschied zu hören (A/B-Vergleich).</string>
     <string name="avz_apply">Aktivieren</string>
     <string name="avz_delete">Löschen</string>
     <string name="avz_help_title">Hilfe &amp; Platzierung</string>
@@ -142,7 +150,7 @@
     <string name="avz_help_s2_title">2. Handy platzieren</string>
     <string name="avz_help_s2_body">• Lege das Handy dorthin, wo du normalerweise hörst (Sofa, Schreibtischstuhl), etwa auf Ohrhöhe.\n• Das Hauptmikrofon sitzt meist an der Unterkante – richte es auf den Lautsprecher.\n• Abstand: 1–2 m bei Raumlautsprechern, 50–80 cm bei kleinen Desktop-Lautsprechern.\n• Lege das Handy auf etwas Weiches oder einen Bücherstapel, nicht direkt auf den Tisch (Reflexionen).\n• Nicht in der Hand halten – dein Körper verändert den Klang.</string>
     <string name="avz_help_s3_title">3. Lautstärke einstellen</string>
-    <string name="avz_help_s3_body">AutoVybz setzt die Medienlautstärke des Handys auf ca. 70 %. Stelle den Lautsprecher selbst auf normale, angenehme Hörlautstärke. Meldet das Ergebnis „übersteuert“, leiser drehen; bei „leise“ lauter.</string>
+    <string name="avz_help_s3_body">AutoVybz setzt die Medienlautstärke des Handys auf ca. 70 %. Stelle den Lautsprecher selbst auf normale, angenehme Hörlautstärke. Meldet das Ergebnis „übersteuert“, leiser drehen; bei „leise“ lauter.</string>
     <string name="avz_help_s4_title">4. Ruhe bitte</string>
     <string name="avz_help_s4_body">Fenster schließen, Ventilator oder Spülmaschine ausschalten und während der 10 Sekunden nicht sprechen. AutoVybz misst zuerst das Grundrauschen und warnt, wenn es zu laut war.</string>
     <string name="avz_help_s5_title">5. Soundeffekte ausschalten</string>
@@ -150,10 +158,10 @@
     <string name="avz_help_s6_title">Bluetooth-Lautsprecher</string>
     <string name="avz_help_s6_body">Bluetooth verursacht 100–300 ms Verzögerung. AutoVybz ermittelt die genaue Verzögerung selbst, du musst nichts tun. Viele Party-Lautsprecher haben einen lautstärkeabhängigen Bass-Boost – miss bei der Lautstärke, die du meistens nutzt.</string>
     <string name="avz_help_s7_title">So funktioniert AutoVybz</string>
-    <string name="avz_help_s7_body">Der Lautsprecher spielt genau 10 Sekunden rosa Rauschen und einen logarithmischen Sinus-Sweep (20 Hz – 20 kHz), während das Handy aufnimmt. AutoVybz berechnet daraus den Frequenzgang, kompensiert das typische Verhalten von Handy-Mikrofonen, glättet (stärker im Bass, 1/3 Oktave in Mitten und Höhen) und berechnet bis zu 10 parametrische Filter, die deinen Lautsprecher zum gewählten Klangziel bringen. Eine negative Vorverstärkung und der Limiter verhindern Übersteuerung.</string>
+    <string name="avz_help_s7_body">Der Lautsprecher spielt genau 10 Sekunden rosa Rauschen und einen logarithmischen Sinus-Sweep (20 Hz – 20 kHz), während das Handy aufnimmt. AutoVybz berechnet daraus den Frequenzgang, kompensiert das typische Verhalten von Handy-Mikrofonen, glättet (stärker im Bass, ⅓ Oktave in Mitten und Höhen) und berechnet bis zu 10 parametrische Filter, die deinen Lautsprecher zum gewählten Klangziel bringen. Eine negative Vorverstärkung und der Limiter verhindern Übersteuerung.</string>
     <string name="avz_help_s8_title">Grenzen</string>
     <string name="avz_help_s8_body">Handy-Mikrofone sind keine Messmikrofone; die eingebauten Profile sind Schätzungen. Tiefbass, den der Lautsprecher physikalisch nicht kann, wird nie angehoben (schützt den Lautsprecher). Für Labor-Qualität nutze ein USB-Messmikrofon mit Kalibrierdatei (Pro-Bereich).</string>
-    <string name="avz_about_text">AutoVybz ist 100 % Open Source und Donationware: keine Werbung, kein Tracking, keine Bezahlschranke.</string>
+    <string name="avz_about_text" formatted="false">AutoVybz ist 100 % Open Source und Donationware: keine Werbung, kein Tracking, keine Bezahlschranke.</string>
     <string name="avz_about_version">Version %1$s</string>
     <string name="avz_about_dev">Entwickler: AndrexTheDev</string>
     <string name="avz_about_contact">Kontakt: hippie.highho@gmail.com</string>
@@ -197,7 +205,10 @@
     <string name="avz_share_failed">Das Share-Bild konnte nicht erstellt werden.</string>
     <string name="avz_share_card_headline">Mein Lautsprecher, auf meinen Raum eingemessen</string>
     <string name="avz_share_card_deviation">Abweichung von der Zielkurve: vorher → nachher</string>
-    <string name="avz_share_card_filters">%1$d Filter · Preamp %2$s dB</string>
+    <plurals name="avz_share_card_filters">
+        <item quantity="one">%1$d Filter · Vorverstärkung %2$s dB</item>
+        <item quantity="other">%1$d Filter · Vorverstärkung %2$s dB</item>
+    </plurals>
     <string name="avz_share_card_positions">%1$d Positionen</string>
     <string name="avz_share_card_free">kostenlos · Open Source · werbefrei</string>
 

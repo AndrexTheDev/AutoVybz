@@ -10,6 +10,14 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import android.content.Context
+import android.content.BroadcastReceiver
+import android.content.IntentFilter
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.semantics.Role
+import androidx.core.content.ContextCompat
+import com.andrexthedev.autovybz.measurement.audio.EqBypass
+import com.bearinmind.equalizer314.audio.EqService
 import android.content.Intent
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -23,6 +31,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -109,6 +118,7 @@ fun ProScreen() {
         EngineLink(Icons.Filled.ThumbUp, R.string.avz_pro_limiter, R.string.avz_pro_limiter_desc) { open(context, LimiterActivity::class.java) }
 
         SectionTitle(stringResource(R.string.avz_pro_calibrations))
+        SoundCorrectionToggle()
         CalibrationList()
 
         CollapsibleCard(title = stringResource(R.string.avz_pro_measure_title), icon = Icons.Filled.Settings) {
@@ -144,6 +154,72 @@ private fun EngineLink(icon: ImageVector, title: Int, desc: Int, onClick: () -> 
 }
 
 /* ---------------------------------------------------------- calibrations -- */
+
+/**
+ * A/B switch for the system-wide EQ: turn it off and on while music plays to hear what the calibration does.
+ * The state follows the engine's own broadcasts, so it stays in sync with the quick-settings tile, the
+ * notification and the classic Equalizer314 screen (no polling - that would also keep Compose tests busy).
+ */
+@Composable
+private fun SoundCorrectionToggle() {
+    val context = LocalContext.current
+    var on by remember { mutableStateOf(EqService.isDpRunning) }
+    var name by remember { mutableStateOf(AutoVybzPresetStore.lastAppliedName(context)) }
+    var requests by remember { mutableIntStateOf(0) }
+    // If the engine could not start (or stop), fall back to its real state instead of showing a lie.
+    LaunchedEffect(requests) {
+        if (requests > 0) {
+            kotlinx.coroutines.delay(4_000)
+            on = EqService.isDpRunning
+        }
+    }
+    DisposableEffect(Unit) {
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(c: Context, intent: Intent) {
+                on = intent.action == EqService.ACTION_EQ_STARTED
+                name = AutoVybzPresetStore.lastAppliedName(context)
+            }
+        }
+        val filter = IntentFilter().apply {
+            addAction(EqService.ACTION_EQ_STARTED)
+            addAction(EqService.ACTION_EQ_STOPPED)
+        }
+        ContextCompat.registerReceiver(context, receiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
+        onDispose { runCatching { context.unregisterReceiver(receiver) } }
+    }
+    val status = when {
+        !on -> stringResource(R.string.avz_pro_ab_off)
+        name != null -> stringResource(R.string.avz_pro_ab_active, name.orEmpty())
+        else -> stringResource(R.string.avz_pro_ab_on)
+    }
+    AvzCard(accent = if (on) AutoVybzColors.Green else null) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .toggleable(value = on, role = Role.Switch, onValueChange = { want ->
+                    on = want // optimistic; the engine's broadcast (or the re-check above) confirms it
+                    requests++
+                    if (want) EqBypass.resume(context)
+                    else if (EqService.isDpRunning) EqService.stop(context, silentToast = true)
+                })
+                .testTag("avz:pro:eq"),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(stringResource(R.string.avz_pro_ab_title), style = MaterialTheme.typography.titleMedium)
+                Text(
+                    status, style = MaterialTheme.typography.bodySmall,
+                    color = if (on) AutoVybzColors.GreenBright else AutoVybzColors.OnDarkMuted,
+                )
+            }
+            Switch(
+                checked = on, onCheckedChange = null,
+                colors = SwitchDefaults.colors(checkedThumbColor = AutoVybzColors.Gold, checkedTrackColor = AutoVybzColors.Green),
+            )
+        }
+        Text(stringResource(R.string.avz_pro_ab_hint), style = MaterialTheme.typography.bodySmall, color = AutoVybzColors.OnDarkMuted)
+    }
+}
 
 @Composable
 private fun CalibrationList() {
@@ -360,10 +436,14 @@ private fun AvzChip(selected: Boolean, label: String, onClick: () -> Unit) {
 
 @Composable
 private fun SwitchRow(text: String, checked: Boolean, onChange: (Boolean) -> Unit) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+    // The whole row is the switch: one TalkBack stop with its label, and a large touch target.
+    Row(
+        Modifier.fillMaxWidth().heightIn(min = 48.dp).toggleable(value = checked, role = Role.Switch, onValueChange = onChange),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         Text(text, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
         Switch(
-            checked = checked, onCheckedChange = onChange,
+            checked = checked, onCheckedChange = null,
             colors = SwitchDefaults.colors(checkedThumbColor = AutoVybzColors.Gold, checkedTrackColor = AutoVybzColors.Green),
         )
     }

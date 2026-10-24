@@ -2,7 +2,7 @@
 <!-- AutoVybz "Jamaica" palette. Mirrored 1:1 in the Compose theme
      (com.andrexthedev.autovybz.ui.theme.AutoVybzPalette) - change together;
      ColorContrastAuditTest enforces the mirror and the WCAG contrast ratios. -->
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <color name="avz_background">#FF121212</color>
     <color name="avz_background_deep">#FF0A0A0A</color>
     <color name="avz_surface">#FF181818</color>
@@ -15,7 +15,8 @@
     <color name="avz_gold_container">#FF3D3300</color>
     <color name="avz_on_dark">#FFEDEDED</color>
     <color name="avz_on_dark_muted">#FFA8A8A8</color>
-    <color name="avz_on_green">#FF0A0A0A</color>
+    <!-- text on green; used from Compose via AutoVybzPalette.ON_GREEN, kept here so the XML palette stays complete -->
+    <color name="avz_on_green" tools:ignore="UnusedResources">#FF0A0A0A</color>
     <color name="avz_error">#FFFF6B6B</color>
     <color name="ic_launcher_background">#FF121212</color>
 </resources>

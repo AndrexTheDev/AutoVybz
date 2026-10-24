@@ -657,8 +657,9 @@ private fun ResultStep(step: WizardStep.Result, state: WizardUiState, vm: Wizard
             ),
         )
         Text(
-            stringResource(
-                R.string.avz_result_summary,
+            LocalContext.current.resources.getQuantityString(
+                R.plurals.avz_result_summary,
+                e.bands.size,
                 e.bands.size,
                 fmt1(e.preampDb),
                 fmt1(e.rmsErrorBeforeDb),

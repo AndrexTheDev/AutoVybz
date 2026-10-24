@@ -74,6 +74,52 @@ class StringResourceAuditTest {
         report("broken format strings", problems)
     }
 
+    /**
+     * A literal "70 %" (normal space) is parsed by Lint / java.util.Formatter as the flag ' ' plus a
+     * conversion ("% g", "% o"): Lint error StringFormatInvalid. Numbers and % must be joined by a
+     * non-breaking space, which is also correct typography (no line break between 70 and %).
+     */
+    @Test
+    fun percentSignsCannotBeMistakenForFormatFlags() {
+        val problems = mutableListOf<String>()
+        for (loc in locales) with(ProjectFiles) {
+            for (e in xml(module("src/main/res/$loc/autovybz_strings.xml")).documentElement.children("string")) {
+                val key = e.getAttribute("name"); val t = e.textContent
+                // "100 % open": '% o' reads as flag + conversion -> needs formatted="false" (Lint StringFormatInvalid)
+                if (e.getAttribute("formatted") != "false" && Regex("""% [A-Za-zÀ-ÿ]""").containsMatchIn(t.replace(placeholder, "")))
+                    problems += "$loc/$key: literal '% <letter>' without formatted=\"false\""
+                if (e.getAttribute("formatted") == "false" && placeholder.containsMatchIn(t))
+                    problems += "$loc/$key: formatted=\"false\" but has placeholders"
+                // typography: number and % are joined by a non-breaking space (no line break in "70 %")
+                if (Regex("""\d %""").containsMatchIn(t)) problems += "$loc/$key: normal space between number and %"
+            }
+        }
+        report("percent-sign problems", problems)
+    }
+
+    /** Every plural has the quantities its language needs (CLDR: es also has "many"), with equal placeholders. */
+    @Test
+    fun pluralsAreCompleteInEveryLanguage() {
+        val required = mapOf("values" to setOf("one", "other"), "values-de" to setOf("one", "other"), "values-es" to setOf("one", "many", "other"))
+        val problems = mutableListOf<String>()
+        val basePlurals = ProjectFiles.plurals(ProjectFiles.module("src/main/res/values/autovybz_strings.xml"))
+        for (loc in locales) {
+            val plurals = ProjectFiles.plurals(ProjectFiles.module("src/main/res/$loc/autovybz_strings.xml"))
+            if (plurals.keys != basePlurals.keys) problems += "$loc plural keys ${plurals.keys} != ${basePlurals.keys}"
+            for ((name, items) in plurals) {
+                val missing = required.getValue(loc) - items.keys
+                if (missing.isNotEmpty()) problems += "$loc/$name missing quantities $missing"
+                val expected = placeholder.findAll(items["other"].orEmpty()).map { it.value }.sorted().toList()
+                for ((q, t) in items) {
+                    val actual = placeholder.findAll(t).map { it.value }.sorted().toList()
+                    if (actual != expected) problems += "$loc/$name[$q]: $actual instead of $expected"
+                }
+            }
+        }
+        assertTrue("no plurals found - the filter count must use <plurals>", basePlurals.isNotEmpty())
+        report("plural problems", problems)
+    }
+
     /** aapt strips unescaped double quotes and rejects unescaped apostrophes. */
     @Test
     fun quotesAndApostrophesAreEscaped() {
@@ -124,7 +170,7 @@ class StringResourceAuditTest {
         val code = ProjectFiles.autoVybzSources().joinToString("\n") { it.readText() }
         val res = ProjectFiles.module("src/main").walkTopDown()
             .filter { it.isFile && it.extension == "xml" && it.name != "autovybz_strings.xml" }.joinToString("\n") { it.readText() }
-        val used = Regex("""R\.string\.(avz_\w+)""").findAll(code).map { it.groupValues[1] }.toSet() +
+        val used = Regex("""R\.(?:string|plurals)\.(avz_\w+)""").findAll(code).map { it.groupValues[1] }.toSet() +
             Regex("""@string/(avz_\w+)""").findAll(res).map { it.groupValues[1] }.toSet()
         report("referenced but undefined", (used - base.keys).sorted())
         report("defined but never used", (base.keys - used).sorted())

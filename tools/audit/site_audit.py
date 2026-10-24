@@ -191,11 +191,13 @@ def main():
     site = sys.argv[1]
     md = sys.argv[sys.argv.index("--markdown") + 1] if "--markdown" in sys.argv else None
     errors, warnings, info = audit(site)
-    lines = [f"- {'✅' if not errors else '❌'} **Website audit**: {len(errors)} errors, {len(warnings)} warnings ({'; '.join(i for i in info if 'pages' in i or 'i18n' in i)})"]
+    weights = [int(m.group(1)) for i in info for m in [re.search(r"page weight (\d+) KB", i)] if m]
+    heaviest = f"heaviest page {max(weights)} KB" if weights else ""
+    summary = "; ".join([i for i in info if "pages" in i or "i18n" in i or "sitemap" in i] + ([heaviest] if heaviest else []))
+    lines = [f"- {'✅' if not errors else '❌'} **Website audit**: {len(errors)} errors, {len(warnings)} warnings ({summary})"]
     lines += [f"  - ❌ {e}" for e in errors] + [f"  - ⚠️ {w}" for w in warnings[:40]]
     out = "\n".join(lines)
     print(out)
-    for i in info: print("    ", i)
     if md: open(md, "w").write(out + "\n")
     if os.environ.get("GITHUB_ACTIONS") == "true":
         for e in errors: print(f"::error title=Website audit::{e}", file=sys.stderr)
