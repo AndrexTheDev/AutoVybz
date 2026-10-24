@@ -32,7 +32,22 @@ adb root >/dev/null 2>&1 && sleep 3 && adb wait-for-device || true
 for s in window_animation_scale transition_animation_scale animator_duration_scale; do adb shell settings put global $s 0; done
 adb shell settings put system screen_off_timeout 1800000
 adb uninstall $PKG >/dev/null 2>&1; adb uninstall $PKG.test >/dev/null 2>&1
-adb install -r "$APK" >/dev/null && adb install -r "$TAPK" >/dev/null || { echo "install failed"; exit 2; }
+# Right after "adb root" restarts adbd the package manager can still be coming up (campaign 11: API 35 job died
+# here with "install failed" while the identical APK installed fine in the shots job). Wait for it, retry, and keep
+# the real error message instead of a bare exit code.
+install_all() {
+  adb install -r "$APK" > "$OUT/install.txt" 2>&1 && adb install -r "$TAPK" >> "$OUT/install.txt" 2>&1
+}
+installed=0
+for attempt in 1 2 3; do
+  adb wait-for-device
+  for _ in $(seq 1 60); do adb shell pm path android 2>/dev/null | grep -q package: && break; sleep 2; done
+  if install_all; then installed=1; break; fi
+  log "install attempt $attempt failed: $(tail -n 2 "$OUT/install.txt" | tr '\n' ' ')"
+  sleep 10
+done
+[ "$installed" = 1 ] || { note "- ❌ **install** failed 3×: \`$(tail -n 1 "$OUT/install.txt")\`"; echo "install failed"; exit 2; }
+[ "$attempt" = 1 ] || note "- ⚠️ install needed $attempt attempts (package manager not ready yet)"
 
 # run <name> <am instrument args...>
 run() {
