@@ -36,7 +36,7 @@ jobs:
         run: |
           chmod +x gradlew
           set -o pipefail
-          if ! ./gradlew testDebugUnitTest assembleDebug --no-daemon --console=plain 2>&1 | tee gradle.log; then
+          if ! ./gradlew testDebugUnitTest assembleDebug assembleDebugAndroidTest --no-daemon --console=plain 2>&1 | tee gradle.log; then
             # surface compiler / test errors as annotations (raw logs are not always reachable)
             grep -E '^e: |error:|FAILED|What went wrong|Exception|expected:<' gradle.log | head -60 | sed 's/^/::error::/'
             exit 1
