@@ -394,7 +394,7 @@ private fun CurveFileRow(title: String, settings: AutoVybzSettings, file: File) 
     Text(title, style = MaterialTheme.typography.titleSmall)
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            points?.let { stringResource(R.string.avz_pro_file_loaded, it) } ?: stringResource(R.string.avz_pro_file_none),
+            points?.let { LocalContext.current.resources.getQuantityString(R.plurals.avz_pro_file_loaded, it, it) } ?: stringResource(R.string.avz_pro_file_none),
             color = AutoVybzColors.OnDarkMuted, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f),
         )
         OutlinedButton(onClick = { launcher.launch("text/*") }) { Text(stringResource(R.string.avz_pro_file_load)) }

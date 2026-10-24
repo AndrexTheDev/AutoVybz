@@ -129,7 +129,10 @@
     <string name="avz_pro_file_load">Load</string>
     <string name="avz_pro_file_clear">Remove</string>
     <string name="avz_pro_file_none">None</string>
-    <string name="avz_pro_file_loaded">%1$d points loaded</string>
+    <plurals name="avz_pro_file_loaded">
+        <item quantity="one">%1$d point loaded</item>
+        <item quantity="other">%1$d points loaded</item>
+    </plurals>
     <string name="avz_pro_file_invalid">File not recognised: %1$s</string>
     <string name="avz_pro_custom_title">Custom target</string>
     <string name="avz_pro_custom_bass">Bass: %1$s dB</string>
@@ -189,7 +192,7 @@
     <string name="avz_positions_quick_desc">One 10-second measurement at your listening spot.</string>
     <string name="avz_positions_precise_desc">Three 10-second measurements around your listening spot (about 30 s plus moving the phone). Averaging keeps the room booms everyone hears and ignores dips that only exist at one spot – recommended for rooms and bass.</string>
     <string name="avz_position_of">Position %1$d of %2$d</string>
-    <string name="avz_move_title">Position %1$d of %2$d done ✓</string>
+    <string name="avz_move_title" tools:ignore="PluralsCandidate">Position %1$d of %2$d done ✓</string>
     <string name="avz_move_text">Now move the phone about 30–50 cm – to the side, forward or back, or a little up or down.</string>
     <string name="avz_move_tip_1">Stay around your listening spot and keep the phone at ear height.</string>
     <string name="avz_move_tip_2">Microphone towards the speaker, hold still and stay quiet during the measurement.</string>
@@ -199,7 +202,7 @@
         <item quantity="one">Finish with %1$d position</item>
         <item quantity="other">Finish with %1$d positions</item>
     </plurals>
-    <string name="avz_result_positions">Averaged over %1$d positions · spread ±%2$s dB</string>
+    <string name="avz_result_positions" tools:ignore="PluralsCandidate">Averaged over %1$d positions · spread ±%2$s dB</string>
     <string name="avz_result_spread_high">The positions differ a lot. That is normal in very uneven rooms – otherwise stay closer to your listening spot or measure when it is quieter.</string>
     <string name="avz_share_result">Share</string>
     <string name="avz_share_invite">Happy with the sound? Show your friends – the share card shows your real measurement.</string>
@@ -212,7 +215,7 @@
         <item quantity="one">%1$d filter · pre-gain %2$s dB</item>
         <item quantity="other">%1$d filters · pre-gain %2$s dB</item>
     </plurals>
-    <string name="avz_share_card_positions">%1$d positions</string>
+    <string name="avz_share_card_positions" tools:ignore="PluralsCandidate">%1$d positions</string>
     <string name="avz_share_card_free">free · open source · no ads</string>
 
     <!-- Outdoor / party mode -->
@@ -264,7 +267,7 @@
     <string name="avz_applied_toast">“%1$s” is now active</string>
     <string name="avz_a11y_expanded">expanded</string>
     <string name="avz_a11y_collapsed">collapsed</string>
-    <string name="avz_a11y_level">Microphone level %1$d percent</string>
-    <string name="avz_a11y_positions">%1$d of %2$d positions measured</string>
+    <string name="avz_a11y_level" tools:ignore="PluralsCandidate">Microphone level %1$d percent</string>
+    <string name="avz_a11y_positions" tools:ignore="PluralsCandidate">%1$d of %2$d positions measured</string>
     <string name="avz_a11y_chart">Frequency response chart: measured, target and corrected curve. Deviation before %1$s dB, after %2$s dB.</string>
 </resources>

@@ -66,7 +66,7 @@ class VolumeGuard(context: Context) {
     private val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
     private var saved: Int? = null
 
-    val min: Int get() = if (Build.VERSION.SDK_INT >= 28) am.getStreamMinVolume(AudioManager.STREAM_MUSIC) else 0
+    val min: Int get() = am.getStreamMinVolume(AudioManager.STREAM_MUSIC)
     val max: Int get() = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
     val current: Int get() = am.getStreamVolume(AudioManager.STREAM_MUSIC)
     val currentFraction: Float get() = VolumeMath.fractionOf(current, min, max)
@@ -107,7 +107,7 @@ object EqBypass {
         val i = Intent(context, EqService::class.java).setAction(EqService.ACTION_AUTO_START)
             .putExtra(EqService.EXTRA_SILENT_TOAST, true) // AutoVybz shows its own confirmation
         runCatching {
-            if (Build.VERSION.SDK_INT >= 26) context.startForegroundService(i) else context.startService(i)
+            context.startForegroundService(i)
         }.onFailure { Log.w("AutoVybz", "EQ resume failed", it) }
     }
 }

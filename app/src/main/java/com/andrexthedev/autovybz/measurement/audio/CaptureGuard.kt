@@ -6,7 +6,6 @@ import android.media.AudioDeviceCallback
 import android.media.AudioDeviceInfo
 import android.media.AudioFocusRequest
 import android.media.AudioManager
-import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -52,7 +51,7 @@ class CaptureGuard(context: Context) {
         // Registering immediately reports all existing devices; checkOutputs() compares against the baseline, so that is a no-op.
         runCatching { am.registerAudioDeviceCallback(deviceCallback, handler) }
             .onFailure { Log.w(TAG, "route watcher unavailable", it) }
-        val granted = if (Build.VERSION.SDK_INT >= 26) {
+        val granted = run {
             val req = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE)
                 .setAudioAttributes(
                     AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA)
@@ -63,10 +62,6 @@ class CaptureGuard(context: Context) {
                 .build()
             focusRequest = req
             am.requestAudioFocus(req) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
-        } else {
-            @Suppress("DEPRECATION")
-            am.requestAudioFocus(focusListener, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE) ==
-                AudioManager.AUDIOFOCUS_REQUEST_GRANTED
         }
         if (!granted) interrupt(CaptureInterruptedException.Reason.FOCUS_LOST)
         return granted
@@ -75,13 +70,8 @@ class CaptureGuard(context: Context) {
     /** Gives the focus back (paused apps may resume) and stops watching. Safe to call more than once. */
     fun stop() {
         runCatching { am.unregisterAudioDeviceCallback(deviceCallback) }
-        if (Build.VERSION.SDK_INT >= 26) {
-            focusRequest?.let { am.abandonAudioFocusRequest(it) }
-            focusRequest = null
-        } else {
-            @Suppress("DEPRECATION")
-            am.abandonAudioFocus(focusListener)
-        }
+        focusRequest?.let { am.abandonAudioFocusRequest(it) }
+        focusRequest = null
     }
 
     private fun checkOutputs() {

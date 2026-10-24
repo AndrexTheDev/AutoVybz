@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- AutoVybz – Spanish (es). Informal "tú", neutral Spanish. -->
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="avz_nav_wizard">Calibrar</string>
     <string name="avz_nav_pro">Pro</string>
     <string name="avz_nav_help">Ayuda</string>
@@ -130,7 +130,11 @@
     <string name="avz_pro_file_load">Cargar</string>
     <string name="avz_pro_file_clear">Quitar</string>
     <string name="avz_pro_file_none">Ninguno</string>
-    <string name="avz_pro_file_loaded">%1$d puntos cargados</string>
+    <plurals name="avz_pro_file_loaded">
+        <item quantity="one">%1$d punto cargado</item>
+        <item quantity="many">%1$d puntos cargados</item>
+        <item quantity="other">%1$d puntos cargados</item>
+    </plurals>
     <string name="avz_pro_file_invalid">Archivo no reconocido: %1$s</string>
     <string name="avz_pro_custom_title">Objetivo personalizado</string>
     <string name="avz_pro_custom_bass">Graves: %1$s dB</string>
@@ -188,7 +192,7 @@
     <string name="avz_positions_quick_desc">Una medición de 10 segundos en tu posición de escucha.</string>
     <string name="avz_positions_precise_desc">Tres mediciones de 10 segundos alrededor de tu posición de escucha (unos 30 s más mover el móvil). El promedio conserva las resonancias de la sala que se oyen en todas partes e ignora los huecos que solo existen en un punto: recomendado para salas y graves.</string>
     <string name="avz_position_of">Posición %1$d de %2$d</string>
-    <string name="avz_move_title">Posición %1$d de %2$d lista ✓</string>
+    <string name="avz_move_title" tools:ignore="PluralsCandidate">Posición %1$d de %2$d lista ✓</string>
     <string name="avz_move_text">Ahora mueve el móvil unos 30–50 cm: hacia un lado, adelante o atrás, o un poco más arriba o abajo.</string>
     <string name="avz_move_tip_1">Quédate cerca de tu posición de escucha y mantén el móvil a la altura de los oídos.</string>
     <string name="avz_move_tip_2">Micrófono hacia el altavoz; quieto y en silencio durante la medición.</string>
@@ -199,7 +203,7 @@
         <item quantity="many">Terminar con %1$d posiciones</item>
         <item quantity="other">Terminar con %1$d posiciones</item>
     </plurals>
-    <string name="avz_result_positions">Promedio de %1$d posiciones · dispersión ±%2$s dB</string>
+    <string name="avz_result_positions" tools:ignore="PluralsCandidate">Promedio de %1$d posiciones · dispersión ±%2$s dB</string>
     <string name="avz_result_spread_high">Las posiciones difieren mucho. Es normal en salas muy irregulares; si no, quédate más cerca de tu posición de escucha o mide cuando haya más silencio.</string>
     <string name="avz_share_result">Compartir</string>
     <string name="avz_share_invite">¿Contento con el sonido? Enséñaselo a tus amigos: la tarjeta muestra tu medición real.</string>
@@ -213,7 +217,7 @@
         <item quantity="many">%1$d filtros · pre-ganancia %2$s dB</item>
         <item quantity="other">%1$d filtros · pre-ganancia %2$s dB</item>
     </plurals>
-    <string name="avz_share_card_positions">%1$d posiciones</string>
+    <string name="avz_share_card_positions" tools:ignore="PluralsCandidate">%1$d posiciones</string>
     <string name="avz_share_card_free">gratis · código abierto · sin anuncios</string>
 
     <!-- Outdoor / party mode -->
@@ -265,7 +269,7 @@
     <string name="avz_applied_toast">«%1$s» está activo</string>
     <string name="avz_a11y_expanded">desplegado</string>
     <string name="avz_a11y_collapsed">plegado</string>
-    <string name="avz_a11y_level">Nivel del micrófono %1$d por ciento</string>
-    <string name="avz_a11y_positions">%1$d de %2$d posiciones medidas</string>
+    <string name="avz_a11y_level" tools:ignore="PluralsCandidate">Nivel del micrófono %1$d por ciento</string>
+    <string name="avz_a11y_positions" tools:ignore="PluralsCandidate">%1$d de %2$d posiciones medidas</string>
     <string name="avz_a11y_chart">Gráfico de respuesta en frecuencia: curva medida, objetivo y corregida. Desviación antes %1$s dB, después %2$s dB.</string>
 </resources>
