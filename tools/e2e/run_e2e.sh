@@ -57,7 +57,15 @@ run() {
   adb shell am instrument -w -r "$@" $RUNNER < /dev/null > "$OUT/$name.instrument.txt" 2>&1
   adb logcat -d -v threadtime > "$OUT/$name.logcat.txt" 2>&1
   python3 "$HERE/parse_instrument.py" "$OUT/$name.instrument.txt" --suite "$name" --api "$API" \
-    --json "$OUT/$name.json" >> "$SUMMARY" || FAIL=1
+    --json "$OUT/$name.json" >> "$SUMMARY" || { FAIL=1; focus_diag "$name"; }
+}
+
+# Campaign 12 (API 35): whole suites failed with "root ... has-window-focus=false" and no app crash/ANR.
+# On failure record which window holds focus so a stuck system window is visible in the summary.
+focus_diag() {
+  adb shell dumpsys window > "$OUT/$1.window.txt" 2>&1
+  local f; f=$(grep -m1 -E "mCurrentFocus=" "$OUT/$1.window.txt" | tr -d '\r' | sed 's/^ *//')
+  note "  - focus after $1: \`${f:-unknown}\`"
 }
 
 pull_shots() {
