@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 """Generates the landing page images (run once after changing logo / OG texts; output is committed).
 
-Requires: pip install pillow qrcode matplotlib   (matplotlib only for its bundled DejaVu font)
+Requires: pip install pillow qrcode   (typeface: Outfit from the app, SIL OFL 1.1)
 """
 import json
 from pathlib import Path
 
-import matplotlib
 import qrcode
 import qrcode.image.svg
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
@@ -15,11 +14,13 @@ SITE = Path(__file__).resolve().parents[1]
 REPO = SITE.parent
 OUT = SITE / "static" / "img"
 OUT.mkdir(parents=True, exist_ok=True)
-FONT_DIR = Path(matplotlib.__file__).parent / "mpl-data" / "fonts" / "ttf"
-BOLD = str(FONT_DIR / "DejaVuSans-Bold.ttf")
-REG = str(FONT_DIR / "DejaVuSans.ttf")
+FONT_DIR = REPO / "app" / "src" / "main" / "res" / "font"
+BOLD = str(FONT_DIR / "outfit_bold.ttf")
+REG = str(FONT_DIR / "outfit_regular.ttf")
 SITE_URL = "https://andrexthedev.github.io/AutoVybz/"
-GREEN, GOLD, BG = (0, 155, 58), (254, 209, 0), (10, 10, 10)
+# Vybz Slate (same tokens as the app)
+GREEN, GOLD, BG = (30, 237, 97), (252, 210, 7), (22, 28, 33)
+GREEN_BRIGHT, ON_DARK, MUTED = (92, 242, 140), (238, 242, 245), (167, 178, 188)
 
 logo_t = Image.open(REPO / "branding" / "autovybz_logo_transparent_1024.png").convert("RGBA")
 logo_bg = Image.open(REPO / "branding" / "autovybz_logo_1024.png").convert("RGBA")
@@ -31,7 +32,7 @@ logo_bg.resize((32, 32), Image.LANCZOS).save(OUT / "favicon-32.png", optimize=Tr
 
 
 def wrap(draw, text, font, width):
-    words, lines, cur = text.split(), [], ""
+    words, lines, cur = text.split(" "), [], ""  # split on normal spaces only: NBSP keeps "10 seconds" together
     for w in words:
         test = (cur + " " + w).strip()
         if draw.textlength(test, font=font) <= width:
@@ -49,11 +50,11 @@ def og(lang):
     img = Image.new("RGB", (W, H), BG)
     glow = Image.new("RGB", (W, H), BG)
     g = ImageDraw.Draw(glow)
-    g.ellipse((700, -150, 1350, 500), fill=(0, 70, 28))
-    g.ellipse((-200, 380, 400, 900), fill=(60, 50, 0))
+    g.ellipse((700, -150, 1350, 500), fill=(16, 92, 46))
+    g.ellipse((-200, 380, 400, 900), fill=(62, 54, 18))
     img = Image.blend(img, glow.filter(ImageFilter.GaussianBlur(120)), 1.0)
     d = ImageDraw.Draw(img)
-    # stripes (subtle flag nod)
+    # brand stripes
     d.polygon([(W - 250, H), (W - 170, H), (W, H - 170), (W, H - 250)], fill=GOLD)
     d.polygon([(W - 170, H), (W - 90, H), (W, H - 90), (W, H - 170)], fill=GREEN)
     lg = logo_t.resize((300, 300), Image.LANCZOS)
@@ -62,12 +63,12 @@ def og(lang):
     f_big = ImageFont.truetype(BOLD, 66)
     y = 150
     for line in wrap(d, t["hero"]["h1_a"], f_big, 740):
-        d.text((70, y), line, font=f_big, fill=(255, 255, 255)); y += 78
-    line2 = f'{t["hero"]["h1_b"]} 10 {t["hero"]["h1_c"]}'
+        d.text((70, y), line, font=f_big, fill=ON_DARK); y += 78
+    line2 = f'{t["hero"]["h1_b"]} 10\u00a0{t["hero"]["h1_c"]}'
     for line in wrap(d, line2, f_big, 740):
-        d.text((70, y), line, font=f_big, fill=(43, 194, 102)); y += 78
+        d.text((70, y), line, font=f_big, fill=GREEN_BRIGHT); y += 78
     f_small = ImageFont.truetype(REG, 30)
-    d.text((70, y + 30), t["hero"]["badge"].replace("🇯🇲 ", ""), font=f_small, fill=(200, 200, 200))
+    d.text((70, y + 30), t["hero"]["badge"].replace("🇯🇲 ", ""), font=f_small, fill=MUTED)
     d.text((70, H - 70), SITE_URL.replace("https://", "").rstrip("/"), font=ImageFont.truetype(BOLD, 28), fill=GOLD)
     img.save(OUT / f"og-{lang}.png", optimize=True)
 

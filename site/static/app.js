@@ -41,7 +41,7 @@
   function confetti(n = 140) {
     if (!cv || reduceMotion) return;
     const ctx = cv.getContext("2d"), W = (cv.width = innerWidth), H = (cv.height = innerHeight);
-    const cols = ["#009B3A", "#FED100", "#2BC266", "#ffffff", "#111111"];
+    const cols = ["#1EED61", "#FCD207", "#5CF28C", "#ffffff", "#08130C"];
     const parts = Array.from({ length: n }, () => ({
       x: W / 2 + (Math.random() - .5) * W * .3, y: H * .6, vx: (Math.random() - .5) * 16, vy: -Math.random() * 18 - 6,
       s: Math.random() * 8 + 4, r: Math.random() * 6, vr: (Math.random() - .5) * .4, c: cols[(Math.random() * cols.length) | 0],
@@ -204,18 +204,18 @@
     const x = f => padL + (Math.log10(f / 20) / 3) * (W - padL - 10);
     const y = db => padT + ((12 - db) / 30) * (H - padT - padB);
     c.clearRect(0, 0, W, H);
-    c.font = `600 ${W < 700 ? 17 : 18}px system-ui, sans-serif`; c.fillStyle = "#777"; c.strokeStyle = "#1f1f1f"; c.lineWidth = 1;
+    c.font = `600 ${W < 700 ? 17 : 18}px system-ui, sans-serif`; c.fillStyle = "#828F9A"; c.strokeStyle = "#2E3843"; c.lineWidth = 1;
     (W < 700 ? [20, 50, 100, 200, 500, 1000, 2000, 5000, 10000] : [20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000]).forEach(f => {
       c.beginPath(); c.moveTo(x(f), padT); c.lineTo(x(f), H - padB); c.stroke();
       const lbl = f >= 1000 ? f / 1000 + "k" : String(f); c.fillText(lbl, Math.min(x(f) - 12, W - 10 - c.measureText(lbl).width), H - 6);
     });
     [12, 6, 0, -6, -12, -18].forEach(db => {
-      c.strokeStyle = db === 0 ? "#333" : "#1a1a1a"; c.beginPath(); c.moveTo(padL, y(db)); c.lineTo(W - 10, y(db)); c.stroke();
+      c.strokeStyle = db === 0 ? "#3D4955" : "#28323D"; c.beginPath(); c.moveTo(padL, y(db)); c.lineTo(W - 10, y(db)); c.stroke();
       c.fillText((db > 0 ? "+" : "") + db, 4, y(db) + 6);
     });
     if (spectrum) { // live analyser bars
       const n = spectrum.length, sr = demo.ctx.sampleRate;
-      c.fillStyle = demo.on ? "rgba(43,194,102,.16)" : "rgba(254,209,0,.12)";
+      c.fillStyle = demo.on ? "rgba(92,242,140,.16)" : "rgba(252,210,7,.12)";
       for (let i = 2; i < n; i += 2) {
         const f = (i * sr) / (2 * n); if (f < 20 || f > 20000) continue;
         const v = (spectrum[i] + 100) / 70, h = Math.max(0, v) * (H - padT - padB) * .9;
@@ -227,9 +227,9 @@
       for (let i = 0; i < NPTS; i++) { const px = x(FREQS[i]), py = y(Math.max(-18, Math.min(12, arr[i]))); i ? c.lineTo(px, py) : c.moveTo(px, py); }
       c.stroke(); c.restore();
     };
-    line(curves.tgt, "#8a8a8a", 2, [8, 8]);
-    line(curves.rawN, demo.on ? "rgba(254,209,0,.35)" : "#FED100", demo.on ? 2.5 : 5);
-    line(curves.fixN, demo.on ? "#2BC266" : "rgba(43,194,102,.35)", demo.on ? 5 : 2.5);
+    line(curves.tgt, "#909CA6", 2, [8, 8]);
+    line(curves.rawN, demo.on ? "rgba(252,210,7,.35)" : "#FCD207", demo.on ? 2.5 : 5);
+    line(curves.fixN, demo.on ? "#5CF28C" : "rgba(92,242,140,.35)", demo.on ? 5 : 2.5);
   }
 
   function initAudio() {
@@ -371,7 +371,7 @@
     const res = $("#roast-result"); res.hidden = false;
     $("#roast-title").textContent = lastRoast.title;
     $("#roast-desc").textContent = lastRoast.desc;
-    const fg = $("#gauge-fg"); fg.style.stroke = score < 40 ? "#FF6B6B" : score < 60 ? "#FED100" : "#2BC266";
+    const fg = $("#gauge-fg"); fg.style.stroke = score < 40 ? "#FF8A8A" : score < 60 ? "#FCD207" : "#5CF28C";
     fg.style.strokeDashoffset = String(327 * (1 - score / 100));
     const num = $("#roast-score"), t0 = performance.now();
     (function f(t) { const k = Math.min(1, (t - t0) / 1100); num.textContent = String(Math.round(score * k)); if (k < 1) requestAnimationFrame(f); })(t0);
@@ -405,26 +405,27 @@
   async function cardFile() {
     if (!lastRoast) return null;
     const S = 1080, c = document.createElement("canvas"); c.width = c.height = S; const g = c.getContext("2d");
-    const bg = g.createRadialGradient(S * .75, S * .2, 50, S * .75, S * .2, S); bg.addColorStop(0, "#0b3a1f"); bg.addColorStop(1, "#0A0A0A");
+    const bg = g.createRadialGradient(S * .75, S * .2, 50, S * .75, S * .2, S); bg.addColorStop(0, "#123A27"); bg.addColorStop(1, "#161C21");
     g.fillStyle = bg; g.fillRect(0, 0, S, S);
-    g.fillStyle = "#FED100"; g.beginPath(); g.moveTo(S - 260, S); g.lineTo(S - 170, S); g.lineTo(S, S - 170); g.lineTo(S, S - 260); g.fill();
-    g.fillStyle = "#009B3A"; g.beginPath(); g.moveTo(S - 170, S); g.lineTo(S - 80, S); g.lineTo(S, S - 80); g.lineTo(S, S - 170); g.fill();
+    g.fillStyle = "#FCD207"; g.beginPath(); g.moveTo(S - 260, S); g.lineTo(S - 170, S); g.lineTo(S, S - 170); g.lineTo(S, S - 260); g.fill();
+    g.fillStyle = "#1EED61"; g.beginPath(); g.moveTo(S - 170, S); g.lineTo(S - 80, S); g.lineTo(S, S - 80); g.lineTo(S, S - 170); g.fill();
     try { const logo = await loadImg($(".brand img").src.replace("logo-128", "logo-256")); g.drawImage(logo, 70, 60, 120, 120); } catch { /* ignore */ }
-    const font = w => `${w} system-ui, -apple-system, Segoe UI, Roboto, sans-serif`;
+    try { await Promise.all(["900 56px Outfit", "500 32px Outfit"].map(f => document.fonts.load(f))); } catch { /* system font fallback */ }
+    const font = w => `${w} Outfit, system-ui, -apple-system, Segoe UI, Roboto, sans-serif`;
     g.fillStyle = "#fff"; g.font = font("900 56px"); g.fillText("AutoVybz", 210, 140);
-    g.fillStyle = "#FED100"; g.font = font("800 40px"); g.fillText("🔥 Speaker Roast", 70, 270);
+    g.fillStyle = "#FCD207"; g.font = font("800 40px"); g.fillText("🔥 Speaker Roast", 70, 270);
     // gauge
     const cx = S / 2, cy = 470, r = 150, sc = lastRoast.score;
-    g.lineWidth = 26; g.strokeStyle = "#222"; g.beginPath(); g.arc(cx, cy, r, 0, Math.PI * 2); g.stroke();
-    g.strokeStyle = sc < 40 ? "#FF6B6B" : sc < 60 ? "#FED100" : "#2BC266"; g.lineCap = "round";
+    g.lineWidth = 26; g.strokeStyle = "#313C47"; g.beginPath(); g.arc(cx, cy, r, 0, Math.PI * 2); g.stroke();
+    g.strokeStyle = sc < 40 ? "#FF8A8A" : sc < 60 ? "#FCD207" : "#5CF28C"; g.lineCap = "round";
     g.beginPath(); g.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * sc / 100); g.stroke();
     g.fillStyle = "#fff"; g.textAlign = "center"; g.font = font("900 120px"); g.fillText(String(sc), cx, cy + 40);
-    g.font = font("700 30px"); g.fillStyle = "#aaa"; g.fillText("/ 100", cx, cy + 90);
-    g.fillStyle = "#FED100"; g.font = font("900 64px"); g.fillText(lastRoast.title, cx, 720);
-    g.fillStyle = "#ddd"; g.font = font("500 32px");
+    g.font = font("700 30px"); g.fillStyle = "#A9B4BE"; g.fillText("/ 100", cx, cy + 90);
+    g.fillStyle = "#FCD207"; g.font = font("900 64px"); g.fillText(lastRoast.title, cx, 720);
+    g.fillStyle = "#DDE3E7"; g.font = font("500 32px");
     wrapText(g, lastRoast.desc, cx, 785, S - 180, 44, 4);
-    g.textAlign = "left"; g.fillStyle = "#2BC266"; g.font = font("900 40px"); g.fillText(T.card_fix + " →", 70, S - 110);
-    g.fillStyle = "#FED100"; g.font = font("700 32px"); g.fillText(T.card_url, 70, S - 60);
+    g.textAlign = "left"; g.fillStyle = "#5CF28C"; g.font = font("900 40px"); g.fillText(T.card_fix + " →", 70, S - 110);
+    g.fillStyle = "#FCD207"; g.font = font("700 32px"); g.fillText(T.card_url, 70, S - 60);
     const blob = await new Promise(ok => c.toBlob(ok, "image/png"));
     return blob ? new File([blob], "autovybz-speaker-roast.png", { type: "image/png" }) : null;
   }

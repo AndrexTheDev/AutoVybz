@@ -293,7 +293,7 @@ def build(out: Path, stars: str | None) -> None:
     manifest = {
         "name": "AutoVybz", "short_name": "AutoVybz", "description": texts[LANGS[0]]["meta"]["og_desc"],
         "start_url": site_path, "scope": site_path, "display": "standalone",
-        "background_color": "#0A0A0A", "theme_color": "#0A0A0A",
+        "background_color": "#161C21", "theme_color": "#161C21",
         "icons": [{"src": f"{site_path}assets/img/logo-192.png", "sizes": "192x192", "type": "image/png"},
                   {"src": f"{site_path}assets/img/logo-512.png", "sizes": "512x512", "type": "image/png"}],
     }

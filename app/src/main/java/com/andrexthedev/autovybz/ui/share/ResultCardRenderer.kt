@@ -41,10 +41,18 @@ object ResultCardRenderer {
     private val MEASURED = AutoVybzColors.CurveMeasured.toArgb()
     private val TARGET = AutoVybzColors.CurveTarget.toArgb()
     private val CORRECTED = AutoVybzColors.CurveCorrected.toArgb()
-    private val MUTED = Color.rgb(0xA8, 0xA8, 0xA8)
-    private val BEFORE = Color.rgb(0xC8, 0xC8, 0xC8)
-    private val GRID = Color.rgb(0x2C, 0x2C, 0x2C)
-    private val BOLD = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+    private val ON_DARK = AutoVybzColors.OnDark.toArgb()
+    private val MUTED = AutoVybzColors.OnDarkMuted.toArgb()
+    private val BEFORE = AutoVybzColors.CurveMeasured.toArgb()
+    private val GRID = AutoVybzColors.Grid.toArgb()
+    private val BG = AutoVybzColors.Background.toArgb()
+    private val DEEP = AutoVybzColors.BackgroundDeep.toArgb()
+    private val PANEL = AutoVybzColors.Surface.toArgb()
+    private val ZERO_LINE = Color.rgb(0x4C, 0x5A, 0x67)
+
+    // Brand typeface (Outfit); falls back to the system font if the resource can't be loaded.
+    @Volatile private var regular: Typeface = Typeface.DEFAULT
+    @Volatile private var bold: Typeface = Typeface.DEFAULT_BOLD
 
     fun render(context: Context, outcome: MeasurementOutcome, presetName: String): Bitmap {
         val bmp = Bitmap.createBitmap(WIDTH, HEIGHT, Bitmap.Config.ARGB_8888)
@@ -52,9 +60,11 @@ object ResultCardRenderer {
         val res = context.resources
         val e = outcome.autoEq
         val loc = Locale.getDefault()
+        regular = runCatching { res.getFont(R.font.outfit_regular) }.getOrDefault(Typeface.DEFAULT)
+        bold = runCatching { res.getFont(R.font.outfit_bold) }.getOrDefault(Typeface.DEFAULT_BOLD)
 
-        // Background: near-black with a green glow top-left and a faint gold glow bottom-right.
-        c.drawColor(Color.rgb(0x0E, 0x0E, 0x0E))
+        // Background: Vybz slate with a green aura top-left (like the end of the intro) and a faint gold glow.
+        c.drawColor(BG)
         fill(RadialGradient(160f, 120f, 900f, withAlpha(GREEN, 0x66), Color.TRANSPARENT, Shader.TileMode.CLAMP)).let {
             c.drawRect(0f, 0f, WIDTH.toFloat(), HEIGHT.toFloat(), it)
         }
@@ -67,7 +77,7 @@ object ResultCardRenderer {
             c.drawBitmap(logo, null, RectF(64f, 56f, 64f + 112f, 56f + 112f), Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG))
             logo.recycle()
         }
-        val brand = text(64f, Color.WHITE, bold = true)
+        val brand = text(64f, ON_DARK, bold = true)
         c.drawText("Auto", 200f, 136f, brand)
         val autoW = brand.measureText("Auto")
         brand.color = GOLD
@@ -83,7 +93,7 @@ object ResultCardRenderer {
         c.drawText(tag, pill.left + 20f, 122f, tagPaint)
 
         // Headline (max. 2 lines) + speaker.
-        val headlinePaint = text(64f, Color.WHITE, bold = true)
+        val headlinePaint = text(64f, ON_DARK, bold = true)
         val lines = wrap(res.getString(R.string.avz_share_card_headline), headlinePaint, WIDTH - 128f)
         var y = if (lines.size == 1) 290f else 262f
         for (line in lines) {
@@ -96,8 +106,8 @@ object ResultCardRenderer {
 
         // Chart panel.
         val panel = RectF(48f, 440f, WIDTH - 48f, 1000f)
-        c.drawRoundRect(panel, 36f, 36f, fill(Color.rgb(0x16, 0x16, 0x16)))
-        c.drawRoundRect(panel, 36f, 36f, stroke(Color.rgb(0x2A, 0x2A, 0x2A), 2f))
+        c.drawRoundRect(panel, 36f, 36f, fill(PANEL))
+        c.drawRoundRect(panel, 36f, 36f, stroke(GRID, 2f))
         val plot = RectF(124f, 476f, WIDTH - 88f, 920f)
         drawChart(c, plot, e.frequencies, e.measuredDb, e.targetDb, e.predictedDb)
 
@@ -110,7 +120,7 @@ object ResultCardRenderer {
         )) {
             val p = stroke(color, 7f).apply { if (dashed) pathEffect = DashPathEffect(floatArrayOf(14f, 10f), 0f) }
             c.drawLine(lx, 1050f, lx + 48f, 1050f, p)
-            val tp = text(30f, Color.WHITE)
+            val tp = text(30f, ON_DARK)
             c.drawText(label, lx + 62f, 1061f, tp)
             lx += 62f + tp.measureText(label) + 48f
         }
@@ -121,7 +131,7 @@ object ResultCardRenderer {
         val big = text(72f, BEFORE, bold = true)
         var x = 64f
         c.drawText(before, x, 1160f, big); x += big.measureText(before)
-        big.color = Color.WHITE
+        big.color = ON_DARK
         c.drawText("  →  ", x, 1160f, big); x += big.measureText("  →  ")
         big.color = CORRECTED
         c.drawText(after, x, 1160f, big)
@@ -134,11 +144,11 @@ object ResultCardRenderer {
         }.joinToString("  ·  ")
         c.drawText(ellipsize(details, text(28f, MUTED), WIDTH - 128f), 64f, 1248f, text(28f, MUTED))
 
-        // Footer: Jamaica stripes + URL.
-        c.drawRect(0f, 1276f, WIDTH.toFloat(), HEIGHT.toFloat(), fill(Color.rgb(0x0A, 0x0A, 0x0A)))
+        // Footer: brand stripes + URL.
+        c.drawRect(0f, 1276f, WIDTH.toFloat(), HEIGHT.toFloat(), fill(DEEP))
         c.drawRect(0f, 1276f, WIDTH.toFloat(), 1282f, fill(GOLD))
         c.drawRect(0f, 1282f, WIDTH.toFloat(), 1288f, fill(GREEN))
-        val urlPaint = text(34f, Color.WHITE, bold = true)
+        val urlPaint = text(34f, ON_DARK, bold = true)
         c.drawText(ResultSharer.SITE_LABEL, (WIDTH - urlPaint.measureText(ResultSharer.SITE_LABEL)) / 2f, 1332f, urlPaint)
         return bmp
     }
@@ -157,7 +167,7 @@ object ResultCardRenderer {
         val label = text(24f, MUTED)
         var db = lo
         while (db <= hi + 1e-6) {
-            c.drawLine(plot.left, y(db), plot.right, y(db), if (db == 0.0) stroke(Color.rgb(0x44, 0x44, 0x44), 2f) else grid)
+            c.drawLine(plot.left, y(db), plot.right, y(db), if (db == 0.0) stroke(ZERO_LINE, 2f) else grid)
             val s = if (db > 0) "+${db.toInt()}" else "${db.toInt()}"
             c.drawText(s, plot.left - 16f - label.measureText(s), y(db) + 8f, label)
             db += 6.0
@@ -197,7 +207,7 @@ object ResultCardRenderer {
     private fun text(size: Float, color: Int, bold: Boolean = false) = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         textSize = size
         this.color = color
-        if (bold) typeface = BOLD
+        typeface = if (bold) this@ResultCardRenderer.bold else regular
     }
 
     private fun stroke(color: Int, width: Float) = Paint(Paint.ANTI_ALIAS_FLAG).apply {
