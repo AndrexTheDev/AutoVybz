@@ -1,5 +1,8 @@
 package com.andrexthedev.autovybz.ui.help
 
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.platform.testTag
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -45,7 +48,11 @@ fun HelpScreen() {
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Text(stringResource(R.string.avz_help_title), style = MaterialTheme.typography.headlineSmall)
+        Text(
+            stringResource(R.string.avz_help_title),
+            style = MaterialTheme.typography.headlineSmall,
+            modifier = Modifier.testTag("avz:screen:help").semantics { heading() },
+        )
         sections.forEachIndexed { i, (icon, title, body) ->
             CollapsibleCard(title = stringResource(title), icon = icon, initiallyExpanded = i < 2) {
                 Text(stringResource(body), style = MaterialTheme.typography.bodyMedium)

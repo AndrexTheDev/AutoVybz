@@ -37,7 +37,12 @@ data class CaptureResult(
     val xruns: Int,
 )
 
-class CaptureException(message: String, cause: Throwable? = null) : Exception(message, cause)
+open class CaptureException(message: String, cause: Throwable? = null) : Exception(message, cause)
+
+/** The measurement was interrupted from outside: output route changed or another app took the audio focus. */
+class CaptureInterruptedException(val reason: Reason, message: String) : CaptureException(message) {
+    enum class Reason { ROUTE_CHANGED, FOCUS_LOST }
+}
 
 /** Plays [stimulus] on the current media route while recording the mic. */
 interface MeasurementAudioEngine {

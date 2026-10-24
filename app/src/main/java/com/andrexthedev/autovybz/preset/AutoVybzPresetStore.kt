@@ -37,8 +37,15 @@ object AutoVybzPresetStore {
 
     private fun dir(context: Context) = File(context.filesDir, "autovybz/presets").apply { mkdirs() }
 
-    private fun fileFor(context: Context, name: String) =
-        File(dir(context), name.replace(Regex("[^A-Za-z0-9._+-]"), "_") + AutoVybzPreset.FILE_EXTENSION)
+    private fun fileFor(context: Context, name: String) = File(dir(context), PresetFiles.fileName(name))
+
+    /** Pre-0.1.1 file of exactly this preset (old names could collide, so the stored name is checked). */
+    private fun legacyFileFor(context: Context, name: String): File? {
+        val f = File(dir(context), PresetFiles.legacyFileName(name))
+        if (f == fileFor(context, name) || !f.exists()) return null
+        val stored = runCatching { AutoVybzPresetCodec.fromInternalJson(f.readText()).name }.getOrNull()
+        return f.takeIf { stored == name }
+    }
 
     /** Saves (or overwrites) [preset] under its name. Returns the stored name. */
     fun save(context: Context, preset: AutoVybzPreset): String {
@@ -50,14 +57,16 @@ object AutoVybzPresetStore {
             .putString("preset_${preset.name}", preset.toPoolJson())
             .putStringSet(POOL_NAMES, names)
             .apply()
-        runCatching { fileFor(context, preset.name).writeText(preset.toInternalJson()) }
-            .onFailure { Log.w(TAG, "could not write measurement file", it) }
+        runCatching {
+            fileFor(context, preset.name).writeText(preset.toInternalJson())
+            legacyFileFor(context, preset.name)?.delete() // migrated
+        }.onFailure { Log.w(TAG, "could not write measurement file", it) }
         return preset.name
     }
 
     fun loadFull(context: Context, name: String): AutoVybzPreset? = runCatching {
-        val f = fileFor(context, name)
-        if (f.exists()) AutoVybzPresetCodec.fromInternalJson(f.readText()) else null
+        val f = fileFor(context, name).takeIf { it.exists() } ?: legacyFileFor(context, name)
+        f?.let { AutoVybzPresetCodec.fromInternalJson(it.readText()) }
     }.getOrNull()
 
     /** Calibrations saved by AutoVybz (newest first). */
@@ -65,12 +74,14 @@ object AutoVybzPresetStore {
         (dir(context).listFiles { f -> f.name.endsWith(AutoVybzPreset.FILE_EXTENSION) } ?: emptyArray())
             .mapNotNull { runCatching { AutoVybzPresetCodec.fromInternalJson(it.readText()) }.getOrNull() }
             .sortedByDescending { it.createdAtMillis }
+            .distinctBy { it.name }
 
     fun delete(context: Context, name: String) {
         val prefs = context.getSharedPreferences(POOL_PREFS, Context.MODE_PRIVATE)
         val names = (prefs.getStringSet(POOL_NAMES, emptySet()) ?: emptySet()).toMutableSet()
         names -= name
         prefs.edit().remove("preset_$name").putStringSet(POOL_NAMES, names).apply()
+        legacyFileFor(context, name)?.delete()
         fileFor(context, name).delete()
     }
 

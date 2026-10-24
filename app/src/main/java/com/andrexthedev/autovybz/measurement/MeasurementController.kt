@@ -2,16 +2,19 @@ package com.andrexthedev.autovybz.measurement
 
 import android.content.Context
 import android.os.Build
+import com.andrexthedev.autovybz.AutoVybzServices
 import com.andrexthedev.autovybz.measurement.audio.CaptureConfig
+import com.andrexthedev.autovybz.measurement.audio.CaptureGuard
+import com.andrexthedev.autovybz.measurement.audio.CaptureInterruptedException
 import com.andrexthedev.autovybz.measurement.audio.CaptureResult
 import com.andrexthedev.autovybz.measurement.audio.EqBypass
-import com.andrexthedev.autovybz.measurement.audio.FallbackMeasurementEngine
 import com.andrexthedev.autovybz.measurement.audio.InputSourceResolver
 import com.andrexthedev.autovybz.measurement.audio.MeasurementAudioEngine
 import com.andrexthedev.autovybz.measurement.audio.NativeEngine
 import com.andrexthedev.autovybz.measurement.dsp.AnalyzerConfig
 import com.andrexthedev.autovybz.measurement.dsp.MeasurementAnalyzer
 import com.andrexthedev.autovybz.measurement.dsp.MeasurementResult
+import com.andrexthedev.autovybz.measurement.dsp.MeasurementWarning
 import com.andrexthedev.autovybz.measurement.dsp.SmoothingProfile
 import com.andrexthedev.autovybz.measurement.dsp.SpatialAverager
 import com.andrexthedev.autovybz.measurement.dsp.StimulusGenerator
@@ -28,7 +31,13 @@ import com.andrexthedev.autovybz.measurement.mic.MicProfileDatabase
 import com.andrexthedev.autovybz.measurement.mic.ResponseCurve
 import com.andrexthedev.autovybz.preset.model.AutoVybzPreset
 import com.andrexthedev.autovybz.preset.model.MeasurementSnapshot
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /** Everything the user (or the Pro settings) chose before pressing "Start". */
@@ -83,7 +92,7 @@ class MeasurementOutcome(
  */
 class MeasurementController(
     context: Context,
-    private val engine: MeasurementAudioEngine = FallbackMeasurementEngine(),
+    private val engine: MeasurementAudioEngine = AutoVybzServices.engineFactory(),
 ) {
     private val app = context.applicationContext
 
@@ -95,22 +104,28 @@ class MeasurementController(
         val source = InputSourceResolver.preferred(app, usbMic)
 
         val eqWasRunning = EqBypass.pauseIfRunning(app)
+        val guard = CaptureGuard(app)
         val capture = try {
-            if (eqWasRunning) kotlinx.coroutines.delay(400) // let DynamicsProcessing detach
-            engine.capture(
-                stimulus.signal,
-                CaptureConfig(plan.sampleRate, source, usbMic, extraRecordSeconds = 1.0),
-            ) { fraction, peak ->
-                val sample = (fraction * (plan.totalLength + plan.sampleRate)).toInt()
-                val phase = when {
-                    sample < plan.pinkStart -> MeasurementProgress.Phase.SILENCE
-                    sample < plan.sweepStart -> MeasurementProgress.Phase.PINK_NOISE
-                    sample < plan.sweepStart + plan.sweepLength -> MeasurementProgress.Phase.SWEEP
-                    else -> MeasurementProgress.Phase.DECAY
+            if (eqWasRunning) delay(400) // let DynamicsProcessing detach
+            // Other players pause now (audio focus); a call / route change from here on aborts the run.
+            guard.start()
+            guardedCapture(guard) {
+                engine.capture(
+                    stimulus.signal,
+                    CaptureConfig(plan.sampleRate, source, usbMic, extraRecordSeconds = 1.0),
+                ) { fraction, peak ->
+                    val sample = (fraction * (plan.totalLength + plan.sampleRate)).toInt()
+                    val phase = when {
+                        sample < plan.pinkStart -> MeasurementProgress.Phase.SILENCE
+                        sample < plan.sweepStart -> MeasurementProgress.Phase.PINK_NOISE
+                        sample < plan.sweepStart + plan.sweepLength -> MeasurementProgress.Phase.SWEEP
+                        else -> MeasurementProgress.Phase.DECAY
+                    }
+                    onProgress(MeasurementProgress.Measuring(fraction, peak, phase))
                 }
-                onProgress(MeasurementProgress.Measuring(fraction, peak, phase))
             }
         } finally {
+            guard.stop()
             if (eqWasRunning) EqBypass.resume(app)
         }
 
@@ -120,11 +135,47 @@ class MeasurementController(
             val analyzer = MeasurementAnalyzer(NativeEngine)
             val tuning = request.tuning
             val config = AnalyzerConfig(smoothing = tuning.smoothing, sweepWeight = tuning.sweepWeight)
-            val result = analyzer.analyze(capture.recording, stimulus, comp, config)
+            val analyzed = analyzer.analyze(capture.recording, stimulus, comp, config)
+            // Buffer under-/overruns leave gaps the analysis cannot see reliably -> flag for a repeat.
+            val result = if (capture.xruns > XRUN_TOLERANCE) analyzed.withExtraWarnings(listOf(MeasurementWarning.AUDIO_GLITCH)) else analyzed
             val autoEq = render(result, request)
             MeasurementOutcome(request, result, autoEq, capture, profile, comp.description, NativeEngine.name)
         }
     }
+
+    /**
+     * Runs [block] (the engine capture) while polling [guard]; an interruption cancels the capture and
+     * surfaces as [CaptureInterruptedException]. An interruption right after the capture also counts,
+     * because the tail of the recording is then already affected.
+     */
+    private suspend fun guardedCapture(guard: CaptureGuard, block: suspend () -> CaptureResult): CaptureResult = coroutineScope {
+        guard.interruption?.let { throw interrupted(it) }
+        val work = async { block() }
+        val watcher = launch {
+            while (isActive) {
+                if (guard.interruption != null) { work.cancel(); break }
+                delay(50)
+            }
+        }
+        try {
+            val result = work.await()
+            guard.interruption?.let { throw interrupted(it) }
+            result
+        } catch (c: CancellationException) {
+            guard.interruption?.let { throw interrupted(it) }
+            throw c
+        } finally {
+            watcher.cancel()
+        }
+    }
+
+    private fun interrupted(reason: CaptureInterruptedException.Reason) = CaptureInterruptedException(
+        reason,
+        when (reason) {
+            CaptureInterruptedException.Reason.ROUTE_CHANGED -> "audio output changed during the measurement"
+            CaptureInterruptedException.Reason.FOCUS_LOST -> "another app or a call took over the audio"
+        },
+    )
 
     /** Re-runs only the target inversion (target / band count changed on the result screen). */
     fun refit(outcome: MeasurementOutcome, request: MeasurementRequest): MeasurementOutcome =
@@ -176,6 +227,9 @@ class MeasurementController(
     }
 
     companion object {
+        /** A couple of xruns at stream start are normal; more mean audible gaps. */
+        const val XRUN_TOLERANCE = 2
+
         fun buildPreset(name: String, outcome: MeasurementOutcome): AutoVybzPreset {
             val r = outcome.result
             val e = outcome.autoEq

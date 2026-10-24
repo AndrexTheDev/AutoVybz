@@ -1,7 +1,14 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 
 package com.andrexthedev.autovybz.ui.pro
 
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.heading
+import com.andrexthedev.autovybz.measurement.eq.TargetType
+import androidx.compose.ui.platform.testTag
+import androidx.compose.material3.AlertDialog
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import android.content.Context
 import android.content.Intent
 import android.widget.Toast
@@ -90,7 +97,11 @@ fun ProScreen() {
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text(stringResource(R.string.avz_pro_title), style = MaterialTheme.typography.headlineSmall)
+        Text(
+            stringResource(R.string.avz_pro_title),
+            style = MaterialTheme.typography.headlineSmall,
+            modifier = Modifier.testTag("avz:screen:pro").semantics { heading() },
+        )
 
         SectionTitle(stringResource(R.string.avz_pro_engine_title))
         EngineLink(Icons.Filled.Build, R.string.avz_pro_peq, R.string.avz_pro_peq_desc) { open(context, MainActivity::class.java) }
@@ -149,32 +160,68 @@ private fun CalibrationList() {
     }
     val df = remember { DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT) }
     val active = AutoVybzPresetStore.lastAppliedName(context)
+    var toDelete by remember { mutableStateOf<String?>(null) }
+    val appliedMsg = stringResource(R.string.avz_applied_toast, "%s")
     for (p in items) {
-        AvzCard(accent = if (p.name == active) AutoVybzColors.Green else null) {
+        AvzCard(accent = if (p.name == active) AutoVybzColors.Green else null, modifier = Modifier.testTag("avz:pro:cal:${p.name}")) {
             Text(p.name, style = MaterialTheme.typography.titleMedium)
             Text(
-                "${df.format(Date(p.createdAtMillis))} · ${p.target.name} · ${p.bands.size} PEQ · " +
+                "${df.format(Date(p.createdAtMillis))} · ${stringResource(targetLabel(p.target))} · ${p.bands.size} PEQ · " +
                     String.format(Locale.US, "%.1f dB", p.preampDb) +
                     (if (p.measurement?.environment == ListeningEnvironment.OUTDOOR.name) " · " + stringResource(R.string.avz_env_outdoor_short) else ""),
                 style = MaterialTheme.typography.bodySmall,
                 color = AutoVybzColors.OnDarkMuted,
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Button(onClick = {
-                    val outdoor = p.measurement?.environment == ListeningEnvironment.OUTDOOR.name
-                    AutoVybzPresetStore.apply(context, p, AutoVybzSettings(context).enableLimiterOnApply || outdoor)
-                    reload++
-                }) { Text(stringResource(R.string.avz_apply)) }
-                ExportButton(preset = { p })
-                TextButton(onClick = {
-                    scope.launch {
-                        withContext(Dispatchers.IO) { AutoVybzPresetStore.delete(context, p.name) }
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Button(
+                    onClick = {
+                        val outdoor = p.measurement?.environment == ListeningEnvironment.OUTDOOR.name
+                        AutoVybzPresetStore.apply(context, p, AutoVybzSettings(context).enableLimiterOnApply || outdoor)
+                        Toast.makeText(context, appliedMsg.replace("%s", p.name), Toast.LENGTH_SHORT).show()
                         reload++
-                    }
-                }) { Text(stringResource(R.string.avz_delete), color = AutoVybzColors.Error) }
+                    },
+                    modifier = Modifier.testTag("avz:pro:apply:${p.name}"),
+                ) { Text(stringResource(R.string.avz_apply)) }
+                ExportButton(preset = { p })
+                TextButton(onClick = { toDelete = p.name }, modifier = Modifier.testTag("avz:pro:delete:${p.name}")) {
+                    Text(stringResource(R.string.avz_delete), color = AutoVybzColors.Error)
+                }
             }
         }
     }
+    toDelete?.let { name ->
+        AlertDialog(
+            onDismissRequest = { toDelete = null },
+            containerColor = AutoVybzColors.Surface,
+            title = { Text(stringResource(R.string.avz_delete_title)) },
+            text = { Text(stringResource(R.string.avz_delete_text, name)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        toDelete = null
+                        scope.launch {
+                            withContext(Dispatchers.IO) { AutoVybzPresetStore.delete(context, name) }
+                            reload++
+                        }
+                    },
+                    modifier = Modifier.testTag("avz:dialog:confirm"),
+                ) { Text(stringResource(R.string.avz_delete), color = AutoVybzColors.Error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { toDelete = null }, modifier = Modifier.testTag("avz:dialog:dismiss")) {
+                    Text(stringResource(R.string.avz_cancel), color = AutoVybzColors.GreenBright)
+                }
+            },
+        )
+    }
+}
+
+private fun targetLabel(t: TargetType): Int = when (t) {
+    TargetType.SMART -> R.string.avz_target_smart
+    TargetType.FLAT -> R.string.avz_target_flat
+    TargetType.BASS_BOOST -> R.string.avz_target_bass
+    TargetType.HARMAN -> R.string.avz_target_harman
+    TargetType.CUSTOM -> R.string.avz_target_custom
 }
 
 /* ------------------------------------------------------------ settings -- */

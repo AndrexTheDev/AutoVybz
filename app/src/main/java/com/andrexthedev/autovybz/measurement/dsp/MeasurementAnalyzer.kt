@@ -24,6 +24,8 @@ enum class MeasurementWarning {
     NOISE_UNSTEADY,
     /** The signal dropped out for a moment (typical: Bluetooth out of range). Measure again. */
     DROPOUT,
+    /** The audio engine reported buffer under-/overruns (device overloaded) - gaps in playback or recording. */
+    AUDIO_GLITCH,
 }
 
 class MeasurementException(val reason: Reason, message: String) : Exception(message) {
@@ -67,7 +69,17 @@ class MeasurementResult(
     val warnings: List<MeasurementWarning>,
     /** Offset that was subtracted for normalisation (absolute level info). */
     val normalizationDb: Double,
-)
+) {
+    /** Same result with additional warnings (e.g. detected by the capture layer); unchanged if nothing is new. */
+    fun withExtraWarnings(extra: Collection<MeasurementWarning>): MeasurementResult {
+        val merged = (warnings + extra).distinct()
+        if (merged.size == warnings.size) return this
+        return MeasurementResult(
+            sampleRate, frequencies, rawDb, smoothedDb, thirdOctaveDb, sweepSmoothedDb, pinkSmoothedDb, snrDb,
+            latencyMs, inputPeak, medianSnrDb, merged, normalizationDb,
+        )
+    }
+}
 
 /**
  * Turns the raw microphone recording of the AutoVybz stimulus into a

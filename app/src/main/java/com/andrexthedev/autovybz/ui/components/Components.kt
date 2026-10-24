@@ -45,6 +45,14 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.progressBarRangeInfo
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -121,6 +129,7 @@ fun CollapsibleCard(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     var expanded by rememberSaveable(title) { mutableStateOf(initiallyExpanded) }
+    val state = stringResource(if (expanded) R.string.avz_a11y_expanded else R.string.avz_a11y_collapsed)
     Card(
         modifier = modifier.fillMaxWidth().animateContentSize(),
         shape = MaterialTheme.shapes.medium,
@@ -128,7 +137,10 @@ fun CollapsibleCard(
         border = BorderStroke(1.dp, if (expanded) AutoVybzColors.Green.copy(alpha = 0.7f) else AutoVybzColors.Outline.copy(alpha = 0.6f)),
     ) {
         Row(
-            Modifier.fillMaxWidth().clickable { expanded = !expanded }.padding(16.dp),
+            Modifier.fillMaxWidth()
+                .clickable(role = Role.Button) { expanded = !expanded }
+                .semantics { stateDescription = state }
+                .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (icon != null) {
@@ -158,7 +170,7 @@ fun SectionTitle(text: String, modifier: Modifier = Modifier) {
         text.uppercase(),
         style = MaterialTheme.typography.labelMedium,
         color = AutoVybzColors.Gold,
-        modifier = modifier.padding(top = 8.dp, bottom = 2.dp),
+        modifier = modifier.padding(top = 8.dp, bottom = 2.dp).semantics { heading() },
     )
 }
 
@@ -174,7 +186,14 @@ fun LevelMeter(peak: Float, modifier: Modifier = Modifier) {
         db > -12f -> AutoVybzColors.Gold
         else -> AutoVybzColors.GreenBright
     }
-    Box(modifier.fillMaxWidth().height(10.dp).clip(CircleShape).background(AutoVybzColors.SurfaceHigh)) {
+    val description = stringResource(R.string.avz_a11y_level, (fraction * 100).toInt())
+    Box(
+        modifier.fillMaxWidth().height(10.dp).clip(CircleShape).background(AutoVybzColors.SurfaceHigh)
+            .semantics {
+                contentDescription = description
+                progressBarRangeInfo = ProgressBarRangeInfo(fraction, 0f..1f)
+            },
+    ) {
         Box(Modifier.fillMaxWidth(fraction).height(10.dp).clip(CircleShape).background(color))
     }
 }
@@ -200,6 +219,8 @@ fun FrequencyResponseChart(
     modifier: Modifier = Modifier,
     fMin: Double = 20.0,
     fMax: Double = 20000.0,
+    /** Spoken summary for TalkBack (the curves themselves are not accessible). */
+    description: String? = null,
 ) {
     val measurer = rememberTextMeasurer()
     val labelStyle = remember { TextStyle(color = AutoVybzColors.OnDarkMuted, fontSize = 10.sp) }
@@ -214,7 +235,8 @@ fun FrequencyResponseChart(
         (floor(lo.coerceAtLeast(-30.0) / 6.0) * 6.0) to (ceil(hi.coerceAtMost(18.0) / 6.0) * 6.0).coerceAtLeast(6.0)
     }
     Column(modifier) {
-        Canvas(Modifier.fillMaxWidth().height(220.dp).clip(RoundedCornerShape(12.dp)).background(AutoVybzColors.BackgroundDeep)) {
+        val a11y = if (description != null) Modifier.semantics { contentDescription = description } else Modifier
+        Canvas(Modifier.fillMaxWidth().height(220.dp).clip(RoundedCornerShape(12.dp)).background(AutoVybzColors.BackgroundDeep).then(a11y)) {
             val left = 34.dp.toPx()
             val bottom = size.height - 18.dp.toPx()
             val top = 8.dp.toPx()

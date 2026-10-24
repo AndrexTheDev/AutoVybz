@@ -6,7 +6,6 @@
     <string name="avz_nav_help">Hilfe</string>
     <string name="avz_nav_about">Info</string>
     <string name="avz_tagline">Automatische Lautsprecher- &amp; Raumeinmessung</string>
-    <string name="avz_wizard_title">Speaker einmessen</string>
     <string name="avz_wizard_subtitle">Ein Tipp. 10 Sekunden. Dein Lautsprecher, perfekt auf deinen Raum abgestimmt.</string>
     <string name="avz_wizard_start">Speaker einmessen</string>
     <string name="avz_speaker_name_label">Lautsprecher-Name (optional)</string>
@@ -106,8 +105,6 @@
     <string name="avz_pro_mbc_desc">Bis zu 6 Bänder mit Crossover-Graph</string>
     <string name="avz_pro_limiter">Limiter</string>
     <string name="avz_pro_limiter_desc">Schutz gegen Übersteuerung</string>
-    <string name="avz_pro_presets">Preset-Bibliothek</string>
-    <string name="avz_pro_presets_desc">Alle Presets inkl. AutoVybz-Einmessungen</string>
     <string name="avz_pro_measure_title">Mess-Einstellungen</string>
     <string name="avz_pro_bands">Filterbänder</string>
     <string name="avz_pro_smoothing">Glättung</string>
@@ -139,8 +136,6 @@
     <string name="avz_pro_no_calibrations">Noch keine Einmessungen – starte eine im Assistenten.</string>
     <string name="avz_apply">Aktivieren</string>
     <string name="avz_delete">Löschen</string>
-    <string name="avz_pro_expand">Anzeigen</string>
-    <string name="avz_pro_collapse">Ausblenden</string>
     <string name="avz_help_title">Hilfe &amp; Platzierung</string>
     <string name="avz_help_s1_title">1. Lautsprecher verbinden</string>
     <string name="avz_help_s1_body">Verbinde den Lautsprecher per Bluetooth, AUX-Kabel, USB oder HDMI und spiele kurz etwas ab, um zu prüfen, ob er funktioniert. Kopfhörer sind bewusst gesperrt – AutoVybz ist für Lautsprecher gemacht.</string>
@@ -158,7 +153,6 @@
     <string name="avz_help_s7_body">Der Lautsprecher spielt genau 10 Sekunden rosa Rauschen und einen logarithmischen Sinus-Sweep (20 Hz – 20 kHz), während das Handy aufnimmt. AutoVybz berechnet daraus den Frequenzgang, kompensiert das typische Verhalten von Handy-Mikrofonen, glättet (stärker im Bass, 1/3 Oktave in Mitten und Höhen) und berechnet bis zu 10 parametrische Filter, die deinen Lautsprecher zum gewählten Klangziel bringen. Eine negative Vorverstärkung und der Limiter verhindern Übersteuerung.</string>
     <string name="avz_help_s8_title">Grenzen</string>
     <string name="avz_help_s8_body">Handy-Mikrofone sind keine Messmikrofone; die eingebauten Profile sind Schätzungen. Tiefbass, den der Lautsprecher physikalisch nicht kann, wird nie angehoben (schützt den Lautsprecher). Für Labor-Qualität nutze ein USB-Messmikrofon mit Kalibrierdatei (Pro-Bereich).</string>
-    <string name="avz_about_title">Über AutoVybz</string>
     <string name="avz_about_text">AutoVybz ist 100 % Open Source und Donationware: keine Werbung, kein Tracking, keine Bezahlschranke.</string>
     <string name="avz_about_version">Version %1$s</string>
     <string name="avz_about_dev">Entwickler: AndrexTheDev</string>
@@ -168,7 +162,6 @@
     <string name="avz_about_licenses">Open-Source-Lizenzen</string>
     <string name="avz_about_licenses_text">AutoVybz: GPL-3.0 · Equalizer314: GPL-3.0 (bearinmindcat) · Oboe: Apache-2.0 (Google) · PipeWire-Convolver &amp; PFFFT: MIT / BSD-artig · Jetpack Compose &amp; AndroidX: Apache-2.0</string>
     <string name="avz_about_donate">Mit Krypto unterstützen</string>
-    <string name="avz_about_settings">Einstellungen</string>
     <string name="avz_about_classic_ui">Klassische Equalizer314-Oberfläche</string>
     <string name="avz_donate_title">Krypto spenden</string>
     <string name="avz_donate_text">AutoVybz ist kostenlos. Wenn es deinen Sound verbessert hat, hält eine kleine Spende die Entwicklung am Laufen. Tippe auf eine Adresse, um sie zu kopieren.</string>
@@ -234,4 +227,30 @@
     <string name="avz_out_single_position">Draußen ist eine einzelne Position unsicher (Bodenreflexion). Mit 3 Positionen wird das Ergebnis deutlich genauer.</string>
     <string name="avz_help_out_title">Draußen &amp; Party</string>
     <string name="avz_help_out_body">Draußen fehlen die Wände – das verändert die Akustik grundlegend. Wähle im Assistenten „Draußen · Party“:\n• Weniger Bass: In Räumen heben die Wände den Bass um etwa 4–8 dB an, draußen fehlt das. Per EQ nachzuhelfen kostet genauso viel Lautstärke und belastet die Membran. Deshalb hebt der Outdoor-Modus höchstens 3 dB an und senkt lieber ab. Mehr Bass gibt es gratis durch die Aufstellung: Box auf den Boden (bis +6 dB), nah an eine Wand oder Hausecke (noch mehr).\n• Bodenreflexion: Der vom Boden zurückgeworfene Schall löscht je nach Standort einzelne Frequenzen aus. Diese Löcher kann kein EQ füllen – AutoVybz ignoriert sie und mittelt über 3 Positionen. Verteile sie 1–2 m auseinander über den Bereich, in dem die Leute stehen.\n• Wind &amp; Lärm: Wind auf dem Mikrofon erzeugt starkes Bassrauschen. Dreh die Mikrofonöffnung aus dem Wind, leg ein dünnes Tuch darüber und warte auf eine ruhige Phase. Frequenzen, in denen Wind, Verkehr, Vögel oder Zikaden lauter sind als die Box, werden automatisch nicht korrigiert – das Ergebnis zeigt dir, welche.\n• Abstand &amp; Pegel: Miss 2–4 m vor der Box, kräftig aufgedreht (Party-Lautstärke, aber nicht Maximum – viele Party-Boxen regeln dort ihren Bass herunter).\n• Bluetooth-Reichweite: Draußen werfen keine Wände das Signal zurück. Bleib mit dem Handy in der Nähe der Box; Aussetzer werden erkannt.\n• Zwei Boxen / Party-Modus: Miss jede Box einzeln oder stell sie nah zusammen – zwei weit auseinanderstehende Boxen erzeugen draußen starke Interferenzen.\n• Sonne: Im Outdoor-Modus dreht AutoVybz die Bildschirmhelligkeit während der Kalibrierung hoch. Der Limiter wird beim Aktivieren immer eingeschaltet.</string>
+
+    <!-- Refinement: interruptions, countdown, confirmations, accessibility -->
+    <string name="avz_warn_glitch">Audio-Aussetzer bei Wiedergabe oder Aufnahme (das Handy war überlastet). Schließe andere Apps und miss erneut.</string>
+    <string name="avz_err_route_changed">Die Audioausgabe hat sich während der Messung geändert (Bluetooth getrennt oder Kopfhörer eingesteckt). Prüfe die Verbindung und versuche es erneut.</string>
+    <string name="avz_err_interrupted">Die Messung wurde unterbrochen – ein Anruf, ein Wecker oder eine andere App hat die Audiowiedergabe übernommen.</string>
+    <string name="avz_err_resume_hint">Bisher gemessene Positionen bleiben erhalten: %1$d</string>
+    <string name="avz_err_resume_retry">Position %1$d wiederholen</string>
+    <string name="avz_countdown_title">Gleich geht\'s los</string>
+    <string name="avz_countdown_hint">Bitte ruhig sein und das Handy nicht berühren.</string>
+    <string name="avz_discard_title">Ergebnis verwerfen?</string>
+    <string name="avz_discard_text">Diese Kalibrierung ist noch nicht gespeichert und geht verloren.</string>
+    <string name="avz_discard_confirm">Verwerfen</string>
+    <string name="avz_discard_keep">Behalten</string>
+    <string name="avz_cancel_session_title">Kalibrierung abbrechen?</string>
+    <string name="avz_cancel_session_text">Bereits gemessene Positionen gehen verloren: %1$d</string>
+    <string name="avz_cancel_session_confirm">Abbrechen</string>
+    <string name="avz_cancel_session_keep">Weitermachen</string>
+    <string name="avz_preset_name_exists">Es gibt schon eine Kalibrierung mit diesem Namen – Speichern überschreibt sie.</string>
+    <string name="avz_delete_title">Kalibrierung löschen?</string>
+    <string name="avz_delete_text">„%1$s“ wird endgültig gelöscht.</string>
+    <string name="avz_applied_toast">„%1$s“ ist jetzt aktiv</string>
+    <string name="avz_a11y_expanded">ausgeklappt</string>
+    <string name="avz_a11y_collapsed">eingeklappt</string>
+    <string name="avz_a11y_level">Mikrofonpegel %1$d Prozent</string>
+    <string name="avz_a11y_positions">%1$d von %2$d Positionen gemessen</string>
+    <string name="avz_a11y_chart">Frequenzgang-Diagramm: gemessene, Ziel- und korrigierte Kurve. Abweichung vorher %1$s dB, nachher %2$s dB.</string>
 </resources>

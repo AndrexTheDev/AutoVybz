@@ -17,30 +17,31 @@ import androidx.compose.ui.unit.sp
  * (the XML is used by the window theme / launcher icon, this object by Compose).
  */
 object AutoVybzColors {
-    val Background = Color(0xFF121212)
-    val BackgroundDeep = Color(0xFF0A0A0A)
-    val Surface = Color(0xFF181818)
-    val SurfaceHigh = Color(0xFF222222)
-    val Outline = Color(0xFF3A3A3A)
-    val Green = Color(0xFF009B3A)
-    val GreenBright = Color(0xFF2BC266)
-    val GreenContainer = Color(0xFF0B3A1F)
-    val Gold = Color(0xFFFED100)
-    val GoldContainer = Color(0xFF3D3300)
-    val OnDark = Color(0xFFEDEDED)
-    val OnDarkMuted = Color(0xFFA8A8A8)
-    val Error = Color(0xFFFF6B6B)
+    val Background = Color(AutoVybzPalette.BACKGROUND)
+    val BackgroundDeep = Color(AutoVybzPalette.BACKGROUND_DEEP)
+    val Surface = Color(AutoVybzPalette.SURFACE)
+    val SurfaceHigh = Color(AutoVybzPalette.SURFACE_HIGH)
+    val Outline = Color(AutoVybzPalette.OUTLINE)
+    val Green = Color(AutoVybzPalette.GREEN)
+    val GreenBright = Color(AutoVybzPalette.GREEN_BRIGHT)
+    val GreenContainer = Color(AutoVybzPalette.GREEN_CONTAINER)
+    val Gold = Color(AutoVybzPalette.GOLD)
+    val GoldContainer = Color(AutoVybzPalette.GOLD_CONTAINER)
+    val OnDark = Color(AutoVybzPalette.ON_DARK)
+    val OnDarkMuted = Color(AutoVybzPalette.ON_DARK_MUTED)
+    val OnGreen = Color(AutoVybzPalette.ON_GREEN)
+    val Error = Color(AutoVybzPalette.ERROR)
 
     /** Chart colours. */
-    val CurveMeasured = Color(0xFF8A8A8A)
+    val CurveMeasured = Color(AutoVybzPalette.CURVE_MEASURED)
     val CurveTarget = Gold
     val CurveCorrected = GreenBright
-    val Grid = Color(0xFF2A2A2A)
+    val Grid = Color(AutoVybzPalette.GRID)
 }
 
 private val AutoVybzColorScheme = darkColorScheme(
     primary = AutoVybzColors.Green,
-    onPrimary = Color.White,
+    onPrimary = AutoVybzColors.OnGreen,
     primaryContainer = AutoVybzColors.GreenContainer,
     onPrimaryContainer = AutoVybzColors.GreenBright,
     secondary = AutoVybzColors.Gold,
@@ -57,7 +58,7 @@ private val AutoVybzColorScheme = darkColorScheme(
     onSurfaceVariant = AutoVybzColors.OnDarkMuted,
     surfaceTint = AutoVybzColors.Green,
     outline = AutoVybzColors.Outline,
-    outlineVariant = Color(0xFF2C2C2C),
+    outlineVariant = Color(0xFF3A3A3A),
     error = AutoVybzColors.Error,
     onError = Color.Black,
     inverseSurface = AutoVybzColors.OnDark,

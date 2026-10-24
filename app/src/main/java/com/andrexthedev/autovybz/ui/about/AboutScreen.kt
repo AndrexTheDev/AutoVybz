@@ -1,5 +1,11 @@
+@file:OptIn(ExperimentalLayoutApi::class)
+
 package com.andrexthedev.autovybz.ui.about
 
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.ui.platform.testTag
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.FlowRow
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -58,18 +64,6 @@ import com.bearinmind.equalizer314.BuildConfig
 import com.bearinmind.equalizer314.MainActivity
 import com.bearinmind.equalizer314.R
 
-/** Project metadata - single source for the About screen and the donate dialog. */
-object AutoVybzInfo {
-    const val DEVELOPER = "AndrexTheDev"
-    const val CONTACT_EMAIL = "hippie.highho@gmail.com"
-    const val SOURCE_URL = "https://github.com/AndrexTheDev/AutoVybz"
-    const val UPSTREAM_URL = "https://github.com/bearinmindcat/Equalizer314"
-
-    const val DONATE_SOL = "79KsqtJJdhKFJ9woxnYgtf3nq7HxQveafWBCtC3mxWi8"
-    const val DONATE_BTC = "bc1qeqzrlfg3edrydk4s0hecakc82gp26n5p7hkc7f"
-    const val DONATE_ETH = "0xBC3fab34f69bc9f6661608C3FB36dDdC313C42F7"
-}
-
 @Composable
 fun AboutScreen() {
     val context = LocalContext.current
@@ -89,14 +83,18 @@ fun AboutScreen() {
             Text("Auto", style = MaterialTheme.typography.headlineMedium)
             Text("Vybz", style = MaterialTheme.typography.headlineMedium, color = AutoVybzColors.Gold)
         }
-        Text(stringResource(R.string.avz_about_version, BuildConfig.VERSION_NAME), color = AutoVybzColors.OnDarkMuted)
+        Text(
+            stringResource(R.string.avz_about_version, BuildConfig.VERSION_NAME),
+            color = AutoVybzColors.OnDarkMuted,
+            modifier = Modifier.testTag("avz:screen:about"),
+        )
         JamaicaStripe(Modifier.width(64.dp).height(4.dp))
         Text(stringResource(R.string.avz_about_text), textAlign = TextAlign.Center)
 
         Button(
             onClick = { showDonate = true },
+            modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp).testTag("avz:about:donate"),
             colors = ButtonDefaults.buttonColors(containerColor = AutoVybzColors.Gold, contentColor = androidx.compose.ui.graphics.Color.Black),
-            modifier = Modifier.fillMaxWidth().height(52.dp),
         ) {
             Icon(Icons.Filled.Favorite, contentDescription = null)
             Text("  " + stringResource(R.string.avz_about_donate), style = MaterialTheme.typography.titleMedium)
@@ -105,8 +103,8 @@ fun AboutScreen() {
         AvzCard {
             Text(stringResource(R.string.avz_about_dev), style = MaterialTheme.typography.titleMedium)
             Text(stringResource(R.string.avz_about_contact), color = AutoVybzColors.OnDarkMuted)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = { sendMail(context) }) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = { sendMail(context) }, modifier = Modifier.testTag("avz:about:mail")) {
                     Icon(Icons.Filled.Email, contentDescription = null)
                     Text("  " + stringResource(R.string.avz_about_email))
                 }
@@ -150,21 +148,23 @@ fun DonateDialog(onDismiss: () -> Unit) {
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.verticalScroll(rememberScrollState())) {
                 Text(stringResource(R.string.avz_donate_text), style = MaterialTheme.typography.bodyMedium)
-                DonateAddress(context, stringResource(R.string.avz_donate_sol), AutoVybzInfo.DONATE_SOL)
-                DonateAddress(context, stringResource(R.string.avz_donate_btc), AutoVybzInfo.DONATE_BTC)
-                DonateAddress(context, stringResource(R.string.avz_donate_eth), AutoVybzInfo.DONATE_ETH)
+                DonateAddress(context, stringResource(R.string.avz_donate_sol), AutoVybzInfo.DONATE_SOL, "SOL")
+                DonateAddress(context, stringResource(R.string.avz_donate_btc), AutoVybzInfo.DONATE_BTC, "BTC")
+                DonateAddress(context, stringResource(R.string.avz_donate_eth), AutoVybzInfo.DONATE_ETH, "ETH")
                 Text(stringResource(R.string.avz_donate_eth_note), style = MaterialTheme.typography.bodySmall, color = AutoVybzColors.OnDarkMuted)
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.avz_close), color = AutoVybzColors.Gold) } },
+        confirmButton = {
+            TextButton(onClick = onDismiss, modifier = Modifier.testTag("avz:donate:close")) { Text(stringResource(R.string.avz_close), color = AutoVybzColors.Gold) }
+        },
     )
 }
 
 @Composable
-private fun DonateAddress(context: Context, label: String, address: String) {
+private fun DonateAddress(context: Context, label: String, address: String, tag: String) {
     val copiedMsg = stringResource(R.string.avz_copied, label)
     Column(
-        Modifier.fillMaxWidth()
+        Modifier.fillMaxWidth().testTag("avz:donate:$tag")
             .clip(RoundedCornerShape(12.dp))
             .background(AutoVybzColors.BackgroundDeep)
             .clickable { copyToClipboard(context, label, address, copiedMsg) }
@@ -175,6 +175,7 @@ private fun DonateAddress(context: Context, label: String, address: String) {
             OutlinedButton(
                 onClick = { copyToClipboard(context, label, address, copiedMsg) },
                 border = BorderStroke(1.dp, AutoVybzColors.Green),
+                modifier = Modifier.testTag("avz:donate:copy:$tag"),
             ) { Text(stringResource(R.string.avz_copy), color = AutoVybzColors.GreenBright) }
         }
         Spacer(Modifier.height(6.dp))
@@ -189,12 +190,21 @@ private fun copyToClipboard(context: Context, label: String, text: String, toast
     if (Build.VERSION.SDK_INT < 33) Toast.makeText(context, toast, Toast.LENGTH_SHORT).show()
 }
 
+/** Feedback mail with the facts a bug report needs (no personal data, nothing sent automatically). */
 private fun sendMail(context: Context) {
+    val body = "\n\n---\nAutoVybz ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})\n" +
+        "${Build.MANUFACTURER} ${Build.MODEL}, Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})"
     val i = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:${AutoVybzInfo.CONTACT_EMAIL}"))
         .putExtra(Intent.EXTRA_SUBJECT, "AutoVybz ${BuildConfig.VERSION_NAME}")
-    runCatching { context.startActivity(i) }
+        .putExtra(Intent.EXTRA_TEXT, body)
+    // No mail app installed: copy the address instead of silently doing nothing.
+    runCatching { context.startActivity(i) }.onFailure {
+        copyToClipboard(context, "E-mail", AutoVybzInfo.CONTACT_EMAIL, context.getString(R.string.avz_copied, AutoVybzInfo.CONTACT_EMAIL))
+    }
 }
 
 private fun openUrl(context: Context, url: String) {
-    runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
+    runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }.onFailure {
+        copyToClipboard(context, "URL", url, context.getString(R.string.avz_copied, url))
+    }
 }

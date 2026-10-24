@@ -1,5 +1,7 @@
 package com.andrexthedev.autovybz.ui
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.ui.platform.testTag
 import android.content.Intent
 import android.os.Bundle
 import android.view.WindowManager
@@ -105,6 +107,8 @@ private enum class Tab(val label: Int, val icon: ImageVector) {
 private fun AutoVybzApp(wizardContent: @Composable (openHelp: () -> Unit) -> Unit) {
     var tabIndex by rememberSaveable { mutableIntStateOf(Tab.WIZARD.ordinal) }
     val tab = Tab.values()[tabIndex]
+    // System back on Pro / Help / About returns to the wizard instead of closing the app.
+    BackHandler(enabled = tab != Tab.WIZARD) { tabIndex = Tab.WIZARD.ordinal }
     Scaffold(
         containerColor = AutoVybzColors.Background,
         topBar = { AutoVybzHeader(subtitle = stringResource(R.string.avz_tagline)) },
@@ -114,6 +118,7 @@ private fun AutoVybzApp(wizardContent: @Composable (openHelp: () -> Unit) -> Uni
                     NavigationBarItem(
                         selected = t == tab,
                         onClick = { tabIndex = t.ordinal },
+                        modifier = Modifier.testTag("avz:tab:${t.name}"),
                         icon = { Icon(t.icon, contentDescription = null) },
                         label = { Text(stringResource(t.label)) },
                         colors = NavigationBarItemDefaults.colors(
