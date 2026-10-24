@@ -13,6 +13,7 @@ import kotlin.math.*
 class SpectrumAnalyzerRenderer(
     private val sampleRate: Int = 48000
 ) {
+    @Volatile // written by setFftSize() on the UI thread, read by updateWaveformData() on the audio thread
     private var fftProcessor = WaveformFftProcessor(fftSize = 4096, sampleRate = sampleRate)
 
     /** Change FFT size at runtime. Resets smoothing state. */

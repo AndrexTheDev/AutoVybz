@@ -16,14 +16,22 @@ class VisualizerHelper {
          * AutoVybz: Visualizer(0) construction / release are synchronous binder calls into audioserver that can
          * block for seconds while the EQ engine reconfigures session 0 (API 30 monkey: "Input dispatching timed
          * out" in MbcActivity). They run serially on this thread instead of the UI thread.
+         *
+         * It is a HandlerThread on purpose: Visualizer.setDataCaptureListener() delivers the capture callbacks on
+         * Looper.myLooper() and falls back to the MAIN looper when the creating thread has none (AOSP 9/11/15).
+         * With a plain executor thread the 4096-point FFT, the PPO smoothing and the native peak/RMS measurement
+         * ran on the UI thread at the maximum capture rate - API 30 monkey, campaign 13: ANR with the main thread
+         * inside onWaveFormDataCapture → Visualizer.native_getPeakRms. The renderer publishes immutable arrays
+         * through @Volatile fields, so the UI thread only draws.
          */
-        private val audioThread = java.util.concurrent.Executors.newSingleThreadExecutor { r ->
-            Thread(r, "avz-visualizer").apply { isDaemon = true }
+        private val audioHandler: android.os.Handler by lazy {
+            val t = android.os.HandlerThread("avz-visualizer").apply { isDaemon = true; start() }
+            android.os.Handler(t.looper)
         }
+        private fun onAudioThread(block: () -> Unit) { audioHandler.post { block() } }
     }
 
-    @Volatile private var visualizer: Visualizer? = null   // only touched on audioThread
-    private val calibrationPending = java.util.concurrent.atomic.AtomicBoolean(false)
+    @Volatile private var visualizer: Visualizer? = null   // only touched on the audio thread
     @Volatile private var generation = 0                   // bumped by every start()/stop() on the UI thread
     val renderer = SpectrumAnalyzerRenderer()
     @Volatile var isRunning = false                        // the requested state, set synchronously for the UI
@@ -71,7 +79,7 @@ class VisualizerHelper {
 
         isRunning = true
         val gen = ++generation
-        audioThread.execute { createVisualizer(gen, graphView) }
+        onAudioThread { createVisualizer(gen, graphView) }
     }
 
     private fun createVisualizer(gen: Int, graphView: EqGraphView) {
@@ -91,7 +99,14 @@ class VisualizerHelper {
                         if (isMusicPlaying) {
                             renderer.updateWaveformData(waveform)
 
-                            // Compute broadband RMS from the normalized spectrum (pure Kotlin, cheap → stays here)
+                            // Compute calibration offset: absolute dBFS vs normalized spectrum
+                            val measurement = Visualizer.MeasurementPeakRms()
+                            try {
+                                v.getMeasurementPeakRms(measurement)
+                            } catch (_: Exception) { return }
+                            val absoluteRmsDb = measurement.mRms / 100f  // mB to dB
+
+                            // Compute broadband RMS from the normalized spectrum
                             val specLinear = renderer.getSmoothedLinear()
                             if (specLinear != null && specLinear.isNotEmpty()) {
                                 var sumPower = 0.0
@@ -104,7 +119,7 @@ class VisualizerHelper {
                                 }
                                 if (count > 0 && sumPower > 0) {
                                     val normalizedRmsDb = (10.0 * Math.log10(sumPower / count)).toFloat()
-                                    requestCalibration(v, gen, normalizedRmsDb)
+                                    normToAbsoluteOffset = absoluteRmsDb - normalizedRmsDb
                                 }
                             }
                         } else {
@@ -137,31 +152,6 @@ class VisualizerHelper {
         }
     }
 
-    /**
-     * AutoVybz: calibration offset = absolute dBFS (Visualizer peak/RMS measurement) - normalized spectrum level.
-     * The capture callback arrives on the main looper, but getMeasurementPeakRms() synchronizes on the Visualizer's
-     * state lock, which setEnabled()/release() on [audioThread] hold during slow binder calls into audioserver.
-     * API 30 monkey (campaign 13): main thread blocked in native_getPeakRms → "Input dispatching timed out" in
-     * MbcActivity. The measurement therefore runs on [audioThread] too, at most one request queued at a time.
-     */
-    private fun requestCalibration(v: Visualizer, gen: Int, normalizedRmsDb: Float) {
-        if (!calibrationPending.compareAndSet(false, true)) return
-        audioThread.execute {
-            try {
-                if (gen != generation || visualizer !== v) return@execute  // stopped / restarted meanwhile
-                val measurement = Visualizer.MeasurementPeakRms()
-                val status = v.getMeasurementPeakRms(measurement)
-                if (status == Visualizer.SUCCESS) {
-                    normToAbsoluteOffset = measurement.mRms / 100f - normalizedRmsDb  // mB to dB
-                }
-            } catch (_: Exception) {
-                // released concurrently - keep the previous offset
-            } finally {
-                calibrationPending.set(false)
-            }
-        }
-    }
-
     fun stop() {
         // Unregister playback callback
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -173,7 +163,7 @@ class VisualizerHelper {
 
         generation++
         isRunning = false
-        audioThread.execute {
+        onAudioThread {
             val v = visualizer
             visualizer = null
             try {
