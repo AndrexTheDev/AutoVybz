@@ -31,6 +31,10 @@ adb shell input keyevent 82 >/dev/null 2>&1 || true
 adb root >/dev/null 2>&1 && sleep 3 && adb wait-for-device || true
 for s in window_animation_scale transition_animation_scale animator_duration_scale; do adb shell settings put global $s 0; done
 adb shell settings put system screen_off_timeout 1800000
+# Campaigns 12 + 14 (API 35): an "Application Not Responding: com.google.android.apps.nexuslauncher" system dialog
+# held window focus and swallowed the back key / clipboard of the app under test. Error dialogs of *other* processes
+# are not ours to judge; app ANRs are still caught by monkey and by the logcat ANR scan at the end.
+adb shell settings put global hide_error_dialogs 1 >/dev/null 2>&1 || true
 adb uninstall $PKG >/dev/null 2>&1; adb uninstall $PKG.test >/dev/null 2>&1
 # Right after "adb root" restarts adbd the package manager can still be coming up (campaign 11: API 35 job died
 # here with "install failed" while the identical APK installed fine in the shots job). Wait for it, retry, and keep
@@ -54,6 +58,7 @@ run() {
   local name=$1; shift
   log "instrument: $name"
   adb logcat -c
+  adb shell am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS >/dev/null 2>&1 || true
   adb shell am instrument -w -r "$@" $RUNNER < /dev/null > "$OUT/$name.instrument.txt" 2>&1
   adb logcat -d -v threadtime > "$OUT/$name.logcat.txt" 2>&1
   python3 "$HERE/parse_instrument.py" "$OUT/$name.instrument.txt" --suite "$name" --api "$API" \
@@ -200,6 +205,17 @@ de-landscape|de-DE|1080x2400|420|1.0|1"
   adb shell settings put system font_scale 1.0; adb shell settings put system user_rotation 0
   adb shell cmd window user-rotation free >/dev/null 2>&1 || true
   adb shell cmd locale set-app-locales $PKG --locales ""
+fi
+
+# ANR scan over the instrumented runs (monkey reports its own ANRs above). Needed because error dialogs are hidden.
+ANRS=$(grep -h "ANR in $PKG" $(ls "$OUT"/*.logcat.txt 2>/dev/null | grep -v monkey.logcat) /dev/null 2>/dev/null | wc -l)
+if [ "${ANRS:-0}" -gt 0 ]; then
+  FIRST=$(grep -h -m1 -A2 "ANR in $PKG" $(ls "$OUT"/*.logcat.txt | grep -v monkey.logcat) | tr '\n' ' ' | cut -c1-400)
+  note "- ❌ **ANR scan**: $ANRS ANR(s) of $PKG during instrumented runs – $FIRST"
+  echo "::error title=ANR scan API $API::$FIRST"; FAIL=1
+else
+  OTHER=$(grep -h "ANR in " $(ls "$OUT"/*.logcat.txt 2>/dev/null | grep -v monkey.logcat) /dev/null 2>/dev/null | grep -v "$PKG" | sed 's/.*ANR in \([^ ]*\).*/\1/' | sort -u | tr '\n' ' ')
+  note "- ✅ **ANR scan**: no ANR of $PKG in the instrumented runs${OTHER:+ (system processes: $OTHER)}"
 fi
 
 log "done (fail=$FAIL)"
