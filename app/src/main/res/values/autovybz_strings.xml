@@ -90,8 +90,8 @@
     <string name="avz_detail_bands">Filters</string>
     <string name="avz_mic_estimated_note">Mic compensation uses an estimated profile for your phone type, not a lab measurement.</string>
     <string name="avz_saved_title">Saved!</string>
-    <string name="avz_saved_applied">„%1$s“ is now active in the equalizer.</string>
-    <string name="avz_saved_only">„%1$s“ was added to your presets.</string>
+    <string name="avz_saved_applied">“%1$s” is now active in the equalizer.</string>
+    <string name="avz_saved_only">“%1$s” was added to your presets.</string>
     <string name="avz_open_pro_eq">Open 10-band EQ</string>
     <string name="avz_done">Done</string>
     <string name="avz_err_title">Measurement failed</string>
@@ -150,11 +150,11 @@
     <string name="avz_help_s2_title">2. Place the phone</string>
     <string name="avz_help_s2_body">• Put the phone where you usually listen (sofa, desk chair) at about ear height.\n• The main microphone is usually at the bottom edge – point it towards the speaker.\n• Distance: 1–2 m for room speakers, 50–80 cm for small desktop speakers.\n• Lay the phone on something soft or a stack of books, not directly on a table (reflections).\n• Don\'t hold it in your hand – your body changes the sound.</string>
     <string name="avz_help_s3_title">3. Set the volume</string>
-    <string name="avz_help_s3_body">AutoVybz sets the phone\'s media volume to about 70 %. Set the speaker itself to a normal, comfortable listening level. If the result says „overloaded“, turn down; if it says „quiet“, turn up.</string>
+    <string name="avz_help_s3_body">AutoVybz sets the phone\'s media volume to about 70 %. Set the speaker itself to a normal, comfortable listening level. If the result says “overloaded”, turn down; if it says “quiet”, turn up.</string>
     <string name="avz_help_s4_title">4. Keep it quiet</string>
     <string name="avz_help_s4_body">Close windows, switch off fans or the dishwasher and don\'t talk during the 10 seconds. AutoVybz measures the background noise first and warns you if it was too loud.</string>
     <string name="avz_help_s5_title">5. Disable sound effects</string>
-    <string name="avz_help_s5_body">Dolby Atmos, „Adapt Sound“, bass boost or the EQ in your speaker\'s app change what AutoVybz measures. Turn them off before measuring – you can switch them on again later. The AutoVybz EQ pauses itself automatically.</string>
+    <string name="avz_help_s5_body">Dolby Atmos, “Adapt Sound”, bass boost or the EQ in your speaker\'s app change what AutoVybz measures. Turn them off before measuring – you can switch them on again later. The AutoVybz EQ pauses itself automatically.</string>
     <string name="avz_help_s6_title">Bluetooth speakers</string>
     <string name="avz_help_s6_body">Bluetooth adds 100–300 ms delay. AutoVybz finds the exact delay itself, so you don\'t need to do anything. Many party speakers have built-in bass boost that changes with volume – calibrate at the volume you usually use.</string>
     <string name="avz_help_s7_title">How AutoVybz works</string>
@@ -195,7 +195,10 @@
     <string name="avz_move_tip_2">Microphone towards the speaker, hold still and stay quiet during the measurement.</string>
     <string name="avz_move_warn">Best repeat this measurement – or continue anyway.</string>
     <string name="avz_move_continue">Measure position %1$d</string>
-    <string name="avz_move_finish">Finish with %1$d</string>
+    <plurals name="avz_move_finish">
+        <item quantity="one">Finish with %1$d position</item>
+        <item quantity="other">Finish with %1$d positions</item>
+    </plurals>
     <string name="avz_result_positions">Averaged over %1$d positions · spread ±%2$s dB</string>
     <string name="avz_result_spread_high">The positions differ a lot. That is normal in very uneven rooms – otherwise stay closer to your listening spot or measure when it is quieter.</string>
     <string name="avz_share_result">Share</string>
@@ -237,7 +240,7 @@
     <string name="avz_out_party_tip">Party tip: extra bass comes free with placement – put the speaker on the ground (up to +6 dB) or close to a wall. Then measure again.</string>
     <string name="avz_out_single_position">Outdoors a single position is unreliable (ground reflection). With 3 positions the result gets much more accurate.</string>
     <string name="avz_help_out_title">Outdoors &amp; party</string>
-    <string name="avz_help_out_body">Outdoors there are no walls – that changes the acoustics completely. Choose „Outdoors · Party“ in the wizard:\n• Less bass: indoors the walls lift the bass by about 4–8 dB; outdoors that is missing. Making up for it with EQ costs exactly as much loudness and strains the woofer. That is why outdoor mode boosts by 3 dB at most and prefers cutting. Extra bass comes free with placement: speaker on the ground (up to +6 dB), close to a wall or a house corner (even more).\n• Ground reflection: sound bouncing off the ground cancels single frequencies, depending on where you stand. No EQ can fill these holes – AutoVybz ignores them and averages 3 positions. Spread them 1–2 m apart over the area where people will be.\n• Wind &amp; noise: wind on the microphone causes strong bass rumble. Turn the microphone opening away from the wind, put a thin cloth over it and wait for a calm moment. Frequencies where wind, traffic, birds or cicadas are louder than the speaker are automatically left uncorrected – the result shows which ones.\n• Distance &amp; level: measure 2–4 m in front of the speaker, turned up properly (party level, but not maximum – many party speakers turn their bass down there).\n• Bluetooth range: outdoors no walls reflect the signal. Keep the phone near the speaker; dropouts are detected.\n• Two speakers / party mode: measure each speaker on its own or put them close together – two speakers far apart cause strong interference outdoors.\n• Sun: in outdoor mode AutoVybz turns the screen brightness up during the calibration. The limiter is always switched on when activating.</string>
+    <string name="avz_help_out_body">Outdoors there are no walls – that changes the acoustics completely. Choose “Outdoors · Party” in the wizard:\n• Less bass: indoors the walls lift the bass by about 4–8 dB; outdoors that is missing. Making up for it with EQ costs exactly as much loudness and strains the woofer. That is why outdoor mode boosts by 3 dB at most and prefers cutting. Extra bass comes free with placement: speaker on the ground (up to +6 dB), close to a wall or a house corner (even more).\n• Ground reflection: sound bouncing off the ground cancels single frequencies, depending on where you stand. No EQ can fill these holes – AutoVybz ignores them and averages 3 positions. Spread them 1–2 m apart over the area where people will be.\n• Wind &amp; noise: wind on the microphone causes strong bass rumble. Turn the microphone opening away from the wind, put a thin cloth over it and wait for a calm moment. Frequencies where wind, traffic, birds or cicadas are louder than the speaker are automatically left uncorrected – the result shows which ones.\n• Distance &amp; level: measure 2–4 m in front of the speaker, turned up properly (party level, but not maximum – many party speakers turn their bass down there).\n• Bluetooth range: outdoors no walls reflect the signal. Keep the phone near the speaker; dropouts are detected.\n• Two speakers / party mode: measure each speaker on its own or put them close together – two speakers far apart cause strong interference outdoors.\n• Sun: in outdoor mode AutoVybz turns the screen brightness up during the calibration. The limiter is always switched on when activating.</string>
 
     <!-- Refinement: interruptions, countdown, confirmations, accessibility -->
     <string name="avz_warn_glitch">Audio dropouts in playback or recording (the phone was overloaded). Close other apps and measure again.</string>
@@ -257,8 +260,8 @@
     <string name="avz_cancel_session_keep">Continue</string>
     <string name="avz_preset_name_exists">A calibration with this name exists – saving overwrites it.</string>
     <string name="avz_delete_title">Delete calibration?</string>
-    <string name="avz_delete_text">„%1$s“ will be deleted permanently.</string>
-    <string name="avz_applied_toast">„%1$s“ is now active</string>
+    <string name="avz_delete_text">“%1$s” will be deleted permanently.</string>
+    <string name="avz_applied_toast">“%1$s” is now active</string>
     <string name="avz_a11y_expanded">expanded</string>
     <string name="avz_a11y_collapsed">collapsed</string>
     <string name="avz_a11y_level">Microphone level %1$d percent</string>

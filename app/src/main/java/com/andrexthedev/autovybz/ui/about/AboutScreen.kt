@@ -2,6 +2,9 @@
 
 package com.andrexthedev.autovybz.ui.about
 
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.ui.platform.testTag
 import androidx.compose.foundation.layout.heightIn
@@ -79,7 +82,8 @@ fun AboutScreen() {
             painterResource(R.drawable.autovybz_logo), contentDescription = null,
             modifier = Modifier.size(120.dp).clip(RoundedCornerShape(28.dp)),
         )
-        Row {
+        // One TalkBack stop "AutoVybz" (heading) instead of two words "Auto", "Vybz".
+        Row(Modifier.clearAndSetSemantics { heading(); contentDescription = "AutoVybz" }) {
             Text("Auto", style = MaterialTheme.typography.headlineMedium)
             Text("Vybz", style = MaterialTheme.typography.headlineMedium, color = AutoVybzColors.Gold)
         }

@@ -854,7 +854,8 @@ class EqService : Service() {
                         applyPersistedMbcConfig()
                         reapplyCurrentDeviceBinding()
                         if (dynamicsManager.isActive) {
-                            showDpStateToast(started = true)
+                            // AutoVybz: headless starts from the wizard / Pro card confirm in their own UI.
+                            if (intent?.getBooleanExtra(EXTRA_SILENT_TOAST, false) != true) showDpStateToast(started = true)
                             sendBroadcast(Intent(ACTION_EQ_STARTED).setPackage(packageName))
                         }
                         updateNotification()

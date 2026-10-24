@@ -27,6 +27,8 @@ API=$(adb shell getprop ro.build.version.sdk | tr -d '\r')
 log "device API $API"
 note "## Device: API $API ($(adb shell getprop ro.product.model | tr -d '\r'))"
 adb shell input keyevent 82 >/dev/null 2>&1 || true
+# root (google_apis images) lets us read ANR traces from /data/anr; harmless if unavailable
+adb root >/dev/null 2>&1 && sleep 3 && adb wait-for-device || true
 for s in window_animation_scale transition_animation_scale animator_duration_scale; do adb shell settings put global $s 0; done
 adb shell settings put system screen_off_timeout 1800000
 adb uninstall $PKG >/dev/null 2>&1; adb uninstall $PKG.test >/dev/null 2>&1
@@ -71,6 +73,15 @@ if [ "$MODE" = functional ]; then
     WHAT=$(grep -m1 -A12 "// CRASH\|// NOT RESPONDING" "$OUT/monkey.txt" | grep -E "CRASH|NOT RESPONDING|Short Msg|Long Msg|ANR in|Reason|at com\.(andrexthedev|bearinmind)" | head -6 | tr '\n' ' ' | cut -c1-600)
     note "- ❌ **Monkey**: $WHAT"; echo "::error title=Monkey API $API::$WHAT"; FAIL=1
     grep -B2 -A40 "// CRASH\|// NOT RESPONDING" "$OUT/monkey.txt" | head -120 > "$OUT/monkey_problem.txt"
+    # Main-thread stack of the ANR (what the UI thread was blocked on)
+    T=$(adb shell 'ls -t /data/anr/ 2>/dev/null | head -1' | tr -d '\r')
+    if [ -n "$T" ]; then
+      adb shell "cat /data/anr/$T" > "$OUT/anr_trace.txt" 2>/dev/null
+      awk '/^Cmd line: '"$PKG"'$/{p=1} p&&/^"main"/{m=1} m{print} m&&/^$/{exit}' "$OUT/anr_trace.txt" > "$OUT/anr_main.txt"
+      STACK=$(grep -E "^\s+(at|- waiting|- locked|- sleeping|native)" "$OUT/anr_main.txt" | head -8 | sed 's/^\s*//' | tr '\n' ' ' | cut -c1-700)
+      note "  - ANR main thread: $STACK"
+      echo "::error title=ANR main thread API $API::$STACK"
+    fi
   else
     note "- ✅ **Monkey**: 4000 events, seed 4711, no crash / ANR"
   fi
@@ -98,7 +109,8 @@ if [ "$MODE" = functional ]; then
   note "- ⏱️ **Cold start** (TotalTime ms, 3 runs):$TIMES"
   echo "$TIMES" > "$OUT/coldstart.txt"
   adb shell dumpsys meminfo $PKG > "$OUT/meminfo.txt" 2>&1
-  PSS=$(awk '/TOTAL PSS:|TOTAL:/{print $3; exit}' "$OUT/meminfo.txt")
+  PSS=$(grep -m1 -oE "TOTAL PSS: +[0-9]+" "$OUT/meminfo.txt" | grep -oE "[0-9]+$")
+  [ -n "$PSS" ] || PSS=$(grep -m1 -E "^ +TOTAL +[0-9]+" "$OUT/meminfo.txt" | awk '{print $2}')
   note "- 🧠 Memory after start: TOTAL PSS ${PSS:-?} kB"
 fi
 

@@ -194,7 +194,11 @@
     <string name="avz_move_tip_2">Micrófono hacia el altavoz; quieto y en silencio durante la medición.</string>
     <string name="avz_move_warn">Lo mejor es repetir esta medición, o continuar de todos modos.</string>
     <string name="avz_move_continue">Medir posición %1$d</string>
-    <string name="avz_move_finish">Terminar con %1$d</string>
+    <plurals name="avz_move_finish">
+        <item quantity="one">Terminar con %1$d posición</item>
+        <item quantity="many">Terminar con %1$d posiciones</item>
+        <item quantity="other">Terminar con %1$d posiciones</item>
+    </plurals>
     <string name="avz_result_positions">Promedio de %1$d posiciones · dispersión ±%2$s dB</string>
     <string name="avz_result_spread_high">Las posiciones difieren mucho. Es normal en salas muy irregulares; si no, quédate más cerca de tu posición de escucha o mide cuando haya más silencio.</string>
     <string name="avz_share_result">Compartir</string>

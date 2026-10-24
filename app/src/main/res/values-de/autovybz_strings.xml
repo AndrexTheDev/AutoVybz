@@ -195,7 +195,10 @@
     <string name="avz_move_tip_2">Mikrofon zum Lautsprecher, während der Messung stillhalten und leise sein.</string>
     <string name="avz_move_warn">Wiederhole diese Messung am besten – oder mach trotzdem weiter.</string>
     <string name="avz_move_continue">Position %1$d messen</string>
-    <string name="avz_move_finish">Mit %1$d fertigstellen</string>
+    <plurals name="avz_move_finish">
+        <item quantity="one">Mit %1$d Position fertigstellen</item>
+        <item quantity="other">Mit %1$d Positionen fertigstellen</item>
+    </plurals>
     <string name="avz_result_positions">Gemittelt über %1$d Positionen · Streuung ±%2$s dB</string>
     <string name="avz_result_spread_high">Die Positionen unterscheiden sich stark. In sehr ungleichmäßigen Räumen ist das normal – sonst näher am Hörplatz bleiben oder messen, wenn es ruhiger ist.</string>
     <string name="avz_share_result">Teilen</string>

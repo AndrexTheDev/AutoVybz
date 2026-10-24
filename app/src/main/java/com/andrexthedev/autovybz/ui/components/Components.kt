@@ -1,5 +1,14 @@
 package com.andrexthedev.autovybz.ui.components
 
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.unit.Dp
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.BorderStroke
@@ -48,6 +57,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.progressBarRangeInfo
@@ -67,31 +77,53 @@ import kotlin.math.ln
 /* ------------------------------------------------------------- header -- */
 
 @Composable
-fun AutoVybzHeader(subtitle: String, modifier: Modifier = Modifier) {
+fun AutoVybzHeader(subtitle: String, modifier: Modifier = Modifier, compact: Boolean = false) {
     Row(
         modifier = modifier
             .fillMaxWidth()
             .background(
                 Brush.verticalGradient(listOf(AutoVybzColors.BackgroundDeep, AutoVybzColors.Background)),
             )
-            .padding(horizontal = 20.dp, vertical = 14.dp),
+            // edge-to-edge: the gradient runs under the status bar, the content stays below it / beside a cutout
+            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal))
+            .padding(horizontal = 20.dp, vertical = if (compact) 6.dp else 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Image(
             painter = painterResource(R.drawable.autovybz_logo),
             contentDescription = null,
-            modifier = Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)),
+            modifier = Modifier.size(if (compact) 32.dp else 44.dp).clip(RoundedCornerShape(12.dp)),
         )
         Spacer(Modifier.width(14.dp))
         Column {
-            Row {
+            Row(Modifier.clearAndSetSemantics { contentDescription = "AutoVybz" }) { // read as one word
                 Text("Auto", style = MaterialTheme.typography.titleLarge, color = AutoVybzColors.OnDark)
                 Text("Vybz", style = MaterialTheme.typography.titleLarge, color = AutoVybzColors.Gold)
             }
-            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = AutoVybzColors.OnDarkMuted)
+            if (!compact) Text(subtitle, style = MaterialTheme.typography.bodySmall, color = AutoVybzColors.OnDarkMuted)
         }
         Spacer(Modifier.weight(1f))
         JamaicaStripe(Modifier.width(36.dp).height(4.dp))
+    }
+}
+
+/**
+ * Two or three buttons side by side - or stacked full width when they would not fit: large font scales
+ * (> 115 %) or narrow screens split words like "Abbrechen" mid-word otherwise (end-user test W10).
+ * Children size themselves with `Modifier.slot(weight)`.
+ */
+class AdaptiveButtonScope internal constructor(private val row: RowScope?) {
+    fun Modifier.slot(share: Float = 1f): Modifier =
+        if (row != null) with(row) { this@slot.weight(share) } else this.fillMaxWidth()
+}
+
+@Composable
+fun AdaptiveButtonRow(spacing: Dp = 8.dp, content: @Composable AdaptiveButtonScope.() -> Unit) {
+    val stacked = LocalDensity.current.fontScale > 1.15f || LocalConfiguration.current.screenWidthDp < 360
+    if (stacked) {
+        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(spacing)) { AdaptiveButtonScope(null).content() }
+    } else {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(spacing)) { AdaptiveButtonScope(this).content() }
     }
 }
 

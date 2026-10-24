@@ -2,6 +2,9 @@
 
 package com.andrexthedev.autovybz.ui.wizard
 
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import com.andrexthedev.autovybz.ui.components.AdaptiveButtonRow
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -355,6 +358,7 @@ private fun RouteBlockedStep(step: WizardStep.RouteBlocked, onRetry: () -> Unit,
             Text(
                 stringResource(if (headphones) R.string.avz_route_headphones_title else R.string.avz_route_builtin_title),
                 style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.semantics { heading() },
             )
         }
         Text(stringResource(if (headphones) R.string.avz_route_headphones_text else R.string.avz_route_builtin_text))
@@ -380,7 +384,7 @@ private fun SafetyStep(step: WizardStep.ConfirmSafety, environment: ListeningEnv
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Filled.Warning, contentDescription = null, tint = AutoVybzColors.Gold)
             Spacer(Modifier.width(10.dp))
-            Text(stringResource(R.string.avz_safety_title), style = MaterialTheme.typography.titleLarge)
+            Text(stringResource(R.string.avz_safety_title), style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
         }
         Text(stringResource(R.string.avz_safety_text))
         Bullet(stringResource(R.string.avz_safety_b1))
@@ -430,13 +434,13 @@ private fun SafetyStep(step: WizardStep.ConfirmSafety, environment: ListeningEnv
     }
     CheckRow(readWarning, { readWarning = it }, stringResource(R.string.avz_safety_confirm), "avz:safety:confirm")
 
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-        OutlinedButton(onClick = vm::onCancel, modifier = Modifier.weight(1f).testTag("avz:safety:cancel")) { Text(stringResource(R.string.avz_cancel)) }
+    AdaptiveButtonRow(spacing = 12.dp) {
+        OutlinedButton(onClick = vm::onCancel, modifier = Modifier.slot(1f).testTag("avz:safety:cancel")) { Text(stringResource(R.string.avz_cancel)) }
         Button(
             onClick = vm::onConfirmStart,
             enabled = readWarning && isSpeaker,
             colors = ButtonDefaults.buttonColors(containerColor = AutoVybzColors.Green),
-            modifier = Modifier.weight(1.6f).testTag("avz:safety:start"),
+            modifier = Modifier.slot(1.6f).testTag("avz:safety:start"),
         ) { Text(stringResource(R.string.avz_safety_start)) }
     }
 }
@@ -502,7 +506,7 @@ private fun MeasuringStep(step: WizardStep.Measuring, onCancel: () -> Unit) {
                 color = AutoVybzColors.Gold,
             )
         }
-        Text(stringResource(phaseText), style = MaterialTheme.typography.titleLarge)
+        Text(stringResource(phaseText), style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
         Text(stringResource(R.string.avz_measuring_hint), color = AutoVybzColors.OnDarkMuted, textAlign = TextAlign.Center)
     }
     AvzCard {
@@ -537,7 +541,7 @@ private fun CountdownStep(step: WizardStep.Countdown, onCancel: () -> Unit) {
             )
         }
         Spacer(Modifier.height(20.dp))
-        Text(stringResource(R.string.avz_countdown_title), style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center)
+        Text(stringResource(R.string.avz_countdown_title), style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center, modifier = Modifier.semantics { heading() })
         Text(stringResource(R.string.avz_countdown_hint), color = AutoVybzColors.OnDarkMuted, textAlign = TextAlign.Center)
     }
     OutlinedButton(onClick = onCancel, modifier = Modifier.fillMaxWidth().testTag("avz:countdown:cancel")) { Text(stringResource(R.string.avz_cancel)) }
@@ -572,6 +576,7 @@ private fun MovePhoneStep(
             stringResource(R.string.avz_move_title, step.completed, step.total),
             style = MaterialTheme.typography.headlineSmall,
             textAlign = TextAlign.Center,
+            modifier = Modifier.semantics { heading() },
         )
     }
     if (step.completed < step.total) {
@@ -607,16 +612,16 @@ private fun MovePhoneStep(
     ) {
         Icon(if (allMeasured) Icons.Filled.CheckCircle else Icons.Filled.PlayArrow, contentDescription = null)
         Text(
-            "  " + if (allMeasured) stringResource(R.string.avz_move_finish, step.completed)
+            "  " + if (allMeasured) LocalContext.current.resources.getQuantityString(R.plurals.avz_move_finish, step.completed, step.completed)
             else stringResource(R.string.avz_move_continue, step.completed + 1),
             style = MaterialTheme.typography.titleMedium,
         )
     }
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-        OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f).testTag("avz:move:cancel")) { Text(stringResource(R.string.avz_cancel)) }
+    AdaptiveButtonRow(spacing = 8.dp) {
+        OutlinedButton(onClick = onCancel, modifier = Modifier.slot(1f).testTag("avz:move:cancel")) { Text(stringResource(R.string.avz_cancel)) }
         if (!allMeasured) {
-            OutlinedButton(onClick = onFinish, modifier = Modifier.weight(1.6f).testTag("avz:move:finishEarly")) {
-                Text(stringResource(R.string.avz_move_finish, step.completed), textAlign = TextAlign.Center)
+            OutlinedButton(onClick = onFinish, modifier = Modifier.slot(1.6f).testTag("avz:move:finishEarly")) {
+                Text(LocalContext.current.resources.getQuantityString(R.plurals.avz_move_finish, step.completed, step.completed), textAlign = TextAlign.Center)
             }
         }
     }
@@ -627,13 +632,14 @@ private fun BusyStep(title: String, subtitle: String?) {
     Column(Modifier.fillMaxWidth().padding(top = 48.dp).testTag("avz:busy"), horizontalAlignment = Alignment.CenterHorizontally) {
         CircularProgressIndicator(color = AutoVybzColors.Gold, modifier = Modifier.size(64.dp))
         Spacer(Modifier.height(20.dp))
-        Text(title, style = MaterialTheme.typography.titleLarge)
+        Text(title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
         subtitle?.let { Text(it, color = AutoVybzColors.OnDarkMuted) }
     }
 }
 
 /* ---------------------------------------------------------------- result -- */
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 private fun ResultStep(step: WizardStep.Result, state: WizardUiState, vm: WizardViewModel, onMeasureAgain: () -> Unit) {
     val o = step.outcome
@@ -748,6 +754,7 @@ private fun ResultStep(step: WizardStep.Result, state: WizardUiState, vm: Wizard
         }
     }
 
+    val nameInView = remember { BringIntoViewRequester() }
     OutlinedTextField(
         value = step.presetName,
         onValueChange = vm::onPresetNameChanged,
@@ -762,8 +769,12 @@ private fun ResultStep(step: WizardStep.Result, state: WizardUiState, vm: Wizard
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
         keyboardActions = KeyboardActions(onDone = { focus.clearFocus() }),
         colors = avzTextFieldColors(),
-        modifier = Modifier.fillMaxWidth().testTag("avz:result:name"),
+        modifier = Modifier.fillMaxWidth().bringIntoViewRequester(nameInView).testTag("avz:result:name"),
     )
+    // The focused-field auto-scroll only reveals the text line; bring the whole field incl. the error /
+    // "already exists" hint above the keyboard (end-user test W5).
+    val hint = !step.nameValid || step.nameExists
+    LaunchedEffect(hint) { if (hint) runCatching { nameInView.bringIntoView() } }
 
     Button(
         onClick = { vm.onSave(apply = true) },
@@ -774,19 +785,19 @@ private fun ResultStep(step: WizardStep.Result, state: WizardUiState, vm: Wizard
         Icon(Icons.Filled.CheckCircle, contentDescription = null)
         Text("  " + stringResource(R.string.avz_save_apply), style = MaterialTheme.typography.titleMedium)
     }
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+    AdaptiveButtonRow(spacing = 8.dp) {
         OutlinedButton(
             onClick = { vm.onSave(apply = false) },
             enabled = step.nameValid,
-            modifier = Modifier.weight(1f).testTag("avz:result:saveOnly"),
+            modifier = Modifier.slot(1f).testTag("avz:result:saveOnly"),
         ) { Text(stringResource(R.string.avz_save_only), textAlign = TextAlign.Center) }
-        OutlinedButton(onClick = onMeasureAgain, modifier = Modifier.weight(1f).testTag("avz:result:again")) {
+        OutlinedButton(onClick = onMeasureAgain, modifier = Modifier.slot(1f).testTag("avz:result:again")) {
             Text(stringResource(R.string.avz_measure_again), textAlign = TextAlign.Center)
         }
     }
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-        ExportButton(preset = vm::currentPreset, modifier = Modifier.weight(1f).testTag("avz:export"), fillWidth = true)
-        ShareResultButton(o, step.presetName, Modifier.weight(1f).testTag("avz:share"))
+    AdaptiveButtonRow(spacing = 8.dp) {
+        ExportButton(preset = vm::currentPreset, modifier = Modifier.slot(1f).testTag("avz:export"), fillWidth = true)
+        ShareResultButton(o, step.presetName, Modifier.slot(1f).testTag("avz:share"))
     }
 
     // Details for the curious
@@ -817,7 +828,7 @@ private fun SavedStep(step: WizardStep.Saved, onOpenProEq: () -> Unit, onDone: (
     Column(Modifier.fillMaxWidth().padding(top = 32.dp).testTag("avz:saved"), horizontalAlignment = Alignment.CenterHorizontally) {
         Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = AutoVybzColors.GreenBright, modifier = Modifier.size(96.dp))
         Spacer(Modifier.height(12.dp))
-        Text(stringResource(R.string.avz_saved_title), style = MaterialTheme.typography.headlineMedium, color = AutoVybzColors.Gold)
+        Text(stringResource(R.string.avz_saved_title), style = MaterialTheme.typography.headlineMedium, color = AutoVybzColors.Gold, modifier = Modifier.semantics { heading() })
         Spacer(Modifier.height(8.dp))
         Text(
             stringResource(if (step.applied) R.string.avz_saved_applied else R.string.avz_saved_only, step.presetName),
@@ -872,7 +883,7 @@ private fun ErrorStep(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Filled.Warning, contentDescription = null, tint = AutoVybzColors.Error)
             Spacer(Modifier.width(10.dp))
-            Text(stringResource(R.string.avz_err_title), style = MaterialTheme.typography.titleLarge)
+            Text(stringResource(R.string.avz_err_title), style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
         }
         val detail = step.detail ?: "-"
         Text(
@@ -906,7 +917,7 @@ private fun ErrorStep(
                 Text("  " + stringResource(R.string.avz_err_resume_retry, resume))
             }
             OutlinedButton(onClick = onFinish, modifier = Modifier.fillMaxWidth().testTag("avz:error:finish")) {
-                Text(stringResource(R.string.avz_move_finish, step.measuredPositions), textAlign = TextAlign.Center)
+                Text(LocalContext.current.resources.getQuantityString(R.plurals.avz_move_finish, step.measuredPositions, step.measuredPositions), textAlign = TextAlign.Center)
             }
             OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth().testTag("avz:error:back")) { Text(stringResource(R.string.avz_cancel)) }
         } else {

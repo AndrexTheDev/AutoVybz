@@ -41,9 +41,23 @@ class ScreenshotTourE2ETest : E2eTest() {
         }
     }
 
+    /**
+     * One shot per expanded card (W8: four swipes after expandAll() only re-shot the list end). Walks from the
+     * last card upwards: the minimal performScrollTo then puts each header at the top with its content below.
+     */
+    private fun shootEachExpanded(prefix: String) {
+        val expanded = SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, str(R.string.avz_a11y_expanded))
+        val count = compose.onAllNodes(expanded).fetchSemanticsNodes().size
+        for (i in count - 1 downTo 0) {
+            runCatching { compose.onAllNodes(expanded)[i].performScrollTo() }
+            shot("${prefix}_expanded_${i + 1}")
+        }
+    }
+
     @Test fun t01_wizardIdle() {
         compose.await("avz:start"); shot("idle_top")
         compose.onNodeWithTag("avz:speakerName").performTextReplacement("JBL Flip 6")
+        Espresso.closeSoftKeyboard() // W2: the keyboard covered every following idle shot
         compose.tap("avz:env:OUTDOOR"); shot("idle_outdoor")
         scrollTo("avz:target:CUSTOM"); shot("idle_targets")
         compose.onNodeWithText(str(R.string.avz_wizard_help_link), substring = true).performScrollTo(); shot("idle_bottom")
@@ -71,11 +85,11 @@ class ScreenshotTourE2ETest : E2eTest() {
         compose.await("avz:move:repeat"); shot("move_warning")
         compose.tap("avz:move:repeat")
         compose.await("avz:move:continue"); compose.tap("avz:move:continue")
-        compose.await("avz:result"); shot("result_outdoor_top")
+        compose.await("avz:result"); compose.awaitGone("avz:busy"); shot("result_outdoor_top") // W3: AnimatedContent overlap
     }
 
     @Test fun t04_resultSavedDialogs() {
-        compose.quickCalibration(); shot("result_top")
+        compose.quickCalibration(); compose.awaitGone("avz:busy"); shot("result_top")
         scrollTo("avz:bands:5"); shot("result_targets")
         scrollTo("avz:export:open"); shot("result_actions")
         compose.tap("avz:export:open"); shot("export_menu"); Espresso.pressBack()
@@ -113,13 +127,13 @@ class ScreenshotTourE2ETest : E2eTest() {
         compose.tap("avz:pro:delete:$name"); compose.await("avz:dialog:confirm"); shot("pro_delete_dialog")
         compose.tap("avz:dialog:dismiss")
         expandAll()
-        for (i in 1..4) { compose.onRoot().performTouchInputSwipeUp(); shot("pro_expanded_$i") }
+        shootEachExpanded("pro")
     }
 
     @Test fun t07_helpAbout() {
         compose.tap("avz:tab:HELP"); compose.await("avz:screen:help"); shot("help_top")
         expandAll()
-        for (i in 1..4) { compose.onRoot().performTouchInputSwipeUp(); shot("help_expanded_$i") }
+        shootEachExpanded("help")
         compose.tap("avz:tab:ABOUT"); compose.await("avz:screen:about"); shot("about_top")
         compose.onRoot().performTouchInputSwipeUp(); shot("about_bottom")
         compose.tap("avz:about:donate"); compose.await("avz:donate:close"); shot("donate")

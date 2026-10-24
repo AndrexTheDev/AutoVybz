@@ -6,6 +6,16 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.material3.NavigationRail
+import androidx.compose.material3.NavigationRailItem
+import androidx.compose.material3.NavigationRailItemDefaults
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Box
@@ -57,6 +67,12 @@ class AutoVybzActivity : ComponentActivity() {
     private val wizard: WizardViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Android 15+ forces edge-to-edge for targetSdk >= 35. Opt in on every version so the layout is identical
+        // from API 28 to 36; the header, navigation and IME insets are handled explicitly in Compose.
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+        )
         super.onCreate(savedInstanceState)
         // AutoVybz replaced MainActivity as launcher, so it takes over the "restore EQ on app open" fallback.
         if (savedInstanceState == null) EqBypass.startIfPersistedOn(this)
@@ -103,17 +119,21 @@ private enum class Tab(val label: Int, val icon: ImageVector) {
     ABOUT(R.string.avz_nav_about, Icons.Filled.Favorite),
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun AutoVybzApp(wizardContent: @Composable (openHelp: () -> Unit) -> Unit) {
     var tabIndex by rememberSaveable { mutableIntStateOf(Tab.WIZARD.ordinal) }
     val tab = Tab.values()[tabIndex]
     // System back on Pro / Help / About returns to the wizard instead of closing the app.
     BackHandler(enabled = tab != Tab.WIZARD) { tabIndex = Tab.WIZARD.ordinal }
+    // Landscape phones (and split screen) have little height: header + bottom bar would eat half of it.
+    // There the navigation moves to a side rail and the header drops its subtitle.
+    val compact = LocalConfiguration.current.screenHeightDp < 480
     Scaffold(
         containerColor = AutoVybzColors.Background,
-        topBar = { AutoVybzHeader(subtitle = stringResource(R.string.avz_tagline)) },
+        topBar = { AutoVybzHeader(subtitle = stringResource(R.string.avz_tagline), compact = compact) },
         bottomBar = {
-            NavigationBar(containerColor = AutoVybzColors.BackgroundDeep) {
+            if (!compact) NavigationBar(containerColor = AutoVybzColors.BackgroundDeep) {
                 for (t in Tab.values()) {
                     NavigationBarItem(
                         selected = t == tab,
@@ -133,13 +153,34 @@ private fun AutoVybzApp(wizardContent: @Composable (openHelp: () -> Unit) -> Uni
             }
         },
     ) { padding ->
-        Box(Modifier.fillMaxSize().padding(padding)) {
-            Column(Modifier.fillMaxSize()) {
-                when (tab) {
-                    Tab.WIZARD -> wizardContent { tabIndex = Tab.HELP.ordinal }
-                    Tab.PRO -> ProScreen()
-                    Tab.HELP -> HelpScreen()
-                    Tab.ABOUT -> AboutScreen()
+        // consume the bar paddings first so imePadding only adds the part of the keyboard above the nav bar
+        Row(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding).imePadding()) {
+            if (compact) NavigationRail(containerColor = AutoVybzColors.BackgroundDeep) {
+                for (t in Tab.values()) {
+                    NavigationRailItem(
+                        selected = t == tab,
+                        onClick = { tabIndex = t.ordinal },
+                        modifier = Modifier.testTag("avz:tab:${t.name}"),
+                        icon = { Icon(t.icon, contentDescription = null) },
+                        label = { Text(stringResource(t.label)) },
+                        colors = NavigationRailItemDefaults.colors(
+                            selectedIconColor = AutoVybzColors.Gold,
+                            selectedTextColor = AutoVybzColors.Gold,
+                            indicatorColor = AutoVybzColors.GreenContainer,
+                            unselectedIconColor = AutoVybzColors.OnDarkMuted,
+                            unselectedTextColor = AutoVybzColors.OnDarkMuted,
+                        ),
+                    )
+                }
+            }
+            Box(Modifier.weight(1f).fillMaxSize()) {
+                Column(Modifier.fillMaxSize()) {
+                    when (tab) {
+                        Tab.WIZARD -> wizardContent { tabIndex = Tab.HELP.ordinal }
+                        Tab.PRO -> ProScreen()
+                        Tab.HELP -> HelpScreen()
+                        Tab.ABOUT -> AboutScreen()
+                    }
                 }
             }
         }

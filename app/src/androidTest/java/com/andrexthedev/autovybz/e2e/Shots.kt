@@ -27,7 +27,7 @@ object Shots {
     fun take(rule: ComposeTestRule, name: String) {
         if (!enabled) return
         rule.waitForIdle()
-        Thread.sleep(250) // let ripples / animations settle
+        Thread.sleep(400) // let ripples / animations settle (and the frame reach the screen)
         val bmp = InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot() ?: return
         val scaled = Bitmap.createScaledBitmap(bmp, bmp.width / 2, bmp.height / 2, true)
         val dir = File(E2e.app.filesDir, "shots/$config").apply { mkdirs() }

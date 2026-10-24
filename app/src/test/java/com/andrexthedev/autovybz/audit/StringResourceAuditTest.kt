@@ -158,11 +158,15 @@ class StringResourceAuditTest {
         report("untranslated strings", problems)
     }
 
+    /** en “…”, de „…“, es «…» - the end-user test found German „…“ in the English strings (W6). */
     @Test
-    fun germanAndSpanishUseTheirOwnQuotationMarks() {
-        val de = files.getValue("values-de").filter { (_, t) -> "“" in t && "„" !in t }.keys
-        val es = files.getValue("values-es").filter { (_, t) -> "„" in t }.keys
-        report("wrong quotation marks", de.map { "de/$it" } + es.map { "es/$it" })
+    fun everyLanguageUsesItsOwnQuotationMarks() {
+        val all = { loc: String -> files.getValue(loc) + ProjectFiles.plurals(ProjectFiles.module("src/main/res/$loc/autovybz_strings.xml"))
+            .flatMap { (n, items) -> items.map { (q, t) -> "$n[$q]" to t } } }
+        val en = all("values").filter { (_, t) -> "„" in t || "«" in t || "»" in t }.keys
+        val de = all("values-de").filter { (_, t) -> ("“" in t && "„" !in t) || "«" in t }.keys
+        val es = all("values-es").filter { (_, t) -> "„" in t || "“" in t || "”" in t }.keys
+        report("wrong quotation marks", en.map { "en/$it" } + de.map { "de/$it" } + es.map { "es/$it" })
     }
 
     @Test

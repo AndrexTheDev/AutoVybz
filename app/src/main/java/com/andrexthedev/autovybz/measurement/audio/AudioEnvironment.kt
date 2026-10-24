@@ -105,6 +105,7 @@ object EqBypass {
 
     fun resume(context: Context) {
         val i = Intent(context, EqService::class.java).setAction(EqService.ACTION_AUTO_START)
+            .putExtra(EqService.EXTRA_SILENT_TOAST, true) // AutoVybz shows its own confirmation
         runCatching {
             if (Build.VERSION.SDK_INT >= 26) context.startForegroundService(i) else context.startService(i)
         }.onFailure { Log.w("AutoVybz", "EQ resume failed", it) }
