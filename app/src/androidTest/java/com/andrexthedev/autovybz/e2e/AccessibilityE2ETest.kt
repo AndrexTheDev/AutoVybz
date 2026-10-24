@@ -71,7 +71,10 @@ class AccessibilityE2ETest : E2eTest() {
             val c = b.center
             val box = androidx.compose.ui.geometry.Rect(c.x - maxOf(w, minPx) / 2, c.y - maxOf(h, minPx) / 2,
                 c.x + maxOf(w, minPx) / 2, c.y + maxOf(h, minPx) / 2)
-            val neighbour = clickables.firstOrNull { o -> o.id != n.id && rootOf(o) == rootOf(n) && o.boundsInRoot.overlaps(box) && !o.boundsInRoot.contains(c) && !b.contains(o.boundsInRoot.center) }
+            // Same window and same scroll container: a control that happens to sit at the viewport edge next to
+            // the fixed navigation bar is a scroll-position artefact (campaign 5: chip "0 dp" above the tab "Pro").
+            val neighbour = clickables.firstOrNull { o -> o.id != n.id && rootOf(o) == rootOf(n) && scrollParentOf(o) == scrollParentOf(n) &&
+                o.boundsInRoot.overlaps(box) && !o.boundsInRoot.contains(c) && !b.contains(o.boundsInRoot.center) }
             if (w < absMinPx || h < absMinPx || neighbour != null)
                 problems += "$screen: touch target %.0fx%.0f dp%s '%s'".format(w / dp, h / dp,
                     neighbour?.let { " (crowded by '${label(it).take(30)}' %.0f dp away)".format(gap(b, it.boundsInRoot) / dp) } ?: "", l.take(40))
@@ -102,6 +105,16 @@ class AccessibilityE2ETest : E2eTest() {
         if (rule.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading)).fetchSemanticsNodes().isEmpty() &&
             !rule.has("avz:dialog:confirm") && !rule.has("avz:donate:close")
         ) problems += "$screen: no heading"
+    }
+
+    /** Id of the nearest scrollable ancestor, or -1 for fixed UI (header, navigation). */
+    private fun scrollParentOf(n: SemanticsNode): Int {
+        var x = n.parent
+        while (x != null) {
+            if (x.config.contains(SemanticsProperties.VerticalScrollAxisRange) || x.config.contains(SemanticsProperties.HorizontalScrollAxisRange)) return x.id
+            x = x.parent
+        }
+        return -1
     }
 
     /** Smallest edge distance between two rectangles (0 when they touch or overlap). */

@@ -33,10 +33,18 @@ object Shots {
      * user_rotation` from the runner was silently ignored in one campaign (de-landscape came out portrait).
      */
     private fun applyOrientation() {
-        if (args.getString("avz_config") == null) return
+        // Only landscape needs it; freezing portrait configs too broke Espresso's window-focus wait (campaign 5).
+        if (args.getString("avz_config") == null || !landscape) return
         val inst = InstrumentationRegistry.getInstrumentation()
-        inst.uiAutomation.setRotation(if (landscape) UiAutomation.ROTATION_FREEZE_90 else UiAutomation.ROTATION_FREEZE_0)
-        inst.waitForIdleSync()
+        val display = inst.targetContext.getSystemService(android.hardware.display.DisplayManager::class.java)
+            .getDisplay(android.view.Display.DEFAULT_DISPLAY)
+        // The emulator applied the freeze only after several tests in campaign 5 - re-request until it took effect.
+        val deadline = System.currentTimeMillis() + 8_000
+        while (display.rotation != android.view.Surface.ROTATION_90 && System.currentTimeMillis() < deadline) {
+            inst.uiAutomation.setRotation(UiAutomation.ROTATION_FREEZE_90)
+            inst.waitForIdleSync()
+            Thread.sleep(1_000)
+        }
         Thread.sleep(500)
     }
 

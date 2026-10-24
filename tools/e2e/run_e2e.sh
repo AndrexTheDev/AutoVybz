@@ -88,8 +88,11 @@ if [ "$MODE" = functional ]; then
       awk '/^Cmd line: '"$PKG"'$/{p=1} p&&/^"main"/{m=1} m{print} m&&/^$/{exit}' "$OUT/anr_trace.txt" > "$OUT/anr_main.txt"
       # Java frames tell which call blocked; native frames only show "binder transact".
       STACK=$( { grep -E "^\s+(- waiting|- locked|- sleeping)" "$OUT/anr_main.txt"; grep -E "^\s+at " "$OUT/anr_main.txt" | head -12; } | sed 's/^\s*//' | tr '\n' ' ' | cut -c1-1200)
-      note "  - ANR main thread: $STACK"
-      echo "::error title=ANR main thread API $API::$STACK"
+      if [ "$WHO" = "$PKG" ]; then
+        note "  - ANR main thread: $STACK"; echo "::error title=ANR main thread API $API::$STACK"
+      else
+        note "  - AutoVybz main thread at that moment: $STACK"; echo "::notice title=AutoVybz main thread during $WHO ANR (API $API)::$STACK"
+      fi
     fi
   else
     note "- ✅ **Monkey**: 4000 events, seed 4711, no crash / ANR"
@@ -144,6 +147,7 @@ de-landscape|de-DE|1080x2400|420|1.0|1"
     adb shell settings put system font_scale "$FONT"
     adb shell settings put system accelerometer_rotation 0
     adb shell settings put system user_rotation "$ROT"
+    adb shell cmd window user-rotation lock "$ROT" >/dev/null 2>&1 || true   # API 31+, more reliable than the setting
     sleep 2
     run "shots_$NAME" -e class $E2E.ScreenshotTourE2ETest -e avz_shots true -e avz_config "$NAME"
     # The accessibility / clipped-text audit in the same configuration.
@@ -152,6 +156,7 @@ de-landscape|de-DE|1080x2400|420|1.0|1"
   done
   adb shell wm size reset; adb shell wm density reset
   adb shell settings put system font_scale 1.0; adb shell settings put system user_rotation 0
+  adb shell cmd window user-rotation free >/dev/null 2>&1 || true
   adb shell cmd locale set-app-locales $PKG --locales ""
 fi
 

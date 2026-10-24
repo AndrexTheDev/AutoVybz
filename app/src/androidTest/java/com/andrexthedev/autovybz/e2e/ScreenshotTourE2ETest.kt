@@ -10,7 +10,9 @@ import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
-import androidx.test.espresso.Espresso
+import android.accessibilityservice.AccessibilityService
+import androidx.compose.ui.test.performImeAction
+import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.andrexthedev.autovybz.AutoVybzServices
 import com.andrexthedev.autovybz.e2e.SimulatedRoomEngine.Mode
@@ -28,6 +30,15 @@ import org.junit.runners.MethodSorters
 @RunWith(AndroidJUnit4::class)
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 class ScreenshotTourE2ETest : E2eTest() {
+
+    /**
+     * System back without Espresso: Espresso waits for window focus, which the matrix runs (rotation frozen through
+     * UiAutomation) did not get in campaign 5. The global action goes through the input pipeline like a real key.
+     */
+    private fun systemBack() {
+        InstrumentationRegistry.getInstrumentation().uiAutomation.performGlobalAction(AccessibilityService.GLOBAL_ACTION_BACK)
+        compose.waitForIdle()
+    }
 
     private fun scrollTo(tag: String) = runCatching { compose.onNodeWithTag(tag).performScrollTo() }
 
@@ -57,7 +68,7 @@ class ScreenshotTourE2ETest : E2eTest() {
     @Test fun t01_wizardIdle() {
         compose.await("avz:start"); shot("idle_top")
         compose.onNodeWithTag("avz:speakerName").performTextReplacement("JBL Flip 6")
-        Espresso.closeSoftKeyboard() // W2: the keyboard covered every following idle shot
+        compose.onNodeWithTag("avz:speakerName").performImeAction() // "Done" clears focus -> keyboard closes (W2)
         compose.tap("avz:env:OUTDOOR"); shot("idle_outdoor")
         scrollTo("avz:target:CUSTOM"); shot("idle_targets")
         compose.onNodeWithText(str(R.string.avz_wizard_help_link), substring = true).performScrollTo(); shot("idle_bottom")
@@ -92,7 +103,7 @@ class ScreenshotTourE2ETest : E2eTest() {
         compose.quickCalibration(); compose.awaitGone("avz:busy"); shot("result_top")
         scrollTo("avz:bands:5"); shot("result_targets")
         scrollTo("avz:export:open"); shot("result_actions")
-        compose.tap("avz:export:open"); shot("export_menu"); Espresso.pressBack()
+        compose.tap("avz:export:open"); shot("export_menu"); systemBack()
         compose.tap("avz:result:again"); compose.await("avz:dialog:confirm"); shot("dialog_discard")
         compose.tap("avz:dialog:dismiss")
         compose.onNodeWithTag("avz:result:name").performTextReplacement("Party/Garten"); scrollTo("avz:result:name"); shot("result_name_invalid")
@@ -109,7 +120,7 @@ class ScreenshotTourE2ETest : E2eTest() {
         compose.openSafety("INDOOR", 3); compose.confirmSafetyAndStart()
         compose.tap("avz:move:continue")
         compose.await("avz:error:resume"); shot("error_route_changed_resumable")
-        Espresso.pressBack(); compose.await("avz:dialog:confirm"); shot("dialog_cancel_session")
+        systemBack(); compose.await("avz:dialog:confirm"); shot("dialog_cancel_session")
         compose.tap("avz:dialog:confirm")
         E2e.route = E2e.headphones()
         compose.tap("avz:start"); compose.await("avz:blocked"); shot("blocked_headphones")
