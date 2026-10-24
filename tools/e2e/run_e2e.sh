@@ -71,28 +71,47 @@ if [ "$MODE" = functional ]; then
   adb logcat -d -v threadtime > "$OUT/monkey.logcat.txt" 2>&1
   if grep -q "// CRASH\|// NOT RESPONDING" "$OUT/monkey.txt"; then
     WHAT=$(grep -m1 -A12 "// CRASH\|// NOT RESPONDING" "$OUT/monkey.txt" | grep -E "CRASH|NOT RESPONDING|Short Msg|Long Msg|ANR in|Reason|at com\.(andrexthedev|bearinmind)" | head -6 | tr '\n' ' ' | cut -c1-600)
-    # Only a crash / ANR of AutoVybz fails the gate. Monkey can pull down the notification shade despite -p;
-    # a system-process ANR on an overloaded emulator is recorded as an environment finding.
     WHO=$(grep -m1 -oE "// (CRASH|NOT RESPONDING): [^ ]+" "$OUT/monkey.txt" | awk '{print $NF}')
-    if [ "$WHO" = "$PKG" ]; then
-      note "- ❌ **Monkey**: $WHAT"; echo "::error title=Monkey API $API::$WHAT"; FAIL=1
-    else
-      note "- ⚠️ **Monkey**: 4000 events, no AutoVybz crash / ANR; environment: $WHO – $WHAT"
-      echo "::warning title=Monkey API $API (system process)::$WHAT"
-    fi
+    KIND=$(grep -m1 -oE "// (CRASH|NOT RESPONDING)" "$OUT/monkey.txt" | awk '{print $2}')
     grep -B2 -A40 "// CRASH\|// NOT RESPONDING" "$OUT/monkey.txt" | head -120 > "$OUT/monkey_problem.txt"
     # Main-thread stack of the ANR (what the UI thread was blocked on)
-    T=$(adb shell 'ls -t /data/anr/ 2>/dev/null | head -1' | tr -d '\r')
+    STACK=""; FRAMEWORK_STALL=0
+    T=$(adb shell 'ls -t /data/anr/ 2>/dev/null | head -1' < /dev/null | tr -d '\r')
     if [ -n "$T" ]; then
-      adb shell "cat /data/anr/$T" > "$OUT/anr_trace.txt" 2>/dev/null
+      adb shell "cat /data/anr/$T" < /dev/null > "$OUT/anr_trace.txt" 2>/dev/null
       awk '/^Cmd line: '"$PKG"'$/{p=1} p&&/^"main"/{m=1} m{print} m&&/^$/{exit}' "$OUT/anr_trace.txt" > "$OUT/anr_main.txt"
       # Java frames tell which call blocked; native frames only show "binder transact".
       STACK=$( { grep -E "^\s+(- waiting|- locked|- sleeping)" "$OUT/anr_main.txt"; grep -E "^\s+at " "$OUT/anr_main.txt" | head -12; } | sed 's/^\s*//' | tr '\n' ' ' | cut -c1-1200)
-      if [ "$WHO" = "$PKG" ]; then
+      # Framework-only graphics stall: no AutoVybz / Equalizer314 frame at all, blocked in hwui/EGL teardown or draw
+      # (campaign 6, API 30: Dialog.cancel -> ViewRootImpl.destroyHardwareRenderer while the emulator's software
+      # composer used 50 % kernel CPU).
+      if [ "$KIND" = "NOT" ] && [ -s "$OUT/anr_main.txt" ] && ! grep -qE "at com\.(andrexthedev|bearinmind)\." "$OUT/anr_main.txt" \
+         && grep -qE "HardwareRenderer\.n|ThreadedRenderer\.|eglSwapBuffers|nSyncAndDrawFrame" "$OUT/anr_main.txt"; then
+        FRAMEWORK_STALL=1
+      fi
+    fi
+    if [ "$WHO" = "$PKG" ] && [ "$FRAMEWORK_STALL" = 1 ]; then
+      # Confirmation run with the SAME seed: a reproducible ANR fails, a transient emulator stall is a warning.
+      log "monkey: framework-only graphics stall - confirmation run (same seed)"
+      adb shell am force-stop $PKG < /dev/null
+      adb shell monkey -p $PKG -s 4711 --throttle 40 --pct-syskeys 0 --pct-appswitch 5 --ignore-security-exceptions -v 4000 < /dev/null > "$OUT/monkey_rerun.txt" 2>&1
+      if grep -qE "// (CRASH|NOT RESPONDING): $PKG" "$OUT/monkey_rerun.txt"; then
+        note "- ❌ **Monkey**: reproducible with the same seed: $WHAT"; echo "::error title=Monkey API $API (reproducible)::$WHAT"; FAIL=1
         note "  - ANR main thread: $STACK"; echo "::error title=ANR main thread API $API::$STACK"
       else
-        note "  - AutoVybz main thread at that moment: $STACK"; echo "::notice title=AutoVybz main thread during $WHO ANR (API $API)::$STACK"
+        note "- ⚠️ **Monkey**: 4000 events; one framework-only graphics stall (no app frame on the main thread, not reproducible with the same seed) – $WHAT"
+        note "  - main thread: $STACK"
+        echo "::warning title=Monkey API $API (framework graphics stall, not reproducible)::$STACK"
       fi
+    elif [ "$WHO" = "$PKG" ]; then
+      note "- ❌ **Monkey**: $WHAT"; echo "::error title=Monkey API $API::$WHAT"; FAIL=1
+      [ -n "$STACK" ] && { note "  - ANR main thread: $STACK"; echo "::error title=ANR main thread API $API::$STACK"; }
+    else
+      # Monkey can pull down the notification shade despite -p; a system-process ANR on an overloaded emulator
+      # is recorded as an environment finding.
+      note "- ⚠️ **Monkey**: 4000 events, no AutoVybz crash / ANR; environment: $WHO – $WHAT"
+      echo "::warning title=Monkey API $API (system process)::$WHAT"
+      [ -n "$STACK" ] && { note "  - AutoVybz main thread at that moment: $STACK"; echo "::notice title=AutoVybz main thread during $WHO ANR (API $API)::$STACK"; }
     fi
   else
     note "- ✅ **Monkey**: 4000 events, seed 4711, no crash / ANR"

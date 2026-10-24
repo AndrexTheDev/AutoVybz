@@ -20,9 +20,9 @@ Companion documents:
 | L4 | Instrumented E2E (real Activity, simulated room engine) | `app/src/androidTest/.../e2e` | `e2e.yml` device, API 28/30/35 | 10 classes · 56 tests |
 | L5 | Inherited Equalizer314 instrumented test | `HrirConvolverTest` | same | 3 |
 | L6 | Screenshot matrix + accessibility per configuration (labels, touch targets incl. WCAG 2.5.8 spacing, headings, ellipsis/max-lines, words split mid-word) | `ScreenshotTourE2ETest`, `AccessibilityE2ETest` | `e2e.yml` shots, API 35 | 7 configurations × ~40 screens |
-| L7 | Monkey (4000 random events, seed 4711) with ANR main-thread trace, crash scan, StrictMode count | `tools/e2e/run_e2e.sh` | `e2e.yml` device | 3 API levels |
+| L7 | Monkey (4000 random events, seed 4711) with ANR main-thread trace (only an AutoVybz crash/ANR fails the gate; system-process ANRs such as the notification shade on an overloaded emulator are reported as ⚠️ together with the AutoVybz main-thread stack at that moment), crash scan, StrictMode count | `tools/e2e/run_e2e.sh` | `e2e.yml` device | 3 API levels |
 | L8 | Performance: analysis budget (JVM), cold start, memory (device) | `PerformanceBudgetTest`, `run_e2e.sh` | both | — |
-| L9 | Android Lint (AutoVybz must be error-free) | `tools/audit/lint_summary.py` | `e2e.yml` build | — |
+| L9 | Android Lint (AutoVybz: 0 errors; current campaign 0 findings – exceptions only with `tools:ignore` and a reason) | `tools/audit/lint_summary.py` | `e2e.yml` build | — |
 | L10 | Dependency vulnerabilities (OSV.dev) | `tools/audit/osv_check.py` | `e2e.yml` build | all resolved artifacts |
 | L11 | Secret scan over every tracked file | `tools/audit/secret_scan.py` | `e2e.yml` build | all tracked files |
 | L12 | APK audit (size, ABIs, assets, manifest via aapt2) | `tools/audit/apk_audit.py` | `e2e.yml` build | — |

@@ -11,7 +11,7 @@
    median time under 2 minutes from first launch to saved preset.
 3. **Is it safe?** No reports of uncomfortably loud measurements, damaged speakers or clipping after applying a
    preset.
-4. **Is it stable?** Crash-free sessions of at least 99.5 %, and no data loss of saved presets.
+4. **Is it stable?** Crash-free sessions of at least 99.5 %, user-perceived ANR rate below 0.47 %, and no data loss of saved presets.
 5. **Does it work across hardware?** The device matrix below is covered, with a known-issues list for anything
    that does not work.
 
@@ -78,6 +78,7 @@ see the fixes found by the property/fuzz tests in commit `040fcdf`.
 |---|---|---|
 | Automated campaign | `e2e.yml` | all green, or a documented known issue |
 | Crash-free sessions | beta reports + monkey | ≥ 99.5 % |
+| User-perceived ANR rate on real devices (esp. the inherited Pro screens MainActivity / MbcActivity) | beta reports with `adb bugreport` / Play pre-launch report | < 0.47 % of sessions, 0 ANRs with an AutoVybz frame on the main thread |
 | Calibration success (first try) | beta reports | ≥ 85 % |
 | Median time to first saved preset | END_USER_TEST, reports | < 2 min |
 | Blind A/B preference indoor / outdoor | END_USER_TEST, reports | ≥ 70 % / ≥ 60 % |

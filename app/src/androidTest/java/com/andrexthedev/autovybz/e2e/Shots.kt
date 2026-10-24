@@ -29,31 +29,62 @@ object Shots {
     private val landscape: Boolean get() = "landscape" in config
 
     /**
-     * Matrix runs freeze the rotation through UiAutomation before the activity starts: `settings put system
-     * user_rotation` from the runner was silently ignored in one campaign (de-landscape came out portrait).
+     * Landscape matrix runs: the screenshot is the ground truth. Campaigns 4-6 showed that neither the runner's
+     * `settings put system user_rotation` nor a single UiAutomation freeze is reliable on the API 35 emulator (the
+     * system restores the rotation when the UiAutomation connection is re-created, so it got lost between tests).
+     * All three mechanisms are requested from inside the test (shell identity) until the screen really is landscape.
      */
     private fun applyOrientation() {
-        // Only landscape needs it; freezing portrait configs too broke Espresso's window-focus wait (campaign 5).
         if (args.getString("avz_config") == null || !landscape) return
+        ensureLandscape()
+    }
+
+    private fun isLandscapeNow(): Boolean {
+        val bmp = InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot() ?: return false
+        return (bmp.width > bmp.height).also { bmp.recycle() }
+    }
+
+    private fun shell(cmd: String): String =
+        InstrumentationRegistry.getInstrumentation().uiAutomation.executeShellCommand(cmd).let { pfd ->
+            android.os.ParcelFileDescriptor.AutoCloseInputStream(pfd).bufferedReader().use { it.readText().trim() }
+        }
+
+    /** Returns false when the screen could not be turned within [timeoutMs]. */
+    private fun ensureLandscape(timeoutMs: Long = 15_000): Boolean {
         val inst = InstrumentationRegistry.getInstrumentation()
-        val display = inst.targetContext.getSystemService(android.hardware.display.DisplayManager::class.java)
-            .getDisplay(android.view.Display.DEFAULT_DISPLAY)
-        // The emulator applied the freeze only after several tests in campaign 5 - re-request until it took effect.
-        val deadline = System.currentTimeMillis() + 8_000
-        while (display.rotation != android.view.Surface.ROTATION_90 && System.currentTimeMillis() < deadline) {
+        val deadline = System.currentTimeMillis() + timeoutMs
+        while (!isLandscapeNow()) {
+            if (System.currentTimeMillis() > deadline) return false
             inst.uiAutomation.setRotation(UiAutomation.ROTATION_FREEZE_90)
+            shell("settings put system accelerometer_rotation 0")
+            shell("settings put system user_rotation 1")
+            shell("cmd window user-rotation lock 1")
             inst.waitForIdleSync()
             Thread.sleep(1_000)
         }
+        inst.waitForIdleSync()
         Thread.sleep(500)
+        return true
+    }
+
+    private fun rotationDiagnostics(): String {
+        val d = InstrumentationRegistry.getInstrumentation().targetContext
+            .getSystemService(android.hardware.display.DisplayManager::class.java).getDisplay(android.view.Display.DEFAULT_DISPLAY)
+        return "display.rotation=${d.rotation}, user_rotation=${shell("settings get system user_rotation")}, " +
+            "accelerometer_rotation=${shell("settings get system accelerometer_rotation")}, wm: ${shell("cmd window user-rotation")}"
     }
 
     fun take(rule: ComposeTestRule, name: String) {
         if (!enabled) return
         rule.waitForIdle()
         Thread.sleep(400) // let ripples / animations settle (and the frame reach the screen)
+        if (landscape && !isLandscapeNow()) {
+            // Rotation lost mid-test: turn back (the wizard state lives in the ViewModel and survives the recreation).
+            check(ensureLandscape()) { "config $config expects landscape but the screen stayed portrait (${rotationDiagnostics()})" }
+            rule.waitForIdle()
+        }
         val bmp = InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot() ?: return
-        check(!landscape || bmp.width > bmp.height) { "config $config expects landscape but the screen is ${bmp.width}x${bmp.height}" }
+        check(!landscape || bmp.width > bmp.height) { "config $config expects landscape but the screen is ${bmp.width}x${bmp.height} (${rotationDiagnostics()})" }
         val scaled = Bitmap.createScaledBitmap(bmp, bmp.width / 2, bmp.height / 2, true)
         val dir = File(E2e.app.filesDir, "shots/$config").apply { mkdirs() }
         File(dir, "%s_%02d_%s.jpg".format(prefix, ++counter, name)).outputStream().use { scaled.compress(Bitmap.CompressFormat.JPEG, 72, it) }
