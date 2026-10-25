@@ -74,6 +74,8 @@ import com.andrexthedev.autovybz.measurement.ListeningEnvironment
 import com.andrexthedev.autovybz.measurement.SpeakerClass
 import com.andrexthedev.autovybz.measurement.audio.InputSourceResolver
 import com.andrexthedev.autovybz.measurement.mic.MicProfileDatabase
+import com.andrexthedev.autovybz.premium.Entitlement
+import com.andrexthedev.autovybz.premium.EntitlementPolicy
 import com.andrexthedev.autovybz.preset.AutoVybzPresetStore
 import com.andrexthedev.autovybz.preset.model.AutoVybzPreset
 import com.andrexthedev.autovybz.settings.AutoVybzSettings
@@ -85,6 +87,7 @@ import com.andrexthedev.autovybz.ui.components.SectionTitle
 import com.andrexthedev.autovybz.ui.components.HintRow
 import com.andrexthedev.autovybz.ui.components.VybzIcons
 import com.andrexthedev.autovybz.ui.components.rememberEqPower
+import com.andrexthedev.autovybz.ui.premium.PremiumStatusCard
 import com.andrexthedev.autovybz.sound.SoundComposer
 import com.andrexthedev.autovybz.sound.VybzSound
 import androidx.compose.runtime.mutableFloatStateOf
@@ -105,7 +108,8 @@ import java.util.Date
 import java.util.Locale
 
 @Composable
-fun ProScreen() {
+fun ProScreen(entitlement: Entitlement = Entitlement.free(), onOpenPremium: () -> Unit = {}) {
+    val limits = EntitlementPolicy.limits(entitlement)
     val context = LocalContext.current
     val settings = remember { AutoVybzSettings(context) }
 
@@ -121,12 +125,14 @@ fun ProScreen() {
 
         HintRow(stringResource(R.string.avz_pro_intro))
 
+        PremiumStatusCard(entitlement = entitlement, onOpen = onOpenPremium)
+
         SectionTitle(stringResource(R.string.avz_studio_tone_title))
         ToneCard(settings)
 
         SectionTitle(stringResource(R.string.avz_pro_calibrations))
         SoundCorrectionToggle()
-        CalibrationList()
+        CalibrationList(externalExportsEnabled = limits.externalExports, onOpenPremium = onOpenPremium)
 
         SectionTitle(stringResource(R.string.avz_pro_engine_title))
         HintRow(stringResource(R.string.avz_pro_engine_hint))
@@ -134,14 +140,24 @@ fun ProScreen() {
         EngineLink(VybzIcons.Sound, R.string.avz_pro_mbc, R.string.avz_pro_mbc_desc) { open(context, MbcActivity::class.java) }
         EngineLink(VybzIcons.Power, R.string.avz_pro_limiter, R.string.avz_pro_limiter_desc) { open(context, LimiterActivity::class.java) }
 
-        CollapsibleCard(title = stringResource(R.string.avz_pro_measure_title), icon = Icons.Filled.Settings) {
-            MeasurementSettings(settings)
-        }
-        CollapsibleCard(title = stringResource(R.string.avz_pro_mic_title), icon = Icons.Filled.List) {
-            MicSettings(settings)
-        }
-        CollapsibleCard(title = stringResource(R.string.avz_pro_custom_title), icon = Icons.Filled.Star) {
-            CustomTargetSettings(settings)
+        if (limits.advancedMeasurementSettings) {
+            CollapsibleCard(title = stringResource(R.string.avz_pro_measure_title), icon = Icons.Filled.Settings) {
+                MeasurementSettings(settings)
+            }
+            CollapsibleCard(title = stringResource(R.string.avz_pro_mic_title), icon = Icons.Filled.List) {
+                MicSettings(settings)
+            }
+            CollapsibleCard(title = stringResource(R.string.avz_pro_custom_title), icon = Icons.Filled.Star) {
+                CustomTargetSettings(settings)
+            }
+        } else {
+            AvzCard(accent = AutoVybzColors.Gold, modifier = Modifier.testTag("avz:premium:locked-settings")) {
+                Text(stringResource(R.string.avz_pro_measure_title), style = MaterialTheme.typography.titleMedium)
+                HintRow(stringResource(R.string.avz_premium_locked_settings))
+                Button(onClick = onOpenPremium, modifier = Modifier.fillMaxWidth().testTag("avz:premium:locked-settings:open")) {
+                    Text(stringResource(R.string.avz_premium_open))
+                }
+            }
         }
         Spacer(Modifier.height(24.dp))
     }
@@ -258,7 +274,7 @@ private fun SoundCorrectionToggle() {
 }
 
 @Composable
-private fun CalibrationList() {
+private fun CalibrationList(externalExportsEnabled: Boolean = true, onOpenPremium: () -> Unit = {}) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var reload by remember { mutableIntStateOf(0) }
@@ -297,7 +313,12 @@ private fun CalibrationList() {
                     },
                     modifier = Modifier.testTag("avz:pro:apply:${p.name}"),
                 ) { Text(stringResource(R.string.avz_apply)) }
-                ExportButton(preset = { p }, openTag = "avz:pro:export:${p.name}")
+                ExportButton(
+                    preset = { p },
+                    openTag = "avz:pro:export:${p.name}",
+                    externalExportsEnabled = externalExportsEnabled,
+                    onOpenPremium = onOpenPremium,
+                )
                 TextButton(onClick = { toDelete = p.name }, modifier = Modifier.testTag("avz:pro:delete:${p.name}")) {
                     Text(stringResource(R.string.avz_delete), color = AutoVybzColors.Error)
                 }

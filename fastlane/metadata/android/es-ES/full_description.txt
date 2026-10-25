@@ -11,7 +11,7 @@ AutoVybz calibra automáticamente tu altavoz externo (Bluetooth, AUX, USB, HDMI)
 <li>Suavizado dinámico (fuerte en graves, 1/3 de octava en medios y agudos)</li>
 <li>Hasta 10 filtros paramétricos ajustados a tu objetivo, sin realzar graves que tu altavoz no puede reproducir</li>
 <li>Pre-ganancia automática y limitador contra la saturación</li>
-<li>Modo preciso opcional: 3 posiciones promediadas en potencia; ignora los huecos que solo existen en un punto</li>
+<li>Modo preciso: 3 posiciones promediadas en potencia; ignora los huecos que solo existen en un punto (AutoVybz Pro/prueba; Free usa 1 posición)</li>
 <li>Modo exterior / fiesta: realce máx. +3 dB para conservar el volumen, ignora las reflexiones del suelo y los rangos con ruido (viento, tráfico, pájaros), detecta viento y cortes de Bluetooth, limitador siempre activo, brillo máximo al sol</li>
 </ul>
 
@@ -19,8 +19,10 @@ AutoVybz calibra automáticamente tu altavoz externo (Bluetooth, AUX, USB, HDMI)
 
 <b>Área Pro</b>: motor completo de Equalizer314: EQ paramétrico de 10 bandas con gráfico, compresor multibanda, limitador, presets, AutoEQ.
 
-<b>Exportar y compartir</b>: Equalizer APO / Peace, JSON de EQ paramétrico, CSV para REW y una tarjeta para compartir con tu medición real.
+<b>Exportar y compartir</b>: AutoVybz Pro exporta Equalizer APO / Peace, JSON de EQ paramétrico y CSV para REW. Free conserva los preajustes internos y la tarjeta para compartir con tu medición real.
+
+<b>Free y Pro</b>: Free incluye el banner permanente, un perfil guardado y la calibración rápida de 1 posición. La prueba Pro de 7 días empieza tras el primer resultado. En la Alpha, Pro cuesta 1,99 US$/mes, 19,99 US$/año o 99 US$ de por vida, pagadero solo con SOL, BTC o ETH y sin renovación automática.
 
 Los auriculares se excluyen a propósito: AutoVybz está hecho para altavoces.
 
-100 % código abierto (GPL-3.0), donationware, sin anuncios, sin rastreo. Basado en Equalizer314 de bearinmindcat.
+Código abierto (GPL-3.0), sin cuentas, sin rastreo y sin SDK de publicidad. Basado en Equalizer314 de bearinmindcat.

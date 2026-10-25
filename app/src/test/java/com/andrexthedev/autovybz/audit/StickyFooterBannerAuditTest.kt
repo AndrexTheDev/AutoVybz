@@ -20,13 +20,15 @@ class StickyFooterBannerAuditTest {
 
     @Test
     fun shellComposesTheFooterOnceAndUnconditionallyAbovePortraitNavigation() {
-        assertEquals(1, Regex("""\bStickyFooterBanner\(\)""").findAll(activity).count())
+        assertEquals(1, Regex("""\bStickyFooterBanner\(""").findAll(activity).count())
 
         val bottomBar = activity.substringAfter("bottomBar = {").substringBefore(") { padding ->")
-        val footer = bottomBar.indexOf("StickyFooterBanner()")
+        val footer = bottomBar.indexOf("StickyFooterBanner(onClick")
         val navigation = bottomBar.indexOf("if (!compact) NavigationBar")
         assertTrue("footer must be inside Scaffold.bottomBar", footer >= 0)
         assertTrue("footer must be above the portrait navigation and outside its compact condition", footer < navigation)
+        assertTrue("footer click must open AutoVybz Pro", "showPremium = true" in bottomBar)
+        assertTrue("shell must host the paywall", "PremiumPaywallDialog(" in activity)
     }
 
     @Test
@@ -42,8 +44,8 @@ class StickyFooterBannerAuditTest {
     }
 
     @Test
-    fun placeholderIsNonInteractiveAndDoesNotPullInAnAdsSdk() {
-        assertTrue("placeholder must not intercept taps", "clickable" !in banner)
+    fun placeholderIsAnAccessiblePremiumEntryPointAndDoesNotPullInAnAdsSdk() {
+        assertTrue("placeholder must expose its optional click action", "clickable(role = Role.Button)" in banner)
         assertTrue("placeholder must not reference Google Mobile Ads", "com.google.android.gms.ads" !in banner)
 
         val gradle = ProjectFiles.module("build.gradle.kts").readText().lowercase()

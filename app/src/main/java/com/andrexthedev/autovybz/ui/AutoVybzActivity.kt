@@ -48,6 +48,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import com.andrexthedev.autovybz.measurement.ListeningEnvironment
 import com.andrexthedev.autovybz.measurement.audio.EqBypass
+import com.andrexthedev.autovybz.premium.CryptoCoin
+import com.andrexthedev.autovybz.premium.Entitlement
+import com.andrexthedev.autovybz.premium.PremiumPlan
 import com.andrexthedev.autovybz.ui.about.AboutScreen
 import com.andrexthedev.autovybz.ui.components.AutoVybzHeader
 import com.andrexthedev.autovybz.ui.components.StickyFooterBanner
@@ -59,6 +62,8 @@ import com.andrexthedev.autovybz.preset.AutoVybzPresetStore
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import com.andrexthedev.autovybz.ui.help.HelpScreen
+import com.andrexthedev.autovybz.ui.premium.PremiumPaywallDialog
+import com.andrexthedev.autovybz.ui.premium.PremiumViewModel
 import com.andrexthedev.autovybz.ui.pro.ProScreen
 import com.andrexthedev.autovybz.ui.theme.AutoVybzColors
 import com.andrexthedev.autovybz.ui.theme.AutoVybzTheme
@@ -76,6 +81,7 @@ import com.bearinmind.equalizer314.R
 class AutoVybzActivity : ComponentActivity() {
 
     private val wizard: WizardViewModel by viewModels()
+    private val premium: PremiumViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Android 15+ forces edge-to-edge for targetSdk >= 35. Opt in on every version so the layout is identical
@@ -95,6 +101,9 @@ class AutoVybzActivity : ComponentActivity() {
         setContent {
             AutoVybzTheme {
                 val state by wizard.state.collectAsState()
+                val entitlement by premium.entitlement.collectAsState()
+                // The wizard starts the one-time trial right before showing the first result.
+                LaunchedEffect(state.step) { if (state.step is WizardStep.Result) premium.refresh() }
                 // Keep the screen on while measuring - a screen-off would stop audio on some OEMs.
                 val busy = state.step is WizardStep.Countdown || state.step is WizardStep.Measuring ||
                     state.step is WizardStep.Preparing || state.step is WizardStep.Analyzing || state.step is WizardStep.MovePhone
@@ -116,12 +125,18 @@ class AutoVybzActivity : ComponentActivity() {
                 var intro by remember { mutableStateOf(playIntro) }
                 AutoVybzApp(
                     startTab = startTab,
-                    wizardContent = { openHelp, openSound ->
+                    entitlement = entitlement,
+                    onStartTrial = premium::startTrial,
+                    onActivateCrypto = premium::activateCryptoAlpha,
+                    onResetPremium = premium::resetAlpha,
+                    wizardContent = { openHelp, openSound, openPremium ->
                         WizardScreen(
                             vm = wizard,
                             state = state,
+                            entitlement = entitlement,
                             onOpenHelp = openHelp,
                             onOpenSound = openSound,
+                            onOpenPremium = openPremium,
                             onOpenProEq = { startActivity(Intent(this, MainActivity::class.java)) },
                         )
                     },
@@ -143,8 +158,16 @@ private enum class Tab(val label: Int, val icon: ImageVector) {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun AutoVybzApp(startTab: Tab, wizardContent: @Composable (openHelp: () -> Unit, openSound: () -> Unit) -> Unit) {
+private fun AutoVybzApp(
+    startTab: Tab,
+    entitlement: Entitlement,
+    onStartTrial: () -> Unit,
+    onActivateCrypto: (PremiumPlan, CryptoCoin, String) -> Boolean,
+    onResetPremium: () -> Unit,
+    wizardContent: @Composable (openHelp: () -> Unit, openSound: () -> Unit, openPremium: () -> Unit) -> Unit,
+) {
     var tabIndex by rememberSaveable { mutableIntStateOf(startTab.ordinal) }
+    var showPremium by rememberSaveable { mutableStateOf(false) }
     val tab = Tab.values()[tabIndex]
     // System back on the other tabs returns to the start tab instead of closing the app.
     BackHandler(enabled = tab != startTab) { tabIndex = startTab.ordinal }
@@ -166,8 +189,9 @@ private fun AutoVybzApp(startTab: Tab, wizardContent: @Composable (openHelp: () 
         bottomBar = {
             Column(Modifier.fillMaxWidth()) {
                 // Permanent footer slot: composed once by the shell, above the portrait navigation and also
-                // present when compact landscape layouts move navigation into the side rail.
-                StickyFooterBanner()
+                // present when compact landscape layouts move navigation into the side rail. It doubles as
+                // the always-reachable AutoVybz Pro entry point.
+                StickyFooterBanner(onClick = { showPremium = true })
                 if (!compact) NavigationBar(containerColor = AutoVybzColors.BackgroundDeep) {
                     for (t in Tab.values()) {
                         NavigationBarItem(
@@ -213,14 +237,27 @@ private fun AutoVybzApp(startTab: Tab, wizardContent: @Composable (openHelp: () 
                 Column(Modifier.fillMaxSize()) {
                     when (tab) {
                         Tab.HOME -> SoundScreen(onCalibrate = { tabIndex = Tab.WIZARD.ordinal })
-                        Tab.WIZARD -> wizardContent({ tabIndex = Tab.HELP.ordinal }, { tabIndex = Tab.HOME.ordinal })
-                        Tab.PRO -> ProScreen()
+                        Tab.WIZARD -> wizardContent(
+                            { tabIndex = Tab.HELP.ordinal },
+                            { tabIndex = Tab.HOME.ordinal },
+                            { showPremium = true },
+                        )
+                        Tab.PRO -> ProScreen(entitlement = entitlement, onOpenPremium = { showPremium = true })
                         Tab.HELP -> HelpScreen()
-                        Tab.ABOUT -> AboutScreen()
+                        Tab.ABOUT -> AboutScreen(entitlement = entitlement, onOpenPremium = { showPremium = true })
                     }
                 }
             }
         }
+    }
+    if (showPremium) {
+        PremiumPaywallDialog(
+            entitlement = entitlement,
+            onDismiss = { showPremium = false },
+            onStartTrial = onStartTrial,
+            onActivate = onActivateCrypto,
+            onResetAlpha = onResetPremium,
+        )
     }
 }
 

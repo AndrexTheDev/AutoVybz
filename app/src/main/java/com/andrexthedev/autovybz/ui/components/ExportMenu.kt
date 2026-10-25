@@ -55,6 +55,8 @@ fun ExportButton(
     modifier: Modifier = Modifier,
     fillWidth: Boolean = false,
     openTag: String = "avz:export:open",
+    externalExportsEnabled: Boolean = true,
+    onOpenPremium: () -> Unit = {},
 ) {
     val context = LocalContext.current
     var menu by remember { mutableStateOf(false) }
@@ -81,6 +83,10 @@ fun ExportButton(
 
     fun start(format: ExportFormat) {
         menu = false
+        if (format != ExportFormat.INTERNAL && !externalExportsEnabled) {
+            onOpenPremium()
+            return
+        }
         val p = preset() ?: return
         pending = format
         val fileName = p.name + format.suffix

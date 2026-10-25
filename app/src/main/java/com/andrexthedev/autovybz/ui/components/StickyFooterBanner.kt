@@ -2,6 +2,7 @@ package com.andrexthedev.autovybz.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,6 +25,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -39,20 +41,21 @@ object StickyFooterBannerDefaults {
 /**
  * Permanent sticky footer for the main AutoVybz shell (Path A monetisation slot).
  *
- * For now this deliberately renders only an in-app placeholder: no advertising SDK, no network access and no
- * tracking are introduced. A future banner provider can replace the content of this one component without
- * touching the screens or changing the reserved layout space. Before enabling a real provider, the privacy
- * policy, store data-safety declaration and any required consent flow must be updated with it.
+ * The footer stays composed for every tier; in the app shell tapping it opens AutoVybz Pro. For now the
+ * content is an in-app placeholder: no advertising SDK, no network access and no tracking are introduced.
+ * A future banner provider can replace the content of this one component without touching the screens or
+ * changing the reserved layout space. Before enabling a real provider, the privacy policy, store
+ * data-safety declaration and any required consent flow must be updated with it.
  */
 @Composable
-fun StickyFooterBanner(modifier: Modifier = Modifier) {
+fun StickyFooterBanner(modifier: Modifier = Modifier, onClick: (() -> Unit)? = null) {
     val label = stringResource(R.string.avz_sticky_footer_placeholder)
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(AutoVybzColors.BackgroundDeep)
-            .testTag(StickyFooterBannerDefaults.TestTag),
-    ) {
+    val bannerModifier = modifier
+        .fillMaxWidth()
+        .background(AutoVybzColors.BackgroundDeep)
+        .testTag(StickyFooterBannerDefaults.TestTag)
+        .then(if (onClick != null) Modifier.clickable(role = Role.Button) { onClick() } else Modifier)
+    Column(modifier = bannerModifier) {
         VybzStripe(Modifier.fillMaxWidth().height(2.dp))
         Box(
             modifier = Modifier

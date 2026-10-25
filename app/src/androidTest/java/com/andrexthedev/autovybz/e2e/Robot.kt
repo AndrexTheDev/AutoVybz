@@ -27,14 +27,19 @@ import org.junit.rules.TestRule
 typealias AvzRule = AndroidComposeTestRule<ActivityScenarioRule<AutoVybzActivity>, AutoVybzActivity>
 
 /** Base class: microphone granted, simulated room installed, fresh app data, AutoVybzActivity launched. */
-abstract class E2eTest(countdownSeconds: Int = 0, grantMicrophone: Boolean = true, intro: Boolean = false) {
+abstract class E2eTest(
+    countdownSeconds: Int = 0,
+    grantMicrophone: Boolean = true,
+    intro: Boolean = false,
+    premiumTrial: Boolean = true,
+) {
     val compose: AvzRule = createAndroidComposeRule<AutoVybzActivity>()
 
     private val permission: TestRule =
         if (grantMicrophone) GrantPermissionRule.grant(Manifest.permission.RECORD_AUDIO) else RuleChain.emptyRuleChain()
 
     @get:Rule
-    val rules: RuleChain = RuleChain.outerRule(permission).around(E2eRule(countdownSeconds, intro)).around(compose)
+    val rules: RuleChain = RuleChain.outerRule(permission).around(E2eRule(countdownSeconds, intro, premiumTrial)).around(compose)
 
     fun str(@StringRes id: Int, vararg args: Any): String = E2e.app.getString(id, *args)
     fun shot(name: String) = Shots.take(compose, name)

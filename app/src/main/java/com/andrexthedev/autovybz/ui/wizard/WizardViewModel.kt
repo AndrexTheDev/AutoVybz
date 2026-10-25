@@ -22,7 +22,11 @@ import com.andrexthedev.autovybz.measurement.audio.VolumeGuard
 import com.andrexthedev.autovybz.measurement.audio.VolumeMath
 import com.andrexthedev.autovybz.measurement.dsp.MeasurementException
 import com.andrexthedev.autovybz.measurement.dsp.MeasurementWarning
+import com.andrexthedev.autovybz.measurement.dsp.SmoothingProfile
+import com.andrexthedev.autovybz.measurement.eq.CustomTarget
 import com.andrexthedev.autovybz.measurement.eq.TargetType
+import com.andrexthedev.autovybz.premium.EntitlementPolicy
+import com.andrexthedev.autovybz.premium.EntitlementStore
 import com.andrexthedev.autovybz.preset.AutoVybzPresetStore
 import com.andrexthedev.autovybz.preset.model.AutoVybzPreset
 import com.bearinmind.equalizer314.R
@@ -79,6 +83,8 @@ sealed interface WizardStep {
         val nameValid: Boolean = true,
         /** A calibration with this name exists and would be overwritten (warning, not an error). */
         val nameExists: Boolean = false,
+        /** Free tier already uses its one saved profile and this name would create another one. */
+        val profileLimitReached: Boolean = false,
     ) : WizardStep
     data class Saved(val presetName: String, val applied: Boolean, val outcome: MeasurementOutcome? = null) : WizardStep
     /**
@@ -108,17 +114,30 @@ data class WizardUiState(
 class WizardViewModel(app: Application) : AndroidViewModel(app) {
 
     private val settings = AutoVybzSettings(app)
+    private val entitlementStore = EntitlementStore(app)
     private val controller = MeasurementController(app)
     private val volume = VolumeGuard(app)
     private var job: Job? = null
     private var refitJob: Job? = null
+
+    private fun featureLimits() = EntitlementPolicy.limits(entitlementStore.load())
+
+    private fun limitedPositions(requested: Int = settings.positions): Int =
+        EntitlementPolicy.allowedPositions(requested, featureLimits())
+
+    private fun isProfileLimitReached(name: String): Boolean =
+        EntitlementPolicy.isProfileLimitReached(
+            AutoVybzPresetStore.existingNames(getApplication()),
+            name,
+            featureLimits(),
+        )
 
     private val _state = MutableStateFlow(
         WizardUiState(
             speakerName = settings.lastSpeakerName,
             target = settings.target,
             bandCount = settings.bandCount,
-            positions = settings.positions,
+            positions = limitedPositions(),
             environment = settings.environment,
             speakerClass = settings.speakerClass,
         ),
@@ -144,7 +163,7 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
     /** The Pro tab edits the same preferences - pick up changes when the wizard becomes visible again. */
     fun reloadSettings() = _state.update {
         it.copy(
-            target = settings.target, bandCount = settings.bandCount, positions = settings.positions,
+            target = settings.target, bandCount = settings.bandCount, positions = limitedPositions(),
             environment = settings.environment, speakerClass = settings.speakerClass,
         )
     }
@@ -169,12 +188,12 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
         settings.environment = environment
         val recommended = EnvironmentTuning.of(environment).recommendedPositions
         if (recommended > settings.positions) settings.positions = recommended
-        _state.update { it.copy(environment = environment, positions = settings.positions) }
+        _state.update { it.copy(environment = environment, positions = limitedPositions()) }
     }
 
     fun onPositionsChanged(count: Int) {
         settings.positions = count
-        _state.update { it.copy(positions = settings.positions) }
+        _state.update { it.copy(positions = limitedPositions(count)) }
     }
 
     /**
@@ -273,9 +292,25 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
         val s = _state.value
         settings.lastSpeakerName = s.speakerName
         partial.clear()
-        activeRequest = settings.buildRequest(s.speakerName, s.target)
+        val builtRequest = settings.buildRequest(s.speakerName, s.target)
+        val limits = featureLimits()
+        activeRequest = if (limits.advancedMeasurementSettings) {
+            builtRequest
+        } else {
+            // Free can try every speaker class, environment and target, but the expert measurement
+            // inputs stay at the safe defaults (no USB mic/calibration file/manual mic override).
+            builtRequest.copy(
+                customTarget = CustomTarget(),
+                maxBoostDb = 6.0,
+                smoothing = SmoothingProfile.DYNAMIC,
+                useUsbMic = false,
+                usbCalibration = null,
+                userMicOffset = null,
+                micProfileOverrideId = null,
+            )
+        }
         // Fixed geometry (device speakers): extra positions would measure the same thing again.
-        activeTotal = if (SpeakerClassTuning.of(s.speakerClass).singlePosition) 1 else s.positions
+        activeTotal = if (SpeakerClassTuning.of(s.speakerClass).singlePosition) 1 else EntitlementPolicy.allowedPositions(s.positions, limits)
         measureNextPosition()
     }
 
@@ -396,7 +431,17 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
             partial.clear()
             activeRequest = null
             val name = AutoVybzPresetStore.defaultName(getApplication(), request.speakerName)
-            setStep(WizardStep.Result(outcome, name))
+            // Conversion moment: after the first audible result, the one-time 7-day trial unlocks the
+            // precise multi-position flow and expert tools without asking for a wallet first.
+            entitlementStore.startTrial()
+            setStep(
+                WizardStep.Result(
+                    outcome = outcome,
+                    presetName = name,
+                    nameExists = name.trim() in AutoVybzPresetStore.existingNames(getApplication()),
+                    profileLimitReached = isProfileLimitReached(name),
+                ),
+            )
         }
     }
 
@@ -422,6 +467,7 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
                 presetName = name,
                 nameValid = PresetNaming.isValid(trimmed),
                 nameExists = trimmed in AutoVybzPresetStore.existingNames(getApplication()),
+                profileLimitReached = isProfileLimitReached(trimmed),
             ),
         )
     }
@@ -431,6 +477,7 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
         val step = _state.value.step as? WizardStep.Result ?: return
         val name = step.presetName.trim()
         if (!PresetNaming.isValid(name)) return setStep(step.copy(nameValid = false))
+        if (isProfileLimitReached(name)) return setStep(step.copy(profileLimitReached = true))
         refitJob?.cancel()
         val preset = MeasurementController.buildPreset(name, step.outcome)
         val app = getApplication<Application>()

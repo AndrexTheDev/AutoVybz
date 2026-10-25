@@ -63,14 +63,16 @@ import androidx.compose.ui.unit.dp
 import com.andrexthedev.autovybz.ui.components.AvzCard
 import com.andrexthedev.autovybz.ui.components.CollapsibleCard
 import com.andrexthedev.autovybz.ui.components.VybzStripe
+import com.andrexthedev.autovybz.premium.Entitlement
 import com.andrexthedev.autovybz.ui.components.VybzWordmark
+import com.andrexthedev.autovybz.ui.premium.PremiumStatusCard
 import com.andrexthedev.autovybz.ui.theme.AutoVybzColors
 import com.bearinmind.equalizer314.BuildConfig
 import com.bearinmind.equalizer314.MainActivity
 import com.bearinmind.equalizer314.R
 
 @Composable
-fun AboutScreen() {
+fun AboutScreen(entitlement: Entitlement = Entitlement.free(), onOpenPremium: () -> Unit = {}) {
     val context = LocalContext.current
     var showDonate by rememberSaveable { mutableStateOf(false) }
 
@@ -93,6 +95,8 @@ fun AboutScreen() {
         )
         VybzStripe(Modifier.width(64.dp).height(4.dp))
         Text(stringResource(R.string.avz_about_text), textAlign = TextAlign.Center)
+
+        PremiumStatusCard(entitlement = entitlement, onOpen = onOpenPremium)
 
         Button(
             onClick = { showDonate = true },

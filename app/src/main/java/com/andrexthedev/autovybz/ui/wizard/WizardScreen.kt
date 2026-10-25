@@ -114,6 +114,8 @@ import com.andrexthedev.autovybz.ui.components.VybzRings
 import com.andrexthedev.autovybz.ui.components.rememberPulse
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.progressBarRangeInfo
+import com.andrexthedev.autovybz.premium.Entitlement
+import com.andrexthedev.autovybz.premium.EntitlementPolicy
 import com.andrexthedev.autovybz.ui.share.ResultSharer
 import com.andrexthedev.autovybz.ui.theme.AutoVybzColors
 import com.bearinmind.equalizer314.R
@@ -127,7 +129,10 @@ fun WizardScreen(
     onOpenHelp: () -> Unit,
     onOpenProEq: () -> Unit,
     onOpenSound: () -> Unit = {},
+    entitlement: Entitlement = Entitlement.free(),
+    onOpenPremium: () -> Unit = {},
 ) {
+    val limits = EntitlementPolicy.limits(entitlement)
     val context = LocalContext.current
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         vm.onStartClicked(granted)
@@ -166,7 +171,7 @@ fun WizardScreen(
         AnimatedContent(targetState = state.step, contentKey = { it::class }, label = "wizard-step") { shown ->
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 when (val step = shown) {
-                    WizardStep.Idle -> IdleStep(state, vm, startMeasurement, onOpenHelp)
+                    WizardStep.Idle -> IdleStep(state, vm, startMeasurement, onOpenHelp, limits.maxPositions, onOpenPremium)
                     is WizardStep.RouteBlocked -> RouteBlockedStep(
                         step,
                         onRetry = startMeasurement,
@@ -181,7 +186,14 @@ fun WizardScreen(
                         step, state.environment, vm::onNextPosition, vm::onRepeatLastPosition, vm::onFinishWithMeasured, cancelSession,
                     )
                     WizardStep.Analyzing -> BusyStep(stringResource(R.string.avz_analyzing), null)
-                    is WizardStep.Result -> ResultStep(step, state, vm, onMeasureAgain = { confirm = ConfirmKind.DISCARD_RESULT })
+                    is WizardStep.Result -> ResultStep(
+                        step = step,
+                        state = state,
+                        vm = vm,
+                        onMeasureAgain = { confirm = ConfirmKind.DISCARD_RESULT },
+                        externalExportsEnabled = limits.externalExports,
+                        onOpenPremium = onOpenPremium,
+                    )
                     is WizardStep.Saved -> SavedStep(step, onOpenProEq, onOpenSound = { vm.onReset(); onOpenSound() }, onDone = vm::onReset)
                     is WizardStep.Error -> ErrorStep(
                         step,
@@ -207,7 +219,14 @@ fun WizardScreen(
 /* ------------------------------------------------------------------ idle -- */
 
 @Composable
-private fun IdleStep(state: WizardUiState, vm: WizardViewModel, onStart: () -> Unit, onOpenHelp: () -> Unit) {
+private fun IdleStep(
+    state: WizardUiState,
+    vm: WizardViewModel,
+    onStart: () -> Unit,
+    onOpenHelp: () -> Unit,
+    maxPositions: Int = 3,
+    onOpenPremium: () -> Unit = {},
+) {
     val focus = LocalFocusManager.current
     Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
         Spacer(Modifier.height(8.dp))
@@ -304,9 +323,10 @@ private fun IdleStep(state: WizardUiState, vm: WizardViewModel, onStart: () -> U
         SectionTitle(stringResource(R.string.avz_positions_label))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { // wraps instead of splitting words (W10)
             for ((count, label) in listOf(1 to R.string.avz_positions_quick, 3 to R.string.avz_positions_precise)) {
+                val locked = count > maxPositions
                 FilterChip(
                     selected = state.positions == count,
-                    onClick = { vm.onPositionsChanged(count) },
+                    onClick = { if (locked) onOpenPremium() else vm.onPositionsChanged(count) },
                     label = { Text(stringResource(label)) },
                     modifier = Modifier.testTag("avz:positions:$count"),
                     colors = FilterChipDefaults.filterChipColors(
@@ -317,9 +337,15 @@ private fun IdleStep(state: WizardUiState, vm: WizardViewModel, onStart: () -> U
             }
         }
         Text(
-            stringResource(if (state.positions == 3) R.string.avz_positions_precise_desc else R.string.avz_positions_quick_desc),
+            stringResource(
+                when {
+                    maxPositions == 1 -> R.string.avz_premium_locked_positions
+                    state.positions == 3 -> R.string.avz_positions_precise_desc
+                    else -> R.string.avz_positions_quick_desc
+                },
+            ),
             style = MaterialTheme.typography.bodySmall,
-            color = AutoVybzColors.OnDarkMuted,
+            color = if (maxPositions == 1) AutoVybzColors.Gold else AutoVybzColors.OnDarkMuted,
         )
     }
 
@@ -733,7 +759,14 @@ private fun BusyStep(title: String, subtitle: String?) {
 
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
-private fun ResultStep(step: WizardStep.Result, state: WizardUiState, vm: WizardViewModel, onMeasureAgain: () -> Unit) {
+private fun ResultStep(
+    step: WizardStep.Result,
+    state: WizardUiState,
+    vm: WizardViewModel,
+    onMeasureAgain: () -> Unit,
+    externalExportsEnabled: Boolean = true,
+    onOpenPremium: () -> Unit = {},
+) {
     val o = step.outcome
     val e = o.autoEq
     val r = o.result
@@ -877,6 +910,7 @@ private fun ResultStep(step: WizardStep.Result, state: WizardUiState, vm: Wizard
         isError = !step.nameValid,
         supportingText = when {
             !step.nameValid -> ({ Text(stringResource(R.string.avz_preset_name_invalid)) })
+            step.profileLimitReached -> ({ Text(stringResource(R.string.avz_premium_locked_profile), color = AutoVybzColors.Gold) })
             step.nameExists -> ({ Text(stringResource(R.string.avz_preset_name_exists), color = AutoVybzColors.Gold) })
             else -> null
         },
@@ -890,15 +924,21 @@ private fun ResultStep(step: WizardStep.Result, state: WizardUiState, vm: Wizard
     // Edge-to-edge: the keyboard shrinks the content via imePadding, but nothing scrolled the field back into
     // view, and the focused-field auto-scroll would only reveal the text line. Bring the whole field incl. the
     // error / "already exists" hint above the keyboard whenever the keyboard height changes (end-user test W5).
-    val hint = !step.nameValid || step.nameExists
+    val hint = !step.nameValid || step.nameExists || step.profileLimitReached
     val imeBottom = WindowInsets.ime.getBottom(LocalDensity.current)
     LaunchedEffect(hint, nameFocused, imeBottom) {
         if (hint || (nameFocused && imeBottom > 0)) runCatching { nameInView.bringIntoView() }
     }
 
+    if (step.profileLimitReached) {
+        OutlinedButton(
+            onClick = onOpenPremium,
+            modifier = Modifier.fillMaxWidth().testTag("avz:result:premium"),
+        ) { Text(stringResource(R.string.avz_premium_open)) }
+    }
     Button(
         onClick = { vm.onSave(apply = true) },
-        enabled = step.nameValid,
+        enabled = step.nameValid && !step.profileLimitReached,
         colors = ButtonDefaults.buttonColors(containerColor = AutoVybzColors.Green),
         modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).testTag("avz:result:saveApply"),
     ) {
@@ -908,7 +948,7 @@ private fun ResultStep(step: WizardStep.Result, state: WizardUiState, vm: Wizard
     AdaptiveButtonRow(spacing = 8.dp) {
         OutlinedButton(
             onClick = { vm.onSave(apply = false) },
-            enabled = step.nameValid,
+            enabled = step.nameValid && !step.profileLimitReached,
             modifier = Modifier.slot(1f).testTag("avz:result:saveOnly"),
         ) { Text(stringResource(R.string.avz_save_only), textAlign = TextAlign.Center) }
         OutlinedButton(onClick = onMeasureAgain, modifier = Modifier.slot(1f).testTag("avz:result:again")) {
@@ -916,7 +956,13 @@ private fun ResultStep(step: WizardStep.Result, state: WizardUiState, vm: Wizard
         }
     }
     AdaptiveButtonRow(spacing = 8.dp) {
-        ExportButton(preset = vm::currentPreset, modifier = Modifier.slot(1f).testTag("avz:export"), fillWidth = true)
+        ExportButton(
+            preset = vm::currentPreset,
+            modifier = Modifier.slot(1f).testTag("avz:export"),
+            fillWidth = true,
+            externalExportsEnabled = externalExportsEnabled,
+            onOpenPremium = onOpenPremium,
+        )
         ShareResultButton(o, step.presetName, Modifier.slot(1f).testTag("avz:share"))
     }
 

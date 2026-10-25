@@ -8,6 +8,40 @@
     <string name="avz_nav_home">Sound</string>
     <string name="avz_tagline">Dein Lautsprecher, perfekt abgestimmt</string>
     <string name="avz_sticky_footer_placeholder">Banner-Platzhalter</string>
+    <string name="avz_premium_open">AutoVybz Pro freischalten</string>
+    <string name="avz_premium_manage">Pro verwalten</string>
+    <string name="avz_premium_status_title">AutoVybz Pro und Free-Limits</string>
+    <string name="avz_premium_subtitle">Free bleibt nutzbar, aber streng begrenzt. Pro hebt die Limits auf – Zahlung nur mit SOL, BTC oder ETH.</string>
+    <string name="avz_premium_free_status">Free: %1$d gespeichertes Profil · %2$d Messposition</string>
+    <string name="avz_premium_trial_status">Pro-Test aktiv bis %1$s</string>
+    <string name="avz_premium_pro_status">Pro aktiv bis %1$s</string>
+    <string name="avz_premium_lifetime_status">Pro Lifetime aktiv</string>
+    <string name="avz_premium_trial_cta">7 Tage Pro testen</string>
+    <string name="avz_premium_trial_note">Der Test startet auch automatisch nach deiner ersten erfolgreichen Kalibrierung.</string>
+    <string name="avz_premium_benefit_profiles">Unbegrenzt gespeicherte Lautsprecherprofile (Free: 1)</string>
+    <string name="avz_premium_benefit_positions">Präzise Messungen mit 3 Positionen (Free: 1 Position)</string>
+    <string name="avz_premium_benefit_tools">Experten-Einstellungen für Messung, Mikrofon und eigenes Ziel</string>
+    <string name="avz_premium_benefit_exports">Externe Exporte für Equalizer APO, PEQ-JSON und REW</string>
+    <string name="avz_premium_benefit_support">Unterstützt die Entwicklung – ohne Konto und ohne Tracking</string>
+    <string name="avz_premium_plan_monthly">1 Monat</string>
+    <string name="avz_premium_plan_yearly">12 Monate</string>
+    <string name="avz_premium_plan_lifetime">Lebenslang</string>
+    <string name="avz_premium_price">%1$s US$</string>
+    <string name="avz_premium_best_value">Bester Wert</string>
+    <string name="avz_premium_no_autorenew">Keine automatische Verlängerung. Du zahlst nur erneut, wenn du verlängern willst.</string>
+    <string name="avz_premium_pay_title">Mit Krypto zahlen</string>
+    <string name="avz_premium_pay_instructions">Sende den USD-Gegenwert an die Adresse unten und trage danach die Transaktions-ID (TXID) ein.</string>
+    <string name="avz_premium_sol_tip">Tipp: SOL ist für den Monatspass meist das günstigste Netzwerk.</string>
+    <string name="avz_premium_alpha_note">Alpha: Die Aktivierung erfolgt auf diesem Gerät nach Eingabe der TXID; die Zahlung wird manuell abgeglichen. Netzwerk immer doppelt prüfen.</string>
+    <string name="avz_premium_txid_label">Transaktions-ID (TXID)</string>
+    <string name="avz_premium_txid_invalid">Dieses TXID-Format passt nicht zur gewählten Coin.</string>
+    <string name="avz_premium_activate">Pro aktivieren</string>
+    <string name="avz_premium_activated">AutoVybz Pro ist aktiv.</string>
+    <string name="avz_premium_reset_alpha">Alpha-Test: Pro-Status zurücksetzen</string>
+    <string name="avz_premium_locked_positions">Der präzise Modus mit 3 Positionen ist mit AutoVybz Pro verfügbar.</string>
+    <string name="avz_premium_locked_profile">Free speichert ein Lautsprecherprofil. Überschreibe es oder schalte Pro für unbegrenzte Profile frei.</string>
+    <string name="avz_premium_locked_settings">Diese Experten-Einstellungen sind mit AutoVybz Pro verfügbar.</string>
+    <string name="avz_premium_locked_exports">Externe Exporte sind mit AutoVybz Pro verfügbar.</string>
     <string name="avz_intro_skip">Überspringen</string>
     <string name="avz_intro_a11y">AutoVybz-Intro. Tippen zum Überspringen.</string>
     <string name="avz_home_title">Dein Sound</string>
@@ -242,7 +276,7 @@
     <string name="avz_help_s7_body">Der Lautsprecher spielt genau 10 Sekunden rosa Rauschen und einen logarithmischen Sinus-Sweep (20 Hz – 20 kHz), während das Handy aufnimmt. AutoVybz berechnet daraus den Frequenzgang, kompensiert das typische Verhalten von Handy-Mikrofonen, glättet (stärker im Bass, ⅓ Oktave in Mitten und Höhen) und berechnet bis zu 10 parametrische Filter, die deinen Lautsprecher zum gewählten Klangziel bringen. Eine negative Vorverstärkung und der Limiter verhindern Übersteuerung.</string>
     <string name="avz_help_s8_title">Grenzen</string>
     <string name="avz_help_s8_body">Handy-Mikrofone sind keine Messmikrofone; die eingebauten Profile sind Schätzungen. Tiefbass, den der Lautsprecher physikalisch nicht kann, wird nie angehoben (schützt den Lautsprecher). Für Labor-Qualität nutze ein USB-Messmikrofon mit Kalibrierdatei (Studio).</string>
-    <string name="avz_about_text" formatted="false">AutoVybz ist 100 % Open Source und Donationware: keine Werbung, kein Tracking, keine Bezahlschranke.</string>
+    <string name="avz_about_text" formatted="false">AutoVybz ist 100 % Open Source (GPL-3.0). Free ist bewusst stark begrenzt; AutoVybz Pro hebt die Limits auf. Kein Tracking, kein Konto.</string>
     <string name="avz_about_version">Version %1$s</string>
     <string name="avz_about_dev">Entwickler: AndrexTheDev</string>
     <string name="avz_about_contact">Kontakt: hippie.highho@gmail.com</string>
@@ -293,7 +327,7 @@
         <item quantity="other">%1$d Filter · Vorverstärkung %2$s dB</item>
     </plurals>
     <string name="avz_share_card_positions" tools:ignore="PluralsCandidate">%1$d Positionen</string>
-    <string name="avz_share_card_free">kostenlos · Open Source · werbefrei</string>
+    <string name="avz_share_card_free">kostenlos · Open Source · kein Tracking</string>
 
     <!-- Outdoor / party mode -->
     <string name="avz_env_label">Wo spielst du?</string>
