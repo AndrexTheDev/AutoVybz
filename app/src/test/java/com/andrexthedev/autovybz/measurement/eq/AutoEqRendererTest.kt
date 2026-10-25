@@ -211,7 +211,8 @@ class AutoEqRendererTest {
         )
         val r = AutoEqRenderer.render(grid, phone, TargetCurve(TargetType.HARMAN), settings)
         assertTrue("low limit ${r.lowLimitHz}", r.lowLimitHz in 400.0..900.0)
-        assertTrue("hp ${r.highPassHz}", r.highPassHz != null && r.highPassHz in 300.0..750.0)
+        val hpHz = r.highPassHz
+        assertTrue("hp $hpHz", hpHz != null && hpHz in 300.0..750.0)
         assertTrue("max boost ${r.maxFilterBoostDb}", r.maxFilterBoostDb <= 4.0 + 0.5)
         r.bands.forEach { assertTrue("band above correction limit $it", it.frequency <= 12000.0 + 1e-9) }
         val deep = grid.indexOfFirst { it >= 100.0 }
