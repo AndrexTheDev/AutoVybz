@@ -163,6 +163,9 @@ class WizardFlowE2ETest : E2eTest() {
 
     @Test
     fun rescueCalibration_addsProtectiveHighPass() {
+        // The normal simulated speaker plays almost full-range and (correctly) gets no
+        // protective pass - rescue needs the dreadful cheap box (no bass below ~260 Hz).
+        E2e.engine.script.add(Mode.CHEAP_SPEAKER)
         compose.await("avz:start")
         compose.tap("avz:class:RESCUE")
         compose.openSafety()
