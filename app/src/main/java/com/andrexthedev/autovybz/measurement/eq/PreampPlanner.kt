@@ -10,15 +10,16 @@ import kotlin.math.sqrt
  *
  * ## The problem this solves
  *
- * [AntiClipping.preampFor] lowers the master level by the largest boost of the filter chain. That is
- * the right rule for a *boost* - but it silently punished every correction that only *cuts*:
+ * The classic rule ([Plan.clippingSafeDb]) lowers the master level by the largest boost of the filter
+ * chain. That is the right rule for a *boost* - but it silently punished every correction that only
+ * *cuts*:
  *
  * * A phone speaker measured with its own microphone shows a broad presence excess (1-4 kHz) that the
  *   target does not want. Correcting it is a cut of several dB in the band the ear is most sensitive
  *   to - the same music then plays *much* quieter, and because quiet = less detail at both ends of the
  *   spectrum (equal-loudness contours), the calibration "takes the details away".
  * * Together with the old pre-gain (which never *raises* anything) the total loss added up: a typical
- *   device-speaker correction cost 7-9 dB of perceived level.
+ *   device-speaker correction cost 4-8 dB of perceived level.
  *
  * ## The policy
  *
