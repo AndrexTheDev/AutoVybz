@@ -83,7 +83,8 @@ object VybzSound {
         else AutoVybzPresetStore.applyComposed(context, SoundComposer.compose(SoundComposer.styleOnlyBase(), selection(context)), limiter)
     }
 
-    /** Tests: back to calibration-only, neutral style, no tone. */
+    /** Tests: back to calibration-only, neutral style, no tone (synchronous on purpose: the next test reads it). */
+    @android.annotation.SuppressLint("ApplySharedPref")
     fun reset(context: Context) {
         prefs(context).edit().clear().commit()
     }

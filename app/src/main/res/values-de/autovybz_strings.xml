@@ -70,7 +70,7 @@
     <string name="avz_style_night">Leise hören</string>
     <string name="avz_style_night_desc">Voller Klang bei kleiner Lautstärke</string>
     <string name="avz_wizard_subtitle">Ein Tipp. 10 Sekunden. Dein Lautsprecher, perfekt auf deinen Raum abgestimmt.</string>
-    <string name="avz_wizard_start">Speaker einmessen</string>
+    <string name="avz_wizard_start">Jetzt einmessen</string>
     <string name="avz_speaker_name_label">Lautsprecher-Name (optional)</string>
     <string name="avz_speaker_name_hint">z. B. JBL Flip 6</string>
     <string name="avz_speaker_name_profile_hint">Der Name wird zu deinem Lautsprecher-Profil – im Sound-Bildschirm wechselst du zwischen Profilen.</string>

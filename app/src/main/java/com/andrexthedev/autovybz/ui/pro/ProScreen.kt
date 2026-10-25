@@ -2,6 +2,9 @@
 
 package com.andrexthedev.autovybz.ui.pro
 
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.heading
 import com.andrexthedev.autovybz.measurement.eq.TargetType
@@ -193,7 +196,7 @@ private fun ToneCard(settings: AutoVybzSettings) {
         }
         Slider(
             bass, { bass = (it * 2).toInt() / 2f }, valueRange = -max..max, onValueChangeFinished = { push() },
-            colors = avzSliderColors(), modifier = Modifier.testTag("avz:studio:bass"),
+            colors = avzBipolarSliderColors(), modifier = Modifier.zeroMark().testTag("avz:studio:bass"),
         )
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(stringResource(R.string.avz_studio_treble), style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
@@ -201,7 +204,7 @@ private fun ToneCard(settings: AutoVybzSettings) {
         }
         Slider(
             treble, { treble = (it * 2).toInt() / 2f }, valueRange = -max..max, onValueChangeFinished = { push() },
-            colors = avzSliderColors(), modifier = Modifier.testTag("avz:studio:treble"),
+            colors = avzBipolarSliderColors(), modifier = Modifier.zeroMark().testTag("avz:studio:treble"),
         )
         if (bass != 0f || treble != 0f) {
             TextButton(onClick = { bass = 0f; treble = 0f; push() }, modifier = Modifier.testTag("avz:studio:tone_reset")) {
@@ -495,6 +498,21 @@ private fun avzSliderColors() = SliderDefaults.colors(
     activeTrackColor = AutoVybzColors.Green,
     inactiveTrackColor = AutoVybzColors.SurfaceHigh,
 )
+
+/** ±dB sliders: neutral track (no "fill" from the left) - the gold thumb and the centre mark show the offset from 0. */
+@Composable
+private fun avzBipolarSliderColors() = SliderDefaults.colors(
+    thumbColor = AutoVybzColors.Gold,
+    activeTrackColor = AutoVybzColors.SurfaceHigh,
+    inactiveTrackColor = AutoVybzColors.SurfaceHigh,
+)
+
+/** Thin mark at the slider's centre = 0 dB (the track is symmetric, so the centre is exactly 0). */
+private fun Modifier.zeroMark() = drawBehind {
+    val w = 2.dp.toPx()
+    val h = 16.dp.toPx()
+    drawRect(AutoVybzColors.Outline, topLeft = Offset(size.width / 2f - w / 2f, size.height / 2f - h / 2f), size = Size(w, h))
+}
 
 /** Calibration files are a few kB; refuse anything above 1 MB (a picked video must not cause an OOM). */
 private fun readSmallText(context: android.content.Context, uri: android.net.Uri, maxBytes: Int = 1 shl 20): String? =

@@ -2,6 +2,7 @@
 
 package com.andrexthedev.autovybz.ui.wizard
 
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.ime
 import androidx.compose.ui.platform.LocalDensity
@@ -299,6 +300,7 @@ private fun BigStartButton(onClick: () -> Unit) {
             onClick = onClick,
             shape = CircleShape,
             colors = ButtonDefaults.buttonColors(containerColor = AutoVybzColors.Green, contentColor = AutoVybzColors.OnGreen),
+            contentPadding = PaddingValues(12.dp), // round button: the default 24 dp side padding would squeeze the label
             modifier = Modifier.size(150.dp).testTag("avz:start"),
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {

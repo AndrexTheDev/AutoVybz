@@ -22,7 +22,7 @@
     "trust": "GPL-3.0 · Kein Tracking · Keine Cookies · Basiert auf Equalizer314",
     "stars": "Sterne"
   },
-  "phone": { "calibrate": "Speaker einmessen", "measuring": "Messe…", "done": "Eingemessen ✓", "target": "Ziel: Smart", "before": "vorher", "after": "nachher" },
+  "phone": { "calibrate": "Jetzt einmessen", "measuring": "Messe…", "done": "Eingemessen ✓", "target": "Ziel: Smart", "before": "vorher", "after": "nachher" },
   "ticker": ["🔊 1 Tipp", "⏱ 10 Sekunden", "🎯 10-Band parametrischer EQ", "🆓 Für immer kostenlos", "🔓 100 % Open Source", "🚫 Keine Werbung, kein Tracking", "📶 Funktioniert mit Bluetooth", "🎛 Pro-Modus inklusive", "📤 Export für Equalizer APO & REW", "🇯🇲 Jamaica Vibes"],
   "problem": {
     "kicker": "Das schmutzige Geheimnis jedes Lautsprechers",
