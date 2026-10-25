@@ -7,6 +7,41 @@
     <string name="avz_nav_about">Info</string>
     <string name="avz_nav_home">Sound</string>
     <string name="avz_tagline">Dein Lautsprecher, perfekt abgestimmt</string>
+    <string name="avz_sticky_footer_placeholder">Banner-Platzhalter</string>
+    <string name="avz_premium_open">AutoVybz Pro freischalten</string>
+    <string name="avz_premium_manage">Pro verwalten</string>
+    <string name="avz_premium_status_title">AutoVybz Pro und Free-Limits</string>
+    <string name="avz_premium_subtitle">Free bleibt nutzbar, aber streng begrenzt. Pro hebt die Limits auf – Zahlung nur mit SOL, BTC oder ETH.</string>
+    <string name="avz_premium_free_status">Free: %1$d gespeichertes Profil · %2$d Messposition</string>
+    <string name="avz_premium_trial_status">Pro-Test aktiv bis %1$s</string>
+    <string name="avz_premium_pro_status">Pro aktiv bis %1$s</string>
+    <string name="avz_premium_lifetime_status">Pro Lifetime aktiv</string>
+    <string name="avz_premium_trial_cta">7 Tage Pro testen</string>
+    <string name="avz_premium_trial_note">Der Test startet auch automatisch nach deiner ersten erfolgreichen Kalibrierung.</string>
+    <string name="avz_premium_benefit_profiles">Unbegrenzt gespeicherte Lautsprecherprofile (Free: 1)</string>
+    <string name="avz_premium_benefit_positions">Präzise Messungen mit 3 Positionen (Free: 1 Position)</string>
+    <string name="avz_premium_benefit_tools">Experten-Einstellungen für Messung, Mikrofon und eigenes Ziel</string>
+    <string name="avz_premium_benefit_exports">Externe Exporte für Equalizer APO, PEQ-JSON und REW</string>
+    <string name="avz_premium_benefit_support">Unterstützt die Entwicklung – ohne Konto und ohne Tracking</string>
+    <string name="avz_premium_plan_monthly">1 Monat</string>
+    <string name="avz_premium_plan_yearly">12 Monate</string>
+    <string name="avz_premium_plan_lifetime">Lebenslang</string>
+    <string name="avz_premium_price">%1$s US$</string>
+    <string name="avz_premium_best_value">Bester Wert</string>
+    <string name="avz_premium_no_autorenew">Keine automatische Verlängerung. Du zahlst nur erneut, wenn du verlängern willst.</string>
+    <string name="avz_premium_pay_title">Mit Krypto zahlen</string>
+    <string name="avz_premium_pay_instructions">Sende den USD-Gegenwert an die Adresse unten und trage danach die Transaktions-ID (TXID) ein.</string>
+    <string name="avz_premium_sol_tip">Tipp: SOL ist für den Monatspass meist das günstigste Netzwerk.</string>
+    <string name="avz_premium_alpha_note">Alpha: Die Aktivierung erfolgt auf diesem Gerät nach Eingabe der TXID; die Zahlung wird manuell abgeglichen. Netzwerk immer doppelt prüfen.</string>
+    <string name="avz_premium_txid_label">Transaktions-ID (TXID)</string>
+    <string name="avz_premium_txid_invalid">Dieses TXID-Format passt nicht zur gewählten Coin.</string>
+    <string name="avz_premium_activate">Pro aktivieren</string>
+    <string name="avz_premium_activated">AutoVybz Pro ist aktiv.</string>
+    <string name="avz_premium_reset_alpha">Alpha-Test: Pro-Status zurücksetzen</string>
+    <string name="avz_premium_locked_positions">Der präzise Modus mit 3 Positionen ist mit AutoVybz Pro verfügbar.</string>
+    <string name="avz_premium_locked_profile">Free speichert ein Lautsprecherprofil. Überschreibe es oder schalte Pro für unbegrenzte Profile frei.</string>
+    <string name="avz_premium_locked_settings">Diese Experten-Einstellungen sind mit AutoVybz Pro verfügbar.</string>
+    <string name="avz_premium_locked_exports">Externe Exporte sind mit AutoVybz Pro verfügbar.</string>
     <string name="avz_intro_skip">Überspringen</string>
     <string name="avz_intro_a11y">AutoVybz-Intro. Tippen zum Überspringen.</string>
     <string name="avz_home_title">Dein Sound</string>
@@ -93,7 +128,7 @@
     <string name="avz_route_headphones_title">Kopfhörer erkannt</string>
     <string name="avz_route_headphones_text">AutoVybz misst nur Lautsprecher ein. Bitte Kopfhörer/Headsets trennen und einen Lautsprecher verbinden.</string>
     <string name="avz_route_builtin_title">Kein externer Lautsprecher</string>
-    <string name="avz_route_builtin_text">Der eingebaute Handy-Lautsprecher lässt sich nicht mit dem eigenen Mikrofon einmessen. Verbinde einen externen Lautsprecher per Bluetooth, Kabel, USB oder HDMI.</string>
+    <string name="avz_route_builtin_text">Der Ton kommt aus diesem Handy selbst. Verbinde einen externen Lautsprecher per Bluetooth, Kabel, USB oder HDMI, oder kalibriere stattdessen die eingebauten Lautsprecher dieses Geräts.</string>
     <string name="avz_retry">Erneut prüfen</string>
     <string name="avz_back">Zurück</string>
     <string name="avz_safety_title">Sicherheitshinweis</string>
@@ -241,7 +276,7 @@
     <string name="avz_help_s7_body">Der Lautsprecher spielt genau 10 Sekunden rosa Rauschen und einen logarithmischen Sinus-Sweep (20 Hz – 20 kHz), während das Handy aufnimmt. AutoVybz berechnet daraus den Frequenzgang, kompensiert das typische Verhalten von Handy-Mikrofonen, glättet (stärker im Bass, ⅓ Oktave in Mitten und Höhen) und berechnet bis zu 10 parametrische Filter, die deinen Lautsprecher zum gewählten Klangziel bringen. Eine negative Vorverstärkung und der Limiter verhindern Übersteuerung.</string>
     <string name="avz_help_s8_title">Grenzen</string>
     <string name="avz_help_s8_body">Handy-Mikrofone sind keine Messmikrofone; die eingebauten Profile sind Schätzungen. Tiefbass, den der Lautsprecher physikalisch nicht kann, wird nie angehoben (schützt den Lautsprecher). Für Labor-Qualität nutze ein USB-Messmikrofon mit Kalibrierdatei (Studio).</string>
-    <string name="avz_about_text" formatted="false">AutoVybz ist 100 % Open Source und Donationware: keine Werbung, kein Tracking, keine Bezahlschranke.</string>
+    <string name="avz_about_text" formatted="false">AutoVybz ist 100 % Open Source (GPL-3.0). Free ist bewusst stark begrenzt; AutoVybz Pro hebt die Limits auf. Kein Tracking, kein Konto.</string>
     <string name="avz_about_version">Version %1$s</string>
     <string name="avz_about_dev">Entwickler: AndrexTheDev</string>
     <string name="avz_about_contact">Kontakt: hippie.highho@gmail.com</string>
@@ -292,7 +327,7 @@
         <item quantity="other">%1$d Filter · Vorverstärkung %2$s dB</item>
     </plurals>
     <string name="avz_share_card_positions" tools:ignore="PluralsCandidate">%1$d Positionen</string>
-    <string name="avz_share_card_free">kostenlos · Open Source · werbefrei</string>
+    <string name="avz_share_card_free">kostenlos · Open Source · kein Tracking</string>
 
     <!-- Outdoor / party mode -->
     <string name="avz_env_label">Wo spielst du?</string>
@@ -346,4 +381,32 @@
     <string name="avz_a11y_level" tools:ignore="PluralsCandidate">Mikrofonpegel %1$d Prozent</string>
     <string name="avz_a11y_positions" tools:ignore="PluralsCandidate">%1$d von %2$d Positionen gemessen</string>
     <string name="avz_a11y_chart">Frequenzgang-Diagramm: gemessene, Ziel- und korrigierte Kurve. Abweichung vorher %1$s dB, nachher %2$s dB.</string>
+
+    <!-- Speaker classes: weak-speaker rescue + device speakers -->
+    <string name="avz_class_label">Lautsprecher-Typ</string>
+    <string name="avz_class_standard">Externer Lautsprecher</string>
+    <string name="avz_class_standard_desc">Bluetooth-, Kabel-, USB- oder HDMI-Lautsprecher – die klassische, präzise Kalibrierung.</string>
+    <string name="avz_class_rescue">Schwacher / billiger Lautsprecher</string>
+    <string name="avz_class_rescue_desc">Für Lautsprecher, die schlecht klingen: kräftiges Aufräumen gegen Dröhnen und Schärfe plus Schutzschnitt für Bass, den der Lautsprecher ohnehin nicht kann – sauberer und lauter statt Klappern.</string>
+    <string name="avz_class_device">Dieses Handy / Tablet</string>
+    <string name="avz_class_device_desc">Kalibriert die eingebauten Lautsprecher dieses Geräts, gemessen mit dem eigenen Mikrofon. Es darf kein externer Lautsprecher verbunden sein.</string>
+    <string name="avz_device_speaker_name">Gerätelautsprecher</string>
+    <string name="avz_device_before_1">Alles trennen: kein Bluetooth-, Kabel- oder USB-Audio – dieses Gerät spielt selbst.</string>
+    <string name="avz_device_before_2">Lege das Gerät mit dem Bildschirm nach oben auf einen Tisch, Lautsprecher und Mikrofon frei. Lass deine übliche Hülle dran, wenn du sie immer nutzt.</string>
+    <string name="avz_device_before_3">Halte den Raum 10 Sekunden ruhig und berühre das Gerät nicht.</string>
+    <string name="avz_route_ext_title">Externe Ausgabe aktiv</string>
+    <string name="avz_route_ext_text">Für die Gerätelautsprecher muss dieses Handy selbst spielen. Schalte die Ausgabe per Bluetooth, USB oder Kabel aus oder trenne sie und versuche es erneut.</string>
+    <string name="avz_route_use_device">Stattdessen dieses Gerät kalibrieren</string>
+    <string name="avz_safety_text_device">Der Test spielt 10 Sekunden Rauschen und einen Sweep über die Lautsprecher dieses Geräts. Die Lautstärke ist absichtlich niedriger als sonst: Das Mikrofon sitzt direkt neben dem Lautsprecher.</string>
+    <string name="avz_device_check_title">Für eine saubere Messung</string>
+    <string name="avz_device_check_1">Das Gerät liegt mit dem Bildschirm nach oben auf dem Tisch – nicht in der Hand, denn die Hand dämpft den Klang und bewegt das Gerät.</string>
+    <string name="avz_device_check_2">Lautsprecher und Mikrofon sind frei und sauber.</string>
+    <string name="avz_device_check_3">Tritt für die 10 Sekunden zurück und berühre das Gerät nicht.</string>
+    <string name="avz_result_highpass">Schutz-Hochpass bei %1$d Hz: Bass darunter wird entfernt, weil der Lautsprecher ihn ohnehin nicht wiedergeben kann und dabei nur verzerrt.</string>
+    <string name="avz_result_limiter">Der Limiter wird mit dieser Kalibrierung automatisch aktiviert und schützt den Lautsprecher bei hoher Lautstärke.</string>
+    <string name="avz_result_device_profile">Dieses Profil ist auf die Lautsprecher dieses Geräts abgestimmt. Wenn du wieder über einen externen Lautsprecher hörst, wechsle zurück zu dessen Profil.</string>
+    <string name="avz_help_rescue_title">Schwache Lautsprecher retten</string>
+    <string name="avz_help_rescue_body">Wähle den Lautsprecher-Typ für schwache oder billige Lautsprecher und miss wie gewohnt. AutoVybz greift dann entschlossener ein: Dröhnender Bass und schrille Mitten werden tiefer geschnitten, fehlende Höhen breit angehoben, und ein Schutz-Hochpass entfernt Tiefbass, den der kleine Treiber nicht wiedergeben kann – allein das nimmt den größten Teil von Klappern und Verzerrung und schafft Platz für saubere Lautstärke. Physik bleibt Physik: Echter Tiefbass entsteht nicht, aber ausgewogen und klar ist sehr wohl möglich.</string>
+    <string name="avz_help_device_title">Dieses Handy oder Tablet kalibrieren</string>
+    <string name="avz_help_device_body">Der Lautsprecher-Typ für dieses Gerät misst die eingebauten Lautsprecher mit dem eingebauten Mikrofon: Trenne alle externen Ausgänge und lege das Gerät mit dem Bildschirm nach oben auf einen Tisch. Weil das Mikrofon nur wenige Zentimeter neben dem Lautsprecher sitzt, korrigiert AutoVybz behutsam und nur bis 12 kHz – entfernt aber den unhörbaren Tiefbass, der kleine Lautsprecher nur verzerrt, zähmt die typisch schreienden Mitten und lässt den Limiter aktiv. Das Ergebnis ist ein normales Profil; wechsle das Profil, wenn du wieder einen externen Lautsprecher verbindest.</string>
 </resources>

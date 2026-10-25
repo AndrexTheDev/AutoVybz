@@ -20,7 +20,6 @@ import com.andrexthedev.autovybz.measurement.dsp.SpatialAverager
 import com.andrexthedev.autovybz.measurement.dsp.StimulusGenerator
 import com.andrexthedev.autovybz.measurement.eq.AutoEqRenderer
 import com.andrexthedev.autovybz.measurement.eq.AutoEqResult
-import com.andrexthedev.autovybz.measurement.eq.AutoEqSettings
 import com.andrexthedev.autovybz.measurement.eq.CustomTarget
 import com.andrexthedev.autovybz.measurement.eq.TargetCurve
 import com.andrexthedev.autovybz.measurement.eq.TargetType
@@ -57,9 +56,15 @@ data class MeasurementRequest(
     val micProfileOverrideId: String? = null,
     /** Indoor (default) or outdoor / party - see [EnvironmentTuning]. */
     val environment: ListeningEnvironment = ListeningEnvironment.INDOOR,
+    /** What kind of speaker this is - correction strategy, see [SpeakerClassTuning]. */
+    val speakerClass: SpeakerClass = SpeakerClass.STANDARD,
 ) {
     /** Effective analysis / fitting parameters for this request. */
     val tuning: EnvironmentTuning get() = EnvironmentTuning.of(environment, smoothing, maxBoostDb)
+    val classTuning: SpeakerClassTuning get() = SpeakerClassTuning.of(speakerClass)
+
+    /** The limiter is armed on apply when the environment *or* the speaker class demands it. */
+    val forceLimiter: Boolean get() = CorrectionPlanner.forceLimiter(tuning, classTuning)
 }
 
 sealed class MeasurementProgress {
@@ -102,6 +107,10 @@ class MeasurementController(
         val plan = stimulus.plan
         val usbMic = if (request.useUsbMic) InputSourceResolver.findUsbMic(app) else null
         val source = InputSourceResolver.preferred(app, usbMic)
+        // Without a USB mic, pin the built-in primary microphone: that is the device the
+        // compensation profiles describe, and the system default could otherwise hand the
+        // capture to an attached accessory mic (processed, wrong response).
+        val inputDevice = usbMic ?: InputSourceResolver.findBuiltInMic(app)
 
         val eqWasRunning = EqBypass.pauseIfRunning(app)
         val guard = CaptureGuard(app)
@@ -112,7 +121,7 @@ class MeasurementController(
             guardedCapture(guard) {
                 engine.capture(
                     stimulus.signal,
-                    CaptureConfig(plan.sampleRate, source, usbMic, extraRecordSeconds = 1.0),
+                    CaptureConfig(plan.sampleRate, source, inputDevice, extraRecordSeconds = 1.0),
                 ) { fraction, peak ->
                     val sample = (fraction * (plan.totalLength + plan.sampleRate)).toInt()
                     val phase = when {
@@ -134,7 +143,10 @@ class MeasurementController(
             val (profile, comp) = compensation(request, capture.sourceUsed)
             val analyzer = MeasurementAnalyzer(NativeEngine)
             val tuning = request.tuning
-            val config = AnalyzerConfig(smoothing = tuning.smoothing, sweepWeight = tuning.sweepWeight)
+            val config = AnalyzerConfig(
+                smoothing = CorrectionPlanner.smoothing(request.smoothing, tuning, request.classTuning),
+                sweepWeight = tuning.sweepWeight,
+            )
             val analyzed = analyzer.analyze(capture.recording, stimulus, comp, config)
             // Buffer under-/overruns leave gaps the analysis cannot see reliably -> flag for a repeat.
             val result = if (capture.xruns > XRUN_TOLERANCE) analyzed.withExtraWarnings(listOf(MeasurementWarning.AUDIO_GLITCH)) else analyzed
@@ -202,22 +214,15 @@ class MeasurementController(
         )
     }
 
-    private fun render(result: MeasurementResult, request: MeasurementRequest): AutoEqResult {
-        val tuning = request.tuning
-        return AutoEqRenderer.render(
+    private fun render(result: MeasurementResult, request: MeasurementRequest): AutoEqResult =
+        AutoEqRenderer.render(
             result.frequencies,
             result.smoothedDb,
             TargetCurve(request.target, request.customTarget),
-            AutoEqSettings(
-                bandCount = request.bandCount,
-                maxBoostDb = tuning.maxBoostDb,
-                broadBoostOctaves = tuning.broadBoostOctaves,
-                excursionGuardOctaves = tuning.excursionGuardOctaves,
-            ),
+            CorrectionPlanner.autoEqSettings(request.bandCount, request.tuning, request.classTuning),
             rollOffDb = result.thirdOctaveDb,
             snrDb = result.snrDb,
         )
-    }
 
     private fun compensation(request: MeasurementRequest, source: InputSource): Pair<MicProfile?, MicCompensation> {
         if (source == InputSource.USB) return null to MicCompensation.forUsbMic(request.usbCalibration)
@@ -260,6 +265,7 @@ class MeasurementController(
                     warnings = r.warnings.map { it.name },
                     environment = outcome.request.environment.name,
                     positions = outcome.positions,
+                    speakerClass = outcome.request.speakerClass.name,
                 ),
             )
         }

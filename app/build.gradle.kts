@@ -18,10 +18,20 @@ android {
         // fails to load (NoClassDefFoundError, found by the API 24 emulator run), so don't install there.
         minSdk = 28
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0-alpha"
+        versionCode = 2
+        versionName = "0.2.0-alpha"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Ship only the native ABIs that exist on API 28+ devices (drops 32-bit x86;
+        // CI emulators are x86_64). One universal APK, ~1.5 MB smaller.
+        ndk {
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")
+        }
+
+        // Only locales the app actually translates (values-* dirs above); strips the
+        // ~80 library locales AppCompat/Material/Compose would otherwise add.
+        resourceConfigurations += listOf("en", "de", "es", "pt", "ru", "uk", "zh-rCN")
 
         externalNativeBuild {
             cmake {
@@ -45,7 +55,14 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // R8 full mode (AGP 8 default): shrink + optimize + obfuscate, plus resource
+            // shrinking. Keep rules in proguard-rules.pro cover this app's only
+            // name-sensitive surfaces: JNI exports (mangled C names) and enum constants,
+            // which are persisted by name in preferences and preset files. Reflection is
+            // framework-only, components/views are kept by AAPT's generated rules, and
+            // library consumer rules cover Compose/AppCompat/Material/coroutines.
+            isMinifyEnabled = true
+            isShrinkResources = true
             signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -184,7 +201,9 @@ dependencies {
 // F-Droid reproducible builds: disable baseline profile generation. The
 // output of baseline.prof is non-deterministic across machines and would
 // cause F-Droid's build reproducibility check to fail.
-tasks.whenTaskAdded {
+// configureEach, not whenTaskAdded: the latter breaks AGP 8.1+'s task wiring
+// (merged_java_res/base.jar missing when R8 reads it — issuetracker 277166577).
+tasks.configureEach {
     if (name.contains("ArtProfile")) {
         enabled = false
     }

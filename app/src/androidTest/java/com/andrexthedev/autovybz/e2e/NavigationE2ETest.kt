@@ -5,8 +5,11 @@ import android.app.Instrumentation
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -50,6 +53,31 @@ class NavigationE2ETest : E2eTest() {
         compose.tap("avz:tab:HELP"); compose.await("avz:screen:help"); shot("help")
         compose.tap("avz:tab:ABOUT"); compose.await("avz:screen:about"); shot("about")
         compose.tap("avz:tab:WIZARD"); compose.await("avz:start")
+    }
+
+    @Test
+    fun stickyFooterBanner_staysVisibleAcrossTabs() {
+        val footer = "avz:sticky-footer"
+        fun assertFooter() {
+            compose.await(footer)
+            compose.onNodeWithTag(footer).assertIsDisplayed()
+            assertTrue("placeholder label visible", compose.hasText(str(R.string.avz_sticky_footer_placeholder)))
+        }
+
+        compose.await("avz:start"); assertFooter()
+        compose.tap("avz:tab:HOME"); compose.await("avz:screen:home"); assertFooter()
+        compose.tap("avz:tab:PRO"); compose.await("avz:screen:pro"); assertFooter()
+        compose.tap("avz:tab:HELP"); compose.await("avz:screen:help"); assertFooter()
+        compose.tap("avz:tab:ABOUT"); compose.await("avz:screen:about"); assertFooter()
+        compose.tap("avz:tab:WIZARD"); compose.await("avz:start"); assertFooter()
+
+        val footerBounds = compose.onNodeWithTag(footer).getUnclippedBoundsInRoot()
+        val homeTabBounds = compose.onNodeWithTag("avz:tab:HOME").getUnclippedBoundsInRoot()
+        assertTrue(
+            "sticky footer must sit above, not over, the navigation: footer=$footerBounds homeTab=$homeTabBounds",
+            footerBounds.bottom <= homeTabBounds.top,
+        )
+        shot("sticky_footer_banner")
     }
 
     @Test

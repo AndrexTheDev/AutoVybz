@@ -68,7 +68,7 @@ def og(lang):
     for line in wrap(d, line2, f_big, 740):
         d.text((70, y), line, font=f_big, fill=GREEN_BRIGHT); y += 78
     f_small = ImageFont.truetype(REG, 30)
-    d.text((70, y + 30), t["hero"]["badge"].replace("🇯🇲 ", ""), font=f_small, fill=MUTED)
+    d.text((70, y + 30), t["hero"]["badge"], font=f_small, fill=MUTED)
     d.text((70, H - 70), SITE_URL.replace("https://", "").rstrip("/"), font=ImageFont.truetype(BOLD, 28), fill=GOLD)
     img.save(OUT / f"og-{lang}.png", optimize=True)
 

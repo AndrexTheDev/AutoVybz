@@ -12,6 +12,9 @@ class DynamicsProcessingManager {
 
     companion object {
         private const val TAG = "DynamicsProcessingMgr"
+        // Per-push band dumps + MBC readbacks (~130 String.format + logcat lines and
+        // extra binder GETs on EVERY slider move). Flip to true for OEM triage only.
+        private const val DEBUG_DUMP = false
         // FFT frame duration (ms), mirrored into the converter; default 80 ms ≈ 12 Hz bins (issue #26).
         const val FRAME_DURATION_DEFAULT_MS = 80f
         const val FRAME_DURATION_LOW_LATENCY_MS = 40f
@@ -437,6 +440,7 @@ class DynamicsProcessingManager {
         // Channel offsets + preamp go on the input-gain stage, not into band gains.
         val (leftOffsetDb, rightOffsetDb) = computeChannelOffsets()
 
+        if (DEBUG_DUMP) {
         Log.d(TAG, "[DUMP] preamp=${"%.2f".format(preampGainDb)} dB, " +
             "autoGain=$autoGainEnabled (offset=${"%.2f".format(lastAutoGainOffset)} dB), " +
             "channelOffsets L=${"%.2f".format(leftOffsetDb)} R=${"%.2f".format(rightOffsetDb)} dB, " +
@@ -467,6 +471,7 @@ class DynamicsProcessingManager {
                 }
             }
         }
+        } // DEBUG_DUMP
 
         val n = ParametricToDpConverter.numBands
         val cutoffsSnap = cutoffs
@@ -591,10 +596,12 @@ class DynamicsProcessingManager {
         val dp = dynamicsProcessing ?: return
         try {
             writePassthroughBands(dp, liveMbcBandCount)
-            val rb = dp.getMbcBandByChannelIndex(0, 0)
-            val lim = dp.getLimiterByChannelIndex(0)
-            Log.d(TAG, "MBC passthrough: band 0 preGain=${rb.preGain} postGain=${rb.postGain} threshold=${rb.threshold} (${liveMbcBandCount} bands)" +
-                " | limiter now: enabled=${lim.isEnabled} thresh=${lim.threshold} ratio=${lim.ratio} postGain=${lim.postGain}")
+            if (DEBUG_DUMP) {
+                val rb = dp.getMbcBandByChannelIndex(0, 0)
+                val lim = dp.getLimiterByChannelIndex(0)
+                Log.d(TAG, "MBC passthrough: band 0 preGain=${rb.preGain} postGain=${rb.postGain} threshold=${rb.threshold} (${liveMbcBandCount} bands)" +
+                    " | limiter now: enabled=${lim.isEnabled} thresh=${lim.threshold} ratio=${lim.ratio} postGain=${lim.postGain}")
+            }
         } catch (e: Exception) { Log.e(TAG, "MBC passthrough write failed", e) }
     }
 
@@ -616,11 +623,13 @@ class DynamicsProcessingManager {
         try {
             writeMbcBands(dp, bands, crossovers, mbcThresholdOffsetDb)
 
-            // Readback
-            val readback = dp.getMbcBandByChannelIndex(0, 0)
-            Log.d(TAG, "MBC readback band 0: preGain=${readback.preGain} postGain=${readback.postGain} threshold=${readback.threshold}")
-            Log.d(TAG, "DP enabled=${dp.enabled}, MBC stage enabled=${dp.getMbcByChannelIndex(0).isEnabled}, bandCount=${dp.getMbcByChannelIndex(0).bandCount}")
-            Log.d(TAG, "Applied ${bands.size} MBC bands")
+            if (DEBUG_DUMP) {
+                // Readback (binder GETs — diagnostics only, never on the hot path)
+                val readback = dp.getMbcBandByChannelIndex(0, 0)
+                Log.d(TAG, "MBC readback band 0: preGain=${readback.preGain} postGain=${readback.postGain} threshold=${readback.threshold}")
+                Log.d(TAG, "DP enabled=${dp.enabled}, MBC stage enabled=${dp.getMbcByChannelIndex(0).isEnabled}, bandCount=${dp.getMbcByChannelIndex(0).bandCount}")
+                Log.d(TAG, "Applied ${bands.size} MBC bands")
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to apply MBC bands", e)
         }

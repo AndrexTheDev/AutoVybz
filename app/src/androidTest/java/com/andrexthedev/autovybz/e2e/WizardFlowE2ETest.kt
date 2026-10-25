@@ -8,6 +8,7 @@ import androidx.test.espresso.intent.Intents.intended
 import androidx.test.espresso.intent.matcher.IntentMatchers.hasComponent
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.andrexthedev.autovybz.e2e.SimulatedRoomEngine.Mode
+import com.andrexthedev.autovybz.measurement.eq.PeqType
 import com.andrexthedev.autovybz.measurement.eq.TargetType
 import com.andrexthedev.autovybz.preset.AutoVybzPresetStore
 import com.bearinmind.equalizer314.R
@@ -158,5 +159,42 @@ class WizardFlowE2ETest : E2eTest() {
         compose.onNodeWithTag("avz:speakerName").performTextReplacement("JBL Flip 6")
         val name = compose.quickCalibration()
         assertTrue(name, name.startsWith("AutoVybz_JBL-Flip-6_"))
+    }
+
+    @Test
+    fun rescueCalibration_addsProtectiveHighPass() {
+        // The normal simulated speaker plays almost full-range and (correctly) gets no
+        // protective pass - rescue needs the dreadful cheap box (no bass below ~260 Hz).
+        E2e.engine.script.add(Mode.CHEAP_SPEAKER)
+        compose.await("avz:start")
+        compose.tap("avz:class:RESCUE")
+        compose.openSafety()
+        compose.confirmSafetyAndStart()
+        compose.measureToResult()
+        shot("rescue_result")
+        compose.tap("avz:result:saveApply")
+        compose.await("avz:saved")
+        val name = AutoVybzPresetStore.lastAppliedName(E2e.app)!!
+        val full = AutoVybzPresetStore.loadFull(E2e.app, name)!!
+        assertEquals("RESCUE", full.measurement!!.speakerClass)
+        assertTrue("protective high pass in ${full.bands}", full.bands.any { it.type == PeqType.HIGH_PASS })
+    }
+
+    @Test
+    fun deviceSpeakerCalibration_usesBuiltinRoute() {
+        // The inverted route logic: the built-in speaker blocks normal mode but is required here.
+        E2e.route = E2e.builtinSpeaker()
+        compose.await("avz:start")
+        compose.tap("avz:class:DEVICE")
+        compose.openSafety()
+        compose.confirmSafetyAndStart()
+        compose.measureToResult()
+        shot("device_result")
+        assertEquals(1, E2e.engine.captures.get()) // fixed geometry: exactly one position
+        compose.tap("avz:result:saveApply")
+        compose.await("avz:saved")
+        val name = AutoVybzPresetStore.lastAppliedName(E2e.app)!!
+        val full = AutoVybzPresetStore.loadFull(E2e.app, name)!!
+        assertEquals("DEVICE", full.measurement!!.speakerClass)
     }
 }

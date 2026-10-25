@@ -45,6 +45,24 @@ class StimulusGeneratorTest {
     }
 
     @Test
+    fun pinkNoiseCrestFactorIsReduced() {
+        // Random phases would give ~12 dB crest; the magnitude-preserving crest
+        // reduction must bring it well below that at the same peak level
+        // (more RMS = better SNR of the pink-noise analysis path).
+        val p = stimulus.pinkPeriod
+        var peak = 0.0f
+        var sumSq = 0.0
+        for (v in p) {
+            peak = maxOf(peak, abs(v))
+            sumSq += v.toDouble() * v
+        }
+        val rms = kotlin.math.sqrt(sumSq / p.size)
+        val crestDb = 20 * kotlin.math.log10(peak / rms)
+        assertEquals(StimulusGenerator.PEAK_LEVEL, peak, 2e-3f)
+        assertTrue("crest factor $crestDb dB", crestDb < 7.0)
+    }
+
+    @Test
     fun phasesAreOrdered() {
         val p = stimulus.plan
         assertEquals(StimulusPlan.Phase.NOISE_FLOOR, p.phaseAt(0))

@@ -1,0 +1,7 @@
+AutoVybz 0.2.0-alpha – Free & Pro test build
+• Permanent bottom banner placeholder; tap it to open AutoVybz Pro
+• Free stays usable: 1 saved profile, quick 1-position calibration and internal presets
+• 7-day full Pro trial starts after the first successful calibration
+• Pro unlocks unlimited profiles, 3-position precision, expert mic/target settings and APO/JSON/REW exports
+• Alpha crypto activation with SOL, BTC or ETH: US$1.99/month, US$19.99/year, US$99 lifetime (no auto-renewal)
+• No Google Play billing, account or tracking – suitable for GrapheneOS testing

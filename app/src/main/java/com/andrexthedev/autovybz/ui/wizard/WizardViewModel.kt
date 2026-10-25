@@ -13,6 +13,8 @@ import com.andrexthedev.autovybz.measurement.MeasurementController
 import com.andrexthedev.autovybz.measurement.MeasurementOutcome
 import com.andrexthedev.autovybz.measurement.MeasurementProgress
 import com.andrexthedev.autovybz.measurement.MeasurementRequest
+import com.andrexthedev.autovybz.measurement.SpeakerClass
+import com.andrexthedev.autovybz.measurement.SpeakerClassTuning
 import com.andrexthedev.autovybz.measurement.audio.CaptureException
 import com.andrexthedev.autovybz.measurement.audio.CaptureInterruptedException
 import com.andrexthedev.autovybz.measurement.audio.RouteClassifier
@@ -20,9 +22,14 @@ import com.andrexthedev.autovybz.measurement.audio.VolumeGuard
 import com.andrexthedev.autovybz.measurement.audio.VolumeMath
 import com.andrexthedev.autovybz.measurement.dsp.MeasurementException
 import com.andrexthedev.autovybz.measurement.dsp.MeasurementWarning
+import com.andrexthedev.autovybz.measurement.dsp.SmoothingProfile
+import com.andrexthedev.autovybz.measurement.eq.CustomTarget
 import com.andrexthedev.autovybz.measurement.eq.TargetType
+import com.andrexthedev.autovybz.premium.EntitlementPolicy
+import com.andrexthedev.autovybz.premium.EntitlementStore
 import com.andrexthedev.autovybz.preset.AutoVybzPresetStore
 import com.andrexthedev.autovybz.preset.model.AutoVybzPreset
+import com.bearinmind.equalizer314.R
 import com.andrexthedev.autovybz.settings.AutoVybzSettings
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -40,14 +47,21 @@ enum class WizardError { PERMISSION_DENIED, NO_SIGNAL, CAPTURE_FAILED, ROUTE_CHA
 sealed interface WizardStep {
     /** Start screen with the big "Calibrate speaker" button. */
     object Idle : WizardStep
-    /** Headphones or the phone's own speaker are active. */
-    data class RouteBlocked(val verdict: RouteClassifier.Verdict, val routeName: String?) : WizardStep
+    /** Headphones or the phone's own speaker are active (or, in device mode, an external output is). */
+    data class RouteBlocked(
+        val verdict: RouteClassifier.Verdict,
+        val routeName: String?,
+        /** Device-speaker calibration: the situation is inverted - an external output blocks. */
+        val deviceMode: Boolean = false,
+    ) : WizardStep
     /** Safety warning + volume slider; measurement starts only after explicit confirmation. */
     data class ConfirmSafety(
         val routeName: String?,
         val needsSpeakerConfirmation: Boolean,
         val volume: Float,
         val volumeFixed: Boolean,
+        /** Device-speaker calibration (own speakers, own microphone, lower volume). */
+        val deviceMode: Boolean = false,
     ) : WizardStep
     /** "Be quiet, don't touch the phone" - gives the user time to step back before each position. */
     data class Countdown(val secondsLeft: Int, val position: Int = 1, val totalPositions: Int = 1) : WizardStep
@@ -69,6 +83,8 @@ sealed interface WizardStep {
         val nameValid: Boolean = true,
         /** A calibration with this name exists and would be overwritten (warning, not an error). */
         val nameExists: Boolean = false,
+        /** Free tier already uses its one saved profile and this name would create another one. */
+        val profileLimitReached: Boolean = false,
     ) : WizardStep
     data class Saved(val presetName: String, val applied: Boolean, val outcome: MeasurementOutcome? = null) : WizardStep
     /**
@@ -91,23 +107,39 @@ data class WizardUiState(
     /** 1 = quick, 3 = precise (multi-position average). */
     val positions: Int = 1,
     val environment: ListeningEnvironment = ListeningEnvironment.INDOOR,
+    /** External speaker, weak-speaker rescue, or this device's own speakers. */
+    val speakerClass: SpeakerClass = SpeakerClass.STANDARD,
 )
 
 class WizardViewModel(app: Application) : AndroidViewModel(app) {
 
     private val settings = AutoVybzSettings(app)
+    private val entitlementStore = EntitlementStore(app)
     private val controller = MeasurementController(app)
     private val volume = VolumeGuard(app)
     private var job: Job? = null
     private var refitJob: Job? = null
+
+    private fun featureLimits() = EntitlementPolicy.limits(entitlementStore.load())
+
+    private fun limitedPositions(requested: Int = settings.positions): Int =
+        EntitlementPolicy.allowedPositions(requested, featureLimits())
+
+    private fun isProfileLimitReached(name: String): Boolean =
+        EntitlementPolicy.isProfileLimitReached(
+            AutoVybzPresetStore.existingNames(getApplication()),
+            name,
+            featureLimits(),
+        )
 
     private val _state = MutableStateFlow(
         WizardUiState(
             speakerName = settings.lastSpeakerName,
             target = settings.target,
             bandCount = settings.bandCount,
-            positions = settings.positions,
+            positions = limitedPositions(),
             environment = settings.environment,
+            speakerClass = settings.speakerClass,
         ),
     )
     val state: StateFlow<WizardUiState> = _state.asStateFlow()
@@ -130,7 +162,10 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
 
     /** The Pro tab edits the same preferences - pick up changes when the wizard becomes visible again. */
     fun reloadSettings() = _state.update {
-        it.copy(target = settings.target, bandCount = settings.bandCount, positions = settings.positions, environment = settings.environment)
+        it.copy(
+            target = settings.target, bandCount = settings.bandCount, positions = limitedPositions(),
+            environment = settings.environment, speakerClass = settings.speakerClass,
+        )
     }
 
     fun onSpeakerNameChanged(name: String) = _state.update { it.copy(speakerName = name.take(40)) }
@@ -153,12 +188,43 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
         settings.environment = environment
         val recommended = EnvironmentTuning.of(environment).recommendedPositions
         if (recommended > settings.positions) settings.positions = recommended
-        _state.update { it.copy(environment = environment, positions = settings.positions) }
+        _state.update { it.copy(environment = environment, positions = limitedPositions()) }
     }
 
     fun onPositionsChanged(count: Int) {
         settings.positions = count
-        _state.update { it.copy(positions = settings.positions) }
+        _state.update { it.copy(positions = limitedPositions(count)) }
+    }
+
+    /**
+     * The target the user had for normal external speakers, remembered while a rescue / device
+     * class pre-selects its own - switching back must not silently replace their preference.
+     */
+    private var standardTargetBackup: TargetType? = null
+
+    /**
+     * Speaker type picked. Rescue / device speakers pre-select their forgiving target (the chip
+     * stays changeable, and the external-speaker target is restored afterwards); device mode
+     * pre-fills the profile name.
+     */
+    fun onSpeakerClassChanged(speakerClass: SpeakerClass) {
+        val current = _state.value
+        if (speakerClass == current.speakerClass) return
+        settings.speakerClass = speakerClass
+        if (current.speakerClass == SpeakerClass.STANDARD) standardTargetBackup = current.target
+        val restored = if (speakerClass == SpeakerClass.STANDARD) standardTargetBackup else null
+        val nextTarget = restored ?: SpeakerClassTuning.of(speakerClass).suggestedTarget ?: current.target
+        if (nextTarget != current.target) settings.target = nextTarget
+        if (speakerClass == SpeakerClass.STANDARD) standardTargetBackup = null
+        _state.update { s ->
+            s.copy(
+                speakerClass = speakerClass,
+                target = nextTarget,
+                speakerName = if (speakerClass == SpeakerClass.DEVICE && s.speakerName.isBlank()) {
+                    getApplication<Application>().getString(R.string.avz_device_speaker_name)
+                } else s.speakerName,
+            )
+        }
     }
 
     /** Step 1: big button pressed (permission already checked by the screen). */
@@ -167,6 +233,22 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
         if (!hasRecordPermission) return setStep(WizardStep.Error(WizardError.PERMISSION_DENIED, null))
         val decision = AutoVybzServices.routeInspector(getApplication())
         val routeName = decision.route?.name?.takeIf { it.isNotBlank() }
+        if (_state.value.speakerClass == SpeakerClass.DEVICE) {
+            // Inverted route logic: this device itself must play, so any external output blocks.
+            if (!decision.builtinSpeakerActive) {
+                return setStep(WizardStep.RouteBlocked(decision.verdict, routeName, deviceMode = true))
+            }
+            volume.setFraction(deviceVolumeFraction)
+            return setStep(
+                WizardStep.ConfirmSafety(
+                    routeName = routeName,
+                    needsSpeakerConfirmation = false,
+                    volume = volume.currentFraction,
+                    volumeFixed = volume.isFixed,
+                    deviceMode = true,
+                ),
+            )
+        }
         when (decision.verdict) {
             RouteClassifier.Verdict.BLOCKED_HEADPHONES, RouteClassifier.Verdict.BLOCKED_BUILTIN_SPEAKER ->
                 setStep(WizardStep.RouteBlocked(decision.verdict, routeName))
@@ -196,14 +278,39 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
     private var activeRequest: MeasurementRequest? = null
     private var activeTotal = 1
 
+    /**
+     * Start volume for device-speaker measurements in this wizard session. Steps down
+     * automatically when the built-in mic clipped (loud phones can clip it even at 50 %,
+     * and re-trying at the same volume would only clip again).
+     */
+    private var deviceVolumeFraction: Float =
+        SpeakerClassTuning.of(SpeakerClass.DEVICE).measurementVolumeFraction ?: VolumeMath.DEVICE_MEASUREMENT_FRACTION
+
     /** Step 2: user confirmed the safety warning -> first 10 s measurement. */
     fun onConfirmStart() {
         if (job?.isActive == true) return
         val s = _state.value
         settings.lastSpeakerName = s.speakerName
         partial.clear()
-        activeRequest = settings.buildRequest(s.speakerName, s.target)
-        activeTotal = s.positions
+        val builtRequest = settings.buildRequest(s.speakerName, s.target)
+        val limits = featureLimits()
+        activeRequest = if (limits.advancedMeasurementSettings) {
+            builtRequest
+        } else {
+            // Free can try every speaker class, environment and target, but the expert measurement
+            // inputs stay at the safe defaults (no USB mic/calibration file/manual mic override).
+            builtRequest.copy(
+                customTarget = CustomTarget(),
+                maxBoostDb = 6.0,
+                smoothing = SmoothingProfile.DYNAMIC,
+                useUsbMic = false,
+                usbCalibration = null,
+                userMicOffset = null,
+                micProfileOverrideId = null,
+            )
+        }
+        // Fixed geometry (device speakers): extra positions would measure the same thing again.
+        activeTotal = if (SpeakerClassTuning.of(s.speakerClass).singlePosition) 1 else EntitlementPolicy.allowedPositions(s.positions, limits)
         measureNextPosition()
     }
 
@@ -235,9 +342,12 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
     private fun routeStillAllowed(): Boolean {
         if (_state.value.step !is WizardStep.Error) return true
         val decision = AutoVybzServices.routeInspector(getApplication())
-        if (decision.canMeasure || decision.verdict == RouteClassifier.Verdict.UNKNOWN) return true
+        val deviceMode = activeRequest?.speakerClass == SpeakerClass.DEVICE
+        val allowed = if (deviceMode) decision.builtinSpeakerActive
+        else decision.canMeasure || decision.verdict == RouteClassifier.Verdict.UNKNOWN
+        if (allowed) return true
         resetSession()
-        setStep(WizardStep.RouteBlocked(decision.verdict, decision.route?.name?.takeIf { it.isNotBlank() }))
+        setStep(WizardStep.RouteBlocked(decision.verdict, decision.route?.name?.takeIf { it.isNotBlank() }, deviceMode))
         return false
     }
 
@@ -261,6 +371,11 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
                     setStepFromProgress(next)
                 }
                 partial += outcome
+                if (request.speakerClass == SpeakerClass.DEVICE &&
+                    MeasurementWarning.CLIPPING in outcome.result.warnings
+                ) {
+                    deviceVolumeFraction = VolumeMath.reduceAfterClipping(deviceVolumeFraction)
+                }
                 // A disturbed last position (gust, dropout, ...) gets the chance to be repeated before averaging.
                 val disturbed = isDisturbed(outcome.result.warnings)
                 if (partial.size < total || (total > 1 && disturbed)) {
@@ -316,7 +431,17 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
             partial.clear()
             activeRequest = null
             val name = AutoVybzPresetStore.defaultName(getApplication(), request.speakerName)
-            setStep(WizardStep.Result(outcome, name))
+            // Conversion moment: after the first audible result, the one-time 7-day trial unlocks the
+            // precise multi-position flow and expert tools without asking for a wallet first.
+            entitlementStore.startTrial()
+            setStep(
+                WizardStep.Result(
+                    outcome = outcome,
+                    presetName = name,
+                    nameExists = name.trim() in AutoVybzPresetStore.existingNames(getApplication()),
+                    profileLimitReached = isProfileLimitReached(name),
+                ),
+            )
         }
     }
 
@@ -342,6 +467,7 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
                 presetName = name,
                 nameValid = PresetNaming.isValid(trimmed),
                 nameExists = trimmed in AutoVybzPresetStore.existingNames(getApplication()),
+                profileLimitReached = isProfileLimitReached(trimmed),
             ),
         )
     }
@@ -351,12 +477,13 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
         val step = _state.value.step as? WizardStep.Result ?: return
         val name = step.presetName.trim()
         if (!PresetNaming.isValid(name)) return setStep(step.copy(nameValid = false))
+        if (isProfileLimitReached(name)) return setStep(step.copy(profileLimitReached = true))
         refitJob?.cancel()
         val preset = MeasurementController.buildPreset(name, step.outcome)
         val app = getApplication<Application>()
         AutoVybzPresetStore.save(app, preset)
-        // Outdoor / party calibrations always arm the limiter (party volume).
-        val limiter = settings.enableLimiterOnApply || step.outcome.request.tuning.forceLimiter
+        // Outdoor / party, rescue and device-speaker calibrations always arm the limiter.
+        val limiter = settings.enableLimiterOnApply || step.outcome.request.forceLimiter
         if (apply) AutoVybzPresetStore.apply(app, preset, limiter)
         setStep(WizardStep.Saved(name, apply, step.outcome))
     }

@@ -4,26 +4,26 @@
   "lang_name": "Deutsch",
   "meta": {
     "title": "AutoVybz – Dein Lautsprecher, in 10 Sekunden auf deinen Raum eingemessen",
-    "description": "Kostenlose Open-Source-Android-App: misst deinen Bluetooth- oder Kabel-Lautsprecher mit dem Handy-Mikrofon in deinem Raum ein und stellt automatisch einen 10-Band-EQ ein. Ein Tipp, 10 Sekunden, keine Werbung, kein Konto.",
+    "description": "Open-Source-Android-App zum Einmessen: Miss deinen Bluetooth- oder Kabel-Lautsprecher mit dem Handy-Mikrofon in deinem Raum und stelle automatisch einen 10-Band-EQ ein. Limitiertes Free, 7 Tage Pro testen, kein Konto, kein Tracking.",
     "og_title": "Dein Lautsprecher klingt falsch. AutoVybz repariert das in 10 Sekunden.",
-    "og_desc": "Ein Tipp. Dein Handy misst deinen Lautsprecher in deinem Raum und stellt ihn automatisch ein. Kostenlos, Open Source, ohne Werbung.",
+    "og_desc": "Ein Tipp. Dein Handy misst deinen Lautsprecher in deinem Raum und stellt ihn automatisch ein. Starte mit limitiertem Free und teste danach 7 Tage volles Pro.",
     "keywords": "Lautsprecher einmessen, Raumkorrektur, Android Equalizer, Bluetooth Lautsprecher EQ, Auto EQ, Raumakustik App, Open Source Equalizer"
   },
-  "nav": { "demo": "Demo", "how": "So geht's", "roast": "Speaker Roast", "features": "Features", "faq": "FAQ", "get": "AutoVybz holen", "skip": "Zum Inhalt springen", "lang": "Sprache" },
+  "nav": { "demo": "Demo", "how": "So geht's", "roast": "Speaker Roast", "features": "Features", "plans": "Free & Pro", "faq": "FAQ", "get": "AutoVybz holen", "skip": "Zum Inhalt springen", "lang": "Sprache" },
   "hero": {
-    "badge": "🇯🇲 Kostenlos · Open Source · Android",
+    "badge": "Alpha · Limitiertes Free · 7 Tage Pro testen",
     "h1_a": "Dein Lautsprecher klingt falsch.",
     "h1_b": "Repariert in",
     "h1_c": "Sekunden.",
-    "sub": "AutoVybz hört deinem Lautsprecher <b>in deinem Raum</b> über das Handy-Mikrofon zu und stellt ihn automatisch ein. Ein Tipp. Kein Vorwissen. Keine Werbung. Kein Konto. Für immer kostenlos.",
+    "sub": "AutoVybz hört deinem Lautsprecher <b>in deinem Raum</b> über das Handy-Mikrofon zu und stellt ihn automatisch ein. Ein Tipp. Kein Vorwissen. Starte mit dem streng limitierten Free-Tarif; <b>7 Tage volles Pro</b> schalten sich nach deiner ersten erfolgreichen Kalibrierung frei. Kein Konto. Kein Tracking.",
     "cta_demo": "▶ Unterschied anhören",
     "cta_get": "AutoVybz holen",
     "cta_star": "Stern auf GitHub",
-    "trust": "GPL-3.0 · Kein Tracking · Keine Cookies · Basiert auf Equalizer314",
+    "trust": "GPL-3.0 · Kein Konto · Kein Tracking · Basiert auf Equalizer314",
     "stars": "Sterne"
   },
   "phone": { "calibrate": "Jetzt einmessen", "measuring": "Messe…", "done": "Eingemessen ✓", "target": "Ziel: Smart", "before": "vorher", "after": "nachher" },
-  "ticker": ["🔊 1 Tipp", "⏱ 10 Sekunden", "🎯 10-Band parametrischer EQ", "🆓 Für immer kostenlos", "🔓 100 % Open Source", "🚫 Keine Werbung, kein Tracking", "📶 Funktioniert mit Bluetooth", "🎛 Pro-Modus inklusive", "📤 Export für Equalizer APO & REW", "🇯🇲 Jamaica Vibes"],
+  "ticker": ["🔊 1 Tipp", "⏱ 10 Sekunden", "🎯 10-Band parametrischer EQ", "🆓 Limitiertes Free", "⭐ 7 Tage volles Pro testen", "🚫 Kein Konto, kein Tracking", "📶 Funktioniert mit Bluetooth", "🎛 Studio- & Experten-Engine", "📤 Pro-Export für APO / JSON / REW", "🎶 Jamaica Vibes"],
   "problem": {
     "kicker": "Das schmutzige Geheimnis jedes Lautsprechers",
     "title": "Dein Raum ruiniert deine Musik.",
@@ -31,8 +31,8 @@
     "facts": [
       { "n": "±10", "u": "dB", "t": "Typische Bass-Schwankung durch Raumresonanzen am Hörplatz" },
       { "n": "10", "u": "s", "t": "So lange braucht AutoVybz zum Einmessen" },
-      { "n": "0", "u": "€", "t": "Preis. Heute, morgen, für immer" },
-      { "n": "0", "u": "", "t": "Werbung, Tracker und Konten" }
+      { "n": "7", "u": "Tage", "t": "Volles Pro nach deiner ersten erfolgreichen Kalibrierung testen" },
+      { "n": "0", "u": "", "t": "Konten, Tracker und Werbe-SDKs von Drittanbietern" }
     ]
   },
   "demo": {
@@ -72,27 +72,41 @@
     "kicker": "Unter der Haube",
     "title": "Labor-Tricks, ein großer Knopf.",
     "items": [
-      { "i": "🎯", "t": "Clevere Zielkurven", "d": "Smart (sanfter Bass-Boost), Neutral, Bass Boost, Harman-artige Loudness oder deine eigene Kurve." },
+      { "i": "🎯", "t": "Clevere Zielkurven", "d": "Smart (sanfter Bass-Boost), Neutral, Bass Boost, Harman-artige Loudness oder mit Pro/Trial deine eigene Kurve." },
       { "i": "🎚", "t": "10-Band parametrischer EQ", "d": "Berechnet bis zu 10 präzise Filter (oder 5 für sanftere Korrektur) und wendet sie systemweit auf jede App an." },
       { "i": "🛡", "t": "Lautsprecherschutz", "d": "Hebt nie Bass an, den dein Lautsprecher nicht spielen kann. Automatische Vorabsenkung und Limiter verhindern Übersteuerung." },
-      { "i": "🎙", "t": "Mikrofon-Ausgleich", "d": "Profile für beliebte Handys korrigieren das eingebaute Mikro. Pro: USB-Messmikrofon mit Kalibrierdatei anschließen." },
+      { "i": "🎙", "t": "Mikrofon-Ausgleich", "d": "Profile für beliebte Handys korrigieren das eingebaute Mikro. Mit Pro/Trial: USB-Messmikrofon mit Kalibrierdatei anschließen." },
       { "i": "⚡", "t": "Native C++-Engine", "d": "Oboe-Full-Duplex-Audio mit rohem, unbearbeitetem Mikrofonsignal und schneller nativer FFT." },
       { "i": "🎉", "t": "Draußen & Party", "d": "Garten, Strand, Park: max. +3 dB Anhebung erhält die Lautstärke, Wind und Lärm werden ignoriert, Bluetooth-Verzögerung und -Aussetzer erkannt, Limiter immer an." },
-      { "i": "📤", "t": "Alles exportieren", "d": "Text für Equalizer APO / Peace / AutoEq, JSON, CSV für REW und das native AutoVybz-Format." },
-      { "i": "🎛", "t": "Pro-Modus inklusive", "d": "Komplette Equalizer314-Engine: parametrischer EQ mit Graph, Multiband-Kompressor, Limiter, Presets, AutoEQ für Kopfhörer." }
+      { "i": "📤", "t": "Pro-Exporte", "d": "Mit Pro/Trial: Text für Equalizer APO / Peace / AutoEq, JSON und CSV für REW. Free behält das native AutoVybz-Format." },
+      { "i": "🎛", "t": "Studio- & Experten-Engine", "d": "Komplette Equalizer314-Engine: parametrischer EQ mit Graph, Multiband-Kompressor, Limiter, Presets und AutoEQ. Experten-Mess- und Mikrofoneinstellungen schaltet Pro/Trial frei." }
     ]
   },
   "compare": {
     "title": "Warum nicht einfach an EQ-Reglern schieben?",
     "cols": ["", "Raten mit EQ-Reglern", "Typische kostenpflichtige Raumkorrektur", "AutoVybz"],
     "rows": [
-      ["Preis", "kostenlos", "oft €€ – €€€", "<b>kostenlos</b>"],
+      ["Preis", "kostenlos", "oft €€ – €€€", "<b>Limitiertes Free · Pro ab 1,99 US$</b>"],
       ["Zeit", "ewig", "10 – 30 Min.", "<b>10 s</b>"],
       ["Misst deinen echten Raum", "✗ nach Gehör", "✓", "<b>✓</b>"],
       ["Systemweit auf Android", "kommt drauf an", "selten", "<b>✓</b>"],
       ["Open Source", "–", "selten", "<b>✓ GPL-3.0</b>"],
       ["Konto / Tracking", "–", "manchmal", "<b>niemals</b>"]
     ]
+  },
+  "plans": {
+    "kicker": "Free & Pro",
+    "title": "Kostenlos starten. Präzision freischalten, wenn es zählt.",
+    "sub": "Free bleibt mit permanentem Banner und strengen Limits nutzbar. Deine erste erfolgreiche Kalibrierung startet automatisch <b>7 Tage volles Pro</b> – für den Trial brauchst du weder Wallet noch Konto.",
+    "items": [
+      { "name": "Free", "price": "0 US$", "period": "immer verfügbar, limitiert", "desc": "Permanentes Banner · 1 gespeichertes Profil · 1 Position (Quick) · sichere Standardwerte · interne Presets" },
+      { "name": "Pro 30 Tage", "price": "1,99 US$", "period": "Einmalzahlung · keine Auto-Verlängerung", "desc": "Alle Limits für 30 Tage entfernt: unbegrenzte Profile, 3 Positionen, Experten-Tools und externe Exporte" },
+      { "name": "Pro 365 Tage", "price": "19,99 US$", "period": "Einmalzahlung · keine Auto-Verlängerung", "desc": "Ein ganzes Jahr unbegrenzte Profile, präzise Messungen, Experten-Mikrofon-/Zielkurven-Einstellungen und Exporte" },
+      { "name": "Pro Lifetime", "price": "99 US$", "period": "Einmalzahlung · für immer", "desc": "Alle Pro-Freischaltungen mit einer Zahlung – einmal zahlen, weiter einmessen", "badge": "Bestes Angebot", "highlight": true }
+    ],
+    "note": "In der Alpha ist die Zahlung nur per Krypto (SOL, BTC oder ETH) an die Projektadressen unten möglich. Trage die TXID in der App ein; Zahlungen werden in der Alpha manuell abgeglichen. Die App speichert nur einen SHA-256-Hash der TXID.",
+    "cta": "Alpha holen",
+    "payment_cta": "Krypto-Adressen ansehen"
   },
   "roast": {
     "kicker": "Speaker Roast 🔥",
@@ -116,9 +130,9 @@
     "steps": ["🎬 „Vorher“ filmen", "👆 Einmessen tippen", "🎬 „Nachher“ filmen", "📣 Posten mit #10SecondVybz"]
   },
   "share": {
-    "title": "Verbreite die Vybz 🇯🇲",
+    "title": "Verbreite die Vybz",
     "sub": "AutoVybz hat kein Werbebudget – nur dich. Ein Share hilft mehr, als du denkst.",
-    "text": "Mein Lautsprecher wurde gerade in 10 Sekunden auf meinen Raum eingemessen 🔊🇯🇲 Kostenlos & Open Source: AutoVybz",
+    "text": "Mein Lautsprecher wurde gerade in 10 Sekunden auf meinen Raum eingemessen 🔊 Open Source: AutoVybz",
     "tags": "#AutoVybz #10SecondVybz",
     "native": "Teilen…",
     "copy": "Link kopieren",
@@ -127,32 +141,33 @@
   "get": {
     "kicker": "Hol's dir",
     "title": "Bereit für besseren Sound?",
-    "text": "AutoVybz ist in der <b>Alpha</b>. Signierte APKs erscheinen auf GitHub Releases. Gib dem Repo einen Stern und beobachte es, um beim nächsten Build als Erste:r dabei zu sein.",
+    "text": "AutoVybz befindet sich im <b>Alpha-/Beta-Test</b>. Lade die neueste signierte APK von GitHub Releases, sobald verfügbar, oder baue sie aus dem Quellcode. Gib dem Repo einen Stern und beobachte es, um beim nächsten Build als Erste:r dabei zu sein.",
     "releases": "Download auf GitHub Releases",
     "watch": "Releases beobachten",
     "source": "Selbst bauen",
-    "req": "Android 9+ · externer Lautsprecher · 10 Sekunden Ruhe"
+    "req": "Android 9+ · externe oder Geräte-Lautsprecher · keine Google-Play-Dienste nötig"
   },
   "faq": {
     "title": "Fragen? Antworten.",
     "items": [
-      { "q": "Ist das wirklich kostenlos?", "a": "Ja. AutoVybz ist zu 100 % Open Source unter der GPL-3.0. Keine Werbung, keine In-App-Käufe, kein Konto, kein Abo. Wenn es dir gefällt, kannst du spenden – völlig freiwillig." },
-      { "q": "Warum nur Lautsprecher und keine Kopfhörer?", "a": "Ein Handy-Mikrofon kann nicht messen, was im Kopfhörer an deinem Trommelfell ankommt, und der Handy-Lautsprecher sitzt direkt neben dem Mikrofon. Für Kopfhörer enthält der Pro-Bereich das AutoEQ von Equalizer314 mit Tausenden Kopfhörerprofilen." },
+      { "q": "Was enthält Free – und was bringt Pro?", "a": "Free ist bewusst streng limitiert: permanentes Banner, 1 gespeichertes Profil, 1 Messposition, sichere Standardwerte für Experten-Eingaben und interne Presets. Ein einmaliger 7-Tage-Trial startet nach deiner ersten erfolgreichen Kalibrierung oder manuell in der App. Pro entfernt die Limits – unbegrenzte Profile, 3 Positionen, Experten-Mess-/USB-Mikrofon-/Custom-Target-Einstellungen und APO-/JSON-/REW-Exporte – für 1,99 US$ (30 Tage), 19,99 US$ (365 Tage) oder 99 US$ Lifetime, ohne automatische Verlängerung." },
+      { "q": "Wie zahle ich ohne Google Play?", "a": "In der Alpha sendest du den US$-Gegenwert in SOL, BTC oder ETH an die in der App und unten gezeigte Projektadresse und trägst danach die TXID in der App ein. Die App speichert nur einen SHA-256-Hash der TXID, kontaktiert keine Blockchain und die Zahlung wird manuell abgeglichen. Prüfe immer Coin, Netzwerk und Adresse. Das funktioniert auch auf GrapheneOS ohne Google-Dienste." },
+      { "q": "Warum nur Lautsprecher und keine Kopfhörer?", "a": "Ein Handy-Mikrofon kann nicht messen, was im Kopfhörer an deinem Trommelfell ankommt. AutoVybz ist für externe Lautsprecher gebaut – und hat einen separaten Modus für die Lautsprecher dieses Handys oder Tablets. Für Kopfhörer enthält die Experten-Engine AutoEQ-Profile von Equalizer314." },
       { "q": "Funktioniert das mit Bluetooth-Lautsprechern?", "a": "Ja. AutoVybz erkennt die Bluetooth-Verzögerung automatisch, damit die Messung auch bei verzögerten Lautsprechern genau bleibt." },
-      { "q": "Welche Handys werden unterstützt?", "a": "Android 9 oder neuer (der systemweite EQ nutzt Androids DynamicsProcessing). Beliebte Handys bekommen ein passendes Mikrofonprofil, alle anderen ein allgemeines. Für maximale Genauigkeit steck ein USB-Messmikrofon an." },
+      { "q": "Welche Handys werden unterstützt?", "a": "Android 9 oder neuer (der systemweite EQ nutzt Androids DynamicsProcessing). Die 191 enthaltenen Mikrofonprofile decken viele Handys ab; alle anderen bekommen ein allgemeines Profil. Google-Play-Dienste sind nicht erforderlich. Für maximale Genauigkeit kann Pro/Trial ein USB-Messmikrofon nutzen." },
       { "q": "Wird mein Audio aufgenommen oder hochgeladen?", "a": "Die rund 11 Sekunden Mikrofonsignal werden im Arbeitsspeicher deines Handys analysiert und sofort verworfen. Es wird nichts als Audio gespeichert und die App stellt keine Internetanfragen." },
       { "q": "Gibt es eine iPhone-Version?", "a": "Nein. iOS erlaubt Apps nicht, den Ton anderer Apps systemweit zu bearbeiten – ein echter systemweiter EQ ist dort nicht möglich." },
       { "q": "Kann das meinen Lautsprecher oder meine Ohren schädigen?", "a": "Der Test läuft nach einer Sicherheitsbestätigung mit moderatem Pegel, und AutoVybz hebt nie tiefen Bass unterhalb der Grenze deines Lautsprechers an. Vorabsenkung und Limiter verhindern Übersteuerung. Trotzdem: leise anfangen und langsam lauter drehen." },
-      { "q": "Wie genau kann ein Handy-Mikrofon sein?", "a": "Genau genug für das mit Abstand größte Problem: den Raum-Bass. Oberhalb von etwa 8 kHz unterscheiden sich Handy-Mikrofone – genau dafür gibt es die Ausgleichsprofile und das optionale USB-Mikrofon." },
+      { "q": "Wie genau kann ein Handy-Mikrofon sein?", "a": "Genau genug für das mit Abstand größte Problem: den Raum-Bass. Oberhalb von etwa 8 kHz unterscheiden sich Handy-Mikrofone – genau dafür gibt es die Ausgleichsprofile und das optionale USB-Mikrofon mit Pro/Trial." },
       { "q": "Wer steckt hinter AutoVybz?", "a": "AndrexTheDev. AutoVybz basiert auf dem großartigen Open-Source-Projekt Equalizer314 von bearinmindcat – großer Respekt und Dank." }
     ]
   },
   "donate": {
-    "kicker": "Donationware",
-    "title": "Halte die Vybz kostenlos.",
-    "text": "Keine Investoren, keine Werbung, kein Datenverkauf. Wenn AutoVybz deinen Lautsprecher besser klingen lässt, spendier dem Entwickler einen Kaffee in Krypto.",
+    "kicker": "Pro & Support",
+    "title": "Mit Krypto zahlen. Ohne Konto.",
+    "text": "Nutze dieselben Projektadressen für eine Alpha-Pro-Zahlung oder eine freiwillige Spende. Für Pro wählst du den Tarif in der App, sendest den US$-Gegenwert und trägst dort die TXID ein. Für eine Spende sende einfach einen beliebigen Betrag – danke.",
     "copy": "Kopieren",
-    "note": "Prüfe die Adresse nach dem Einfügen immer nochmal. Spenden sind freiwillige Schenkungen ohne Gegenleistung und können nicht erstattet werden."
+    "note": "Prüfe Coin, Netzwerk und Adresse immer sorgfältig. Krypto-Transfers sind unumkehrbar. Spenden sind freiwillige Schenkungen ohne Gegenleistung. Behalte für Pro die TXID und melde dich, falls eine korrekte Zahlung nicht aktiviert; gesetzliche Rechte bleiben unberührt."
   },
   "footer": {
     "tagline": "Dein Lautsprecher, eingemessen auf deinen Raum.",
@@ -178,7 +193,7 @@
     "copy_fail": "Kopieren fehlgeschlagen – bitte manuell markieren",
     "link_copied": "Link kopiert – jetzt überall einfügen 😄",
     "tab_away": "🔊 Komm zurück – dein Lautsprecher vermisst dich",
-    "bass_mode": "🇯🇲 Bass-Modus freigeschaltet! Respekt.",
+    "bass_mode": "Bass-Modus freigeschaltet! Respekt.",
     "audio_fail": "Dein Browser hat Audio blockiert – tipp nochmal auf Play.",
     "roast_share": "Mein Lautsprecher wurde geroastet 🔥 Vybz-Score {score}/100 – „{title}“. In 10 s reparieren:",
     "roast_pick": "Wähl erst beides aus 😉",

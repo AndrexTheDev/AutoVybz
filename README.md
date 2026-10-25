@@ -8,12 +8,25 @@
 [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-1EED61)](LICENSE)
 [![Android 9+](https://img.shields.io/badge/Android-9%2B-FCD207)](#building)
 
-AutoVybz is a free, 100 % open-source (GPL-3.0) Android app that **automatically calibrates external
+AutoVybz is a GPL-3.0 Android app that **automatically calibrates external
 loudspeakers** (Bluetooth, AUX, USB, HDMI) to your room with the phone's microphone — and then runs the
 correction system-wide through the proven [Equalizer314](https://github.com/bearinmindcat/Equalizer314)
-engine (DynamicsProcessing, 10-band PEQ, multiband compressor, limiter). Donationware: no ads, no tracking.
+engine (DynamicsProcessing, 10-band PEQ, multiband compressor, limiter). The Alpha uses a deliberately
+limited Free tier and an optional supporter Pro unlock; there is no account, no tracking and no ad SDK.
+The permanent bottom banner in this build is an in-app placeholder and Pro entry point.
 
-> Status: **0.1.0-alpha** – first public structure. Build with Android Studio / Gradle (see below).
+> Status: **0.2.0-alpha** – Free/Pro and on-device beta test build. Build with Android Studio / Gradle (see below).
+
+## Free & Pro (Alpha)
+
+- **Free with the permanent banner:** every feature family remains usable, but only **one saved profile**,
+  **one measurement position**, safe default measurement/mic settings and internal presets.
+- **7-day Pro trial:** starts automatically after the first successful calibration (or manually in the paywall).
+- **Pro:** unlimited profiles, precise **3-position** measurements, expert measurement/mic/custom-target
+  settings and external **APO / PEQ JSON / REW CSV** exports.
+- **Prices and payment:** US$1.99 for 30 days, US$19.99 for 365 days or US$99 lifetime. The Alpha accepts
+  only SOL, BTC or ETH to the project addresses below, then activates locally from the TXID. Payments are
+  reconciled manually, there is no auto-renewal, and no Google Play services are required (GrapheneOS-friendly).
 
 ## Features
 
@@ -102,7 +115,8 @@ app/src/main/java/com/andrexthedev/autovybz/
   measurement/        MeasurementController (orchestration)
   preset/, export/    AutoVybz preset model, Equalizer314 pool bridge, exporters
   sound/              sound styles, composer (calibration + style + tone), persistence
-  ui/                 Jetpack Compose: sound (home), wizard, studio, intro, help, about/donate, theme
+  premium/            Free/Trial/Pro policy + local TXID-hash persistence (no billing SDK)
+  ui/                 Jetpack Compose: sound (home), wizard, studio, premium, intro, help, about/donate, theme
 app/src/main/cpp/autovybz/   C++17 Oboe full-duplex engine + FFT + JNI
 app/src/main/java/com/bearinmind/equalizer314/   upstream Equalizer314 (classic Views)
 site/                landing page (GitHub Pages, see site/README.md)
@@ -115,9 +129,10 @@ AutoVybz by **AndrexTheDev** (hippie.highho@gmail.com) is a fork of
 licensed under the **GNU GPL v3.0** – see [LICENSE](LICENSE) and [NOTICE.md](NOTICE.md).
 The original upstream README is kept in [docs/UPSTREAM_README.md](docs/UPSTREAM_README.md).
 
-## Support
+## Support & Pro
 
-AutoVybz is donationware. If it improved your sound:
+Use the in-app AutoVybz Pro screen for the Alpha unlock, or support the project with one of the three
+project crypto addresses:
 
 | Coin | Address |
 |---|---|

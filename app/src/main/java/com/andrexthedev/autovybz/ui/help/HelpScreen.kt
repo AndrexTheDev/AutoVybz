@@ -43,6 +43,8 @@ fun HelpScreen() {
         Triple(Icons.Filled.Phone, R.string.avz_help_s6_title, R.string.avz_help_s6_body),
         Triple(VybzIcons.Sound, R.string.avz_help_styles_title, R.string.avz_help_styles_body),
         Triple(Icons.Filled.Star, R.string.avz_help_out_title, R.string.avz_help_out_body),
+        Triple(Icons.Filled.Build, R.string.avz_help_rescue_title, R.string.avz_help_rescue_body),
+        Triple(Icons.Filled.Phone, R.string.avz_help_device_title, R.string.avz_help_device_body),
         Triple(Icons.Filled.Build, R.string.avz_help_s7_title, R.string.avz_help_s7_body),
         Triple(Icons.Filled.Info, R.string.avz_help_s8_title, R.string.avz_help_s8_body),
     )

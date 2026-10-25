@@ -7,6 +7,41 @@
     <string name="avz_nav_about">Info</string>
     <string name="avz_nav_home">Sonido</string>
     <string name="avz_tagline">Tu altavoz, perfectamente ajustado</string>
+    <string name="avz_sticky_footer_placeholder">Espacio para banner</string>
+    <string name="avz_premium_open">Activar AutoVybz Pro</string>
+    <string name="avz_premium_manage">Gestionar Pro</string>
+    <string name="avz_premium_status_title">AutoVybz Pro y límites gratis</string>
+    <string name="avz_premium_subtitle">La versión gratis sigue siendo usable, pero con límites estrictos. Pro elimina los límites: pago solo con SOL, BTC o ETH.</string>
+    <string name="avz_premium_free_status">Gratis: %1$d perfil guardado · %2$d posición de medición</string>
+    <string name="avz_premium_trial_status">Prueba Pro activa hasta el %1$s</string>
+    <string name="avz_premium_pro_status">Pro activo hasta el %1$s</string>
+    <string name="avz_premium_lifetime_status">Pro de por vida activo</string>
+    <string name="avz_premium_trial_cta">Probar Pro 7 días</string>
+    <string name="avz_premium_trial_note">La prueba también empieza automáticamente tras tu primera calibración correcta.</string>
+    <string name="avz_premium_benefit_profiles">Perfiles de altavoz guardados ilimitados (gratis: 1)</string>
+    <string name="avz_premium_benefit_positions">Mediciones precisas con 3 posiciones (gratis: 1 posición)</string>
+    <string name="avz_premium_benefit_tools">Ajustes expertos de medición, micrófono y objetivo personalizado</string>
+    <string name="avz_premium_benefit_exports">Exportaciones externas para Equalizer APO, PEQ JSON y REW</string>
+    <string name="avz_premium_benefit_support">Apoya el desarrollo: sin cuenta ni rastreo</string>
+    <string name="avz_premium_plan_monthly">1 mes</string>
+    <string name="avz_premium_plan_yearly">12 meses</string>
+    <string name="avz_premium_plan_lifetime">De por vida</string>
+    <string name="avz_premium_price">%1$s US$</string>
+    <string name="avz_premium_best_value">Mejor valor</string>
+    <string name="avz_premium_no_autorenew">Sin renovación automática. Solo pagas de nuevo si quieres ampliarlo.</string>
+    <string name="avz_premium_pay_title">Pagar con cripto</string>
+    <string name="avz_premium_pay_instructions">Envía el equivalente en USD a la dirección inferior y luego introduce el ID de transacción (TXID).</string>
+    <string name="avz_premium_sol_tip">Consejo: SOL suele ser la red más barata para el pase de 1 mes.</string>
+    <string name="avz_premium_alpha_note">Alfa: la activación se hace en este dispositivo tras introducir el TXID; el pago se concilia manualmente. Comprueba siempre la red.</string>
+    <string name="avz_premium_txid_label">ID de transacción (TXID)</string>
+    <string name="avz_premium_txid_invalid">Este formato de TXID no coincide con la moneda elegida.</string>
+    <string name="avz_premium_activate">Activar Pro</string>
+    <string name="avz_premium_activated">AutoVybz Pro está activo.</string>
+    <string name="avz_premium_reset_alpha">Prueba alfa: restablecer estado Pro</string>
+    <string name="avz_premium_locked_positions">El modo preciso con 3 posiciones está disponible con AutoVybz Pro.</string>
+    <string name="avz_premium_locked_profile">La versión gratis guarda un perfil de altavoz. Sobrescríbelo o activa Pro para perfiles ilimitados.</string>
+    <string name="avz_premium_locked_settings">Estos ajustes expertos están disponibles con AutoVybz Pro.</string>
+    <string name="avz_premium_locked_exports">Las exportaciones externas están disponibles con AutoVybz Pro.</string>
     <string name="avz_intro_skip">Saltar</string>
     <string name="avz_intro_a11y">Intro de AutoVybz. Toca para saltar.</string>
     <string name="avz_home_title">Tu sonido</string>
@@ -93,7 +128,7 @@
     <string name="avz_route_headphones_title">Auriculares detectados</string>
     <string name="avz_route_headphones_text">AutoVybz solo calibra altavoces. Desconecta los auriculares o cascos y conecta un altavoz.</string>
     <string name="avz_route_builtin_title">No hay altavoz externo</string>
-    <string name="avz_route_builtin_text">El altavoz del propio móvil no se puede medir con su propio micrófono. Conecta un altavoz externo por Bluetooth, cable, USB o HDMI.</string>
+    <string name="avz_route_builtin_text">El sonido sale de este propio teléfono. Conecta un altavoz externo por Bluetooth, cable, USB o HDMI, o calibra en su lugar los altavoces integrados de este dispositivo.</string>
     <string name="avz_retry">Reintentar</string>
     <string name="avz_back">Atrás</string>
     <string name="avz_safety_title">Control de seguridad</string>
@@ -243,7 +278,7 @@
     <string name="avz_help_s7_body">El altavoz reproduce ruido rosa y un barrido senoidal logarítmico (20 Hz – 20 kHz) durante exactamente 10 segundos mientras el móvil graba. AutoVybz calcula la respuesta en frecuencia, compensa el comportamiento típico de los micrófonos de móvil, la suaviza (más en los graves, ⅓ de octava en medios y agudos) y ajusta hasta 10 filtros paramétricos que acercan tu altavoz al objetivo elegido. Una pre-ganancia negativa y el limitador evitan la saturación.</string>
     <string name="avz_help_s8_title">Límites</string>
     <string name="avz_help_s8_body">Los micrófonos de móvil no son micrófonos de medición; los perfiles integrados son estimaciones. Los graves profundos que el altavoz no puede reproducir físicamente nunca se realzan (protege el altavoz). Para resultados de laboratorio usa un micrófono de medición USB con su archivo de calibración (Estudio).</string>
-    <string name="avz_about_text" formatted="false">AutoVybz es 100 % código abierto y donationware: sin anuncios, sin rastreo, sin muro de pago.</string>
+    <string name="avz_about_text" formatted="false">AutoVybz es 100 % código abierto (GPL-3.0). La versión gratis está muy limitada; AutoVybz Pro elimina los límites. Sin rastreo ni cuenta.</string>
     <string name="avz_about_version">Versión %1$s</string>
     <string name="avz_about_dev">Desarrollador: AndrexTheDev</string>
     <string name="avz_about_contact">Contacto: hippie.highho@gmail.com</string>
@@ -294,7 +329,7 @@
         <item quantity="other">%1$d filtros · pre-ganancia %2$s dB</item>
     </plurals>
     <string name="avz_share_card_positions" tools:ignore="PluralsCandidate">%1$d posiciones</string>
-    <string name="avz_share_card_free">gratis · código abierto · sin anuncios</string>
+    <string name="avz_share_card_free">gratis · código abierto · sin rastreo</string>
 
     <!-- Outdoor / party mode -->
     <string name="avz_env_label">¿Dónde vas a sonar?</string>
@@ -348,4 +383,32 @@
     <string name="avz_a11y_level" tools:ignore="PluralsCandidate">Nivel del micrófono %1$d por ciento</string>
     <string name="avz_a11y_positions" tools:ignore="PluralsCandidate">%1$d de %2$d posiciones medidas</string>
     <string name="avz_a11y_chart">Gráfico de respuesta en frecuencia: curva medida, objetivo y corregida. Desviación antes %1$s dB, después %2$s dB.</string>
+
+    <!-- Speaker classes: weak-speaker rescue + device speakers -->
+    <string name="avz_class_label">Tipo de altavoz</string>
+    <string name="avz_class_standard">Altavoz externo</string>
+    <string name="avz_class_standard_desc">Altavoz por Bluetooth, cable, USB o HDMI: la calibración clásica y precisa.</string>
+    <string name="avz_class_rescue">Altavoz débil / barato</string>
+    <string name="avz_class_rescue_desc">Para altavoces que suenan mal: limpieza decidida contra los graves retumbantes y la aspereza, y corte protector de los graves que el altavoz no puede reproducir de todos modos: más limpio y más fuerte, sin traqueteos.</string>
+    <string name="avz_class_device">Este teléfono / tableta</string>
+    <string name="avz_class_device_desc">Calibra los altavoces integrados de este dispositivo, medidos con su propio micrófono. No debe haber ningún altavoz externo conectado.</string>
+    <string name="avz_device_speaker_name">Altavoces del dispositivo</string>
+    <string name="avz_device_before_1">Desconecta todo: sin audio por Bluetooth, cable ni USB; este dispositivo reproducirá el sonido.</string>
+    <string name="avz_device_before_2">Deja el dispositivo boca arriba sobre una mesa, con los altavoces y el micrófono descubiertos. Deja puesta tu funda habitual si siempre la usas.</string>
+    <string name="avz_device_before_3">Mantén la habitación en silencio durante 10 segundos y no toques el dispositivo.</string>
+    <string name="avz_route_ext_title">Salida externa activa</string>
+    <string name="avz_route_ext_text">Para usar los altavoces del dispositivo, este teléfono debe reproducir el sonido. Apaga o desconecta la salida por Bluetooth, USB o cable e inténtalo de nuevo.</string>
+    <string name="avz_route_use_device">Calibrar este dispositivo en su lugar</string>
+    <string name="avz_safety_text_device">La prueba reproduce ruido y un Barrido durante 10 segundos por los altavoces de este dispositivo. El volumen se ha bajado a propósito: el micrófono está justo al lado del altavoz.</string>
+    <string name="avz_device_check_title">Para una medición limpia</string>
+    <string name="avz_device_check_1">El dispositivo está boca arriba sobre la mesa, no en tu mano, porque la mano amortigua el sonido y mueve el dispositivo.</string>
+    <string name="avz_device_check_2">Los altavoces y el micrófono están descubiertos y limpios.</string>
+    <string name="avz_device_check_3">Aléjate durante los 10 segundos y no toques el dispositivo.</string>
+    <string name="avz_result_highpass">Paso alto protector a %1$d Hz: los graves por debajo se eliminan, porque el altavoz no puede reproducirlos y solo distorsionaría al intentarlo.</string>
+    <string name="avz_result_limiter">El limitador se activa automáticamente con esta calibración y protege el altavoz a volumen alto.</string>
+    <string name="avz_result_device_profile">Este perfil está ajustado para los altavoces de este dispositivo. Cuando vuelvas a escuchar por un altavoz externo, regresa a su perfil.</string>
+    <string name="avz_help_rescue_title">Rescatar altavoces débiles</string>
+    <string name="avz_help_rescue_body">Elige el tipo de altavoz para altavoces débiles o baratos y mide como siempre. AutoVybz intervendrá con más decisión: los graves retumbantes y los medios ásperos se recortan más, los agudos que faltan se refuerzan de forma amplia y un paso alto protector elimina los graves profundos que el pequeño altavoz no puede reproducir; solo eso ya quita la mayor parte de los traqueteos y la distorsión y deja sitio para un volumen más limpio. La física es la física: no aparecerán graves profundos de verdad, pero un sonido equilibrado y claro sí es posible.</string>
+    <string name="avz_help_device_title">Calibrar este teléfono o tableta</string>
+    <string name="avz_help_device_body">El tipo de altavoz para este dispositivo mide los altavoces integrados con el micrófono integrado: desconecta todas las salidas externas y deja el dispositivo boca arriba sobre una mesa. Como el micrófono está a solo unos centímetros del altavoz, AutoVybz corrige con suavidad y solo hasta 12 kHz, pero elimina los graves profundos inaudibles que solo hacen distorsionar a los altavoces pequeños, doma los medios chillones típicos y mantiene el limitador activado. El resultado es un perfil normal; cambia de perfil cuando vuelvas a conectar un altavoz externo.</string>
 </resources>

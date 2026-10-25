@@ -141,6 +141,8 @@ object AudioPolicyDumpParser {
     fun capturePolicies(timeoutMs: Long = 1500L): Map<String, Boolean>? = try {
         val out = mutableMapOf<String, Boolean>()
         streamDump("media.audio_policy", timeoutMs) { line ->
+            // Prefilter: the pattern requires the literal "allowPlaybackCapture=".
+            if (!line.contains("allowPlaybackCapture=")) return@streamDump
             val m = CAPTURE_POLICY.matcher(line)
             if (m.find()) out[m.group(2)!!.removePrefix("shared:")] = m.group(1) == "true"
         }?.let { out }
@@ -184,6 +186,9 @@ object AudioPolicyDumpParser {
         line: String,
         out: MutableMap<Int, MutableSet<Int>>,
     ): Boolean {
+        // Cheap necessary-condition prefilter: the pattern starts with "Session", so
+        // the regex engine only runs on candidate lines (the dump has thousands).
+        if (!line.contains("Session")) return false
         val m = WAVELET_LINE.matcher(line)
         if (!m.find()) return false
         val sid = m.group(1)?.toIntOrNull() ?: return false

@@ -1,6 +1,6 @@
 # Privacy Policy — AutoVybz
 
-**Effective date:** 2026-10-23
+**Effective date:** 2026-10-25
 **App:** AutoVybz (`com.andrexthedev.autovybz`)
 **Developer:** AndrexTheDev — hippie.highho@gmail.com
 **Source code:** https://github.com/AndrexTheDev/AutoVybz
@@ -10,7 +10,7 @@
 
 ## Short version
 
-AutoVybz **does not collect, store remotely, or transmit any personal data**. No analytics, no ads, no trackers, no accounts, no third-party SDKs. Measurements, presets and settings stay on your device unless *you* export them.
+AutoVybz **does not collect, store remotely, or transmit any personal data**. No analytics, no ad SDK, no trackers, no accounts and no third-party billing SDK. The permanent Alpha banner is an in-app Pro entry point, not a third-party advertisement. Measurements, presets and settings stay on your device unless *you* export them.
 
 ## 1. Microphone (speaker calibration)
 
@@ -46,9 +46,9 @@ AutoVybz itself makes **no network requests**. The `INTERNET`, `ACCESS_WIFI_STAT
 
 Settings, presets and calibrations are stored with `SharedPreferences` and in app-private files (`files/autovybz/…`). They are removed when you uninstall the app. Exports (APO text, JSON, REW CSV, `.avz.json`) are written only to locations you choose.
 
-## 5. Donations
+## 5. Pro payments & donations
 
-The About screen shows public crypto wallet addresses (SOL, BTC, ETH/EVM) that you can copy. AutoVybz does not interact with any wallet or blockchain.
+The About and AutoVybz Pro screens show public crypto wallet addresses (SOL, BTC, ETH/EVM) that you can copy. If you choose the Alpha Pro activation, you enter a transaction ID (TXID); AutoVybz stores only a SHA-256 hash of that TXID, plus the selected plan/coin and expiry, in app-private preferences. The app itself does not interact with any wallet or blockchain, verify the payment over the network, or send the TXID anywhere. Public blockchains make the transaction itself publicly visible.
 
 ## 6. Children
 

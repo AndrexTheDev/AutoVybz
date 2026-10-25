@@ -18,6 +18,16 @@ ADDRESSES = ["79KsqtJJdhKFJ9woxnYgtf3nq7HxQveafWBCtC3mxWi8", "bc1qeqzrlfg3edrydk
 EMAIL = "hippie.highho@gmail.com"
 LANGS = ["en", "de", "es"]
 LEGAL = ["imprint", "privacy", "terms", "disclaimer"]
+# Content regressions from the pre-freemium landing page. The app has a limited Free tier, a trial and
+# optional paid Pro, so blanket "free forever / no paid features" claims must not come back.
+FORBIDDEN_CONTENT = [
+    "\U0001F1EF\U0001F1F2", "Free forever", "Everything is free of charge", "There are no paid features",
+    "no in-app purchases", "Price. Today, tomorrow, forever", "Donationware", "Keep the vybz free.",
+    "Für immer kostenlos", "Alles ist kostenlos", "keine kostenpflichtigen Funktionen",
+    "keine In-App-Käufe", "Preis. Heute, morgen, für immer", "Halte die Vybz kostenlos.",
+    "Gratis para siempre", "Todo es gratuito", "No hay funciones de pago",
+    "sin compras dentro de la app", "Precio. Hoy, mañana y siempre", "Mantén las vybz gratis.",
+]
 
 
 class Page(HTMLParser):
@@ -111,6 +121,8 @@ def audit(site):
         if re.search(r"\{\{\s*[\w.]+\s*\}\}|\{\{|\[\[\s*\w+\s*\]\]", visible): errors.append(f"{where}: unreplaced template placeholder")
         # case-sensitive: Spanish "todo" (= all) is fine
         if re.search(r"\bTODO\b|\bFIXME\b|[Ll]orem ipsum", visible): errors.append(f"{where}: TODO / placeholder text")
+        for phrase in FORBIDDEN_CONTENT:
+            if phrase in p.raw: errors.append(f"{where}: forbidden stale content {phrase!r}")
         for m in re.finditer(r'<script type="application/ld\+json">(.*?)</script>', p.raw, re.S):
             try: json.loads(m.group(1))
             except Exception as e: errors.append(f"{where}: invalid JSON-LD ({e})")

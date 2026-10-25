@@ -5,6 +5,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.math.abs
+import kotlin.math.sqrt
 
 class AutoEqRendererTest {
 
@@ -133,6 +134,143 @@ class AutoEqRendererTest {
         val peak = curve(800.0, 8.0, 6.0)         // narrow peaks are still cut
         val p = AutoEqRenderer.render(grid, peak, TargetCurve(TargetType.FLAT), AutoEqSettings(broadBoostOctaves = 1.0))
         assertTrue("narrow peak cut: ${boostAt(p, 800.0)}", boostAt(p, 800.0) < -4.0)
+    }
+
+    /** Normalised curve from a set of colouring bands (like [measured]). */
+    private fun curveOf(vararg bands: PeqBand): DoubleArray {
+        val list = bands.toList()
+        val v = DoubleArray(grid.size) { BiquadMath.totalDb(list, grid[it]) }
+        val m = FrequencyGrid.bandMean(grid, v, 300.0, 3000.0)
+        return DoubleArray(v.size) { v[it] - m }
+    }
+
+    @Test
+    fun lowLimitIgnoresIsolatedDipAboveRollOff() {
+        val c = curveOf(
+            PeqBand(PeqType.HIGH_PASS, 55.0, 0.0, 0.707), // the real bass roll-off
+            PeqBand(PeqType.PEAK, 140.0, -9.0, 2.0),      // a room dip above it
+        )
+        val lo = AutoEqRenderer.detectLowLimit(grid, c)
+        // Old scan-down logic stopped at the dip (~160 Hz clamp); the contiguous run finds ~52 Hz.
+        assertTrue("low limit $lo", lo in 35.0..90.0)
+    }
+
+    @Test
+    fun lowLimitWideScanFindsPhoneSpeakerRollOff() {
+        val phone = curveOf(PeqBand(PeqType.HIGH_PASS, 700.0, 0.0, 0.707))
+        // Default (external-speaker) scan saturates at the 160 Hz clamp...
+        assertEquals(160.0, AutoEqRenderer.detectLowLimit(grid, phone), 1e-9)
+        // ...the wide device-speaker scan finds the real roll-off (true -6 dB point 532 Hz
+        // x1.25 = 665 Hz; the scanned reference band keeps the error in single digits).
+        val lo = AutoEqRenderer.detectLowLimit(grid, phone, scanFromHz = 1200.0, maxHz = 900.0)
+        assertTrue("phone low limit $lo", lo in 560.0..730.0)
+    }
+
+    @Test
+    fun protectiveHighPassProtectsCheapSpeaker() {
+        val cheap = curveOf(
+            PeqBand(PeqType.HIGH_PASS, 160.0, 0.0, 0.707),   // no real bass below ~160 Hz
+            PeqBand(PeqType.PEAK, 300.0, 7.0, 1.0),          // boom
+            PeqBand(PeqType.PEAK, 3200.0, 6.0, 1.5),         // shout
+            PeqBand(PeqType.HIGH_SHELF, 7000.0, -8.0, 0.7),  // dull top end
+        )
+        val settings = AutoEqSettings(
+            bandCount = 10, protectiveHighPass = true, lowLimitScanHz = 400.0, lowLimitMaxHz = 350.0,
+        )
+        val r = AutoEqRenderer.render(grid, cheap, TargetCurve(TargetType.HARMAN), settings)
+        val hp = r.bands.filter { it.type == PeqType.HIGH_PASS }
+        assertEquals(1, hp.size)
+        assertTrue("bands ${r.bands.size}", r.bands.size <= 10)
+        assertEquals(hp[0].frequency, r.highPassHz!!, 1e-9)
+        assertEquals(r.lowLimitHz / AutoEqRenderer.LOW_LIMIT_SAFETY, hp[0].frequency, 1e-6)
+        assertTrue("fc ${hp[0].frequency}", hp[0].frequency in 80.0..200.0)
+        val half = grid.indexOfFirst { it >= hp[0].frequency / 2 }
+        assertTrue("one octave below fc: ${r.filterResponseDb[half]} dB", r.filterResponseDb[half] < -7.0)
+        assertTrue("rms ${r.rmsErrorBeforeDb} -> ${r.rmsErrorAfterDb}", r.rmsErrorAfterDb < r.rmsErrorBeforeDb * 0.5)
+    }
+
+    @Test
+    fun protectiveHighPassSkippedForFullRangeSpeaker() {
+        val good = curveOf(
+            PeqBand(PeqType.HIGH_PASS, 25.0, 0.0, 0.707),
+            PeqBand(PeqType.PEAK, 2500.0, -4.0, 1.5),
+        )
+        val r = AutoEqRenderer.render(grid, good, TargetCurve(TargetType.FLAT), AutoEqSettings(protectiveHighPass = true))
+        assertTrue(r.bands.none { it.type == PeqType.HIGH_PASS })
+        assertEquals(null, r.highPassHz)
+    }
+
+    @Test
+    fun phoneSpeakerRenderIsBandLimitedAndProtected() {
+        val phone = curveOf(
+            PeqBand(PeqType.HIGH_PASS, 700.0, 0.0, 0.707),
+            PeqBand(PeqType.PEAK, 3000.0, 5.0, 1.5), // typical small-speaker shout
+        )
+        val settings = AutoEqSettings(
+            maxBoostDb = 4.0, highLimitHz = 12000.0, protectiveHighPass = true,
+            lowLimitScanHz = 1200.0, lowLimitMaxHz = 900.0,
+            broadBoostOctaves = 1.0, excursionGuardOctaves = 2.0,
+        )
+        val r = AutoEqRenderer.render(grid, phone, TargetCurve(TargetType.HARMAN), settings)
+        assertTrue("low limit ${r.lowLimitHz}", r.lowLimitHz in 400.0..900.0)
+        val hpHz = r.highPassHz
+        assertTrue("hp $hpHz", hpHz != null && hpHz in 300.0..750.0)
+        assertTrue("max boost ${r.maxFilterBoostDb}", r.maxFilterBoostDb <= 4.0 + 0.5)
+        r.bands.forEach { assertTrue("band above correction limit $it", it.frequency <= 12000.0 + 1e-9) }
+        val deep = grid.indexOfFirst { it >= 100.0 }
+        assertTrue("100 Hz is cut hard: ${r.filterResponseDb[deep]} dB", r.filterResponseDb[deep] < -15.0)
+    }
+
+    @Test
+    fun protectiveHighPassSlopeIsCompensatedInBand() {
+        val cheap = curveOf(
+            PeqBand(PeqType.HIGH_PASS, 160.0, 0.0, 0.707),
+            PeqBand(PeqType.PEAK, 300.0, 7.0, 1.0),
+            PeqBand(PeqType.PEAK, 3200.0, 6.0, 1.5),
+            PeqBand(PeqType.HIGH_SHELF, 7000.0, -8.0, 0.7),
+        )
+        val settings = AutoEqSettings(
+            bandCount = 10, protectiveHighPass = true, lowLimitScanHz = 400.0, lowLimitMaxHz = 350.0,
+        )
+        val aware = AutoEqRenderer.render(grid, cheap, TargetCurve(TargetType.HARMAN), settings)
+        val hpBand = aware.bands.single { it.type == PeqType.HIGH_PASS }
+        // Blind baseline: the same render without the protective pass (one *more* fitted band),
+        // with the pass only appended afterwards - its slope then cuts the band edge twice.
+        val blindFit = AutoEqRenderer.render(
+            grid, cheap, TargetCurve(TargetType.HARMAN), settings.copy(protectiveHighPass = false),
+        )
+        val hpResp = DoubleArray(grid.size).also { BiquadMath.Grid(grid).response(hpBand, it) }
+        fun edgeRms(predicted: (Int) -> Double): Double {
+            val idx = grid.indices.filter { grid[it] in aware.lowLimitHz..(2.5 * aware.lowLimitHz) }
+            val offset = idx.sumOf { predicted(it) - aware.targetDb[it] } / idx.size
+            return sqrt(idx.sumOf { val d = predicted(it) - aware.targetDb[it] - offset; d * d } / idx.size)
+        }
+        val blind = edgeRms { blindFit.predictedDb[it] + hpResp[it] }
+        val awareRms = edgeRms { aware.predictedDb[it] }
+        assertTrue("band-edge RMS blind $blind vs pass-aware $awareRms", awareRms < blind)
+        // …while the protection below the corner stands:
+        val half = grid.indexOfFirst { it >= hpBand.frequency / 2 }
+        assertTrue("one octave below fc: ${aware.filterResponseDb[half]} dB", aware.filterResponseDb[half] < -7.0)
+    }
+
+    @Test
+    fun extremePhoneSpeakerDoesNotCrashFitter() {
+        // Correction band starts at the 900 Hz clamp -> the fitter's minFrequency (720 Hz) lies
+        // above its classic 400 Hz low-shelf corner range (regression: inverted clamp bounds).
+        val awful = curveOf(
+            PeqBand(PeqType.HIGH_PASS, 1200.0, 0.0, 0.707),
+            PeqBand(PeqType.PEAK, 3400.0, 6.0, 1.4),
+        )
+        val settings = AutoEqSettings(
+            maxBoostDb = 4.0, highLimitHz = 12000.0, protectiveHighPass = true,
+            lowLimitScanHz = 1200.0, lowLimitMaxHz = 900.0, excursionGuardOctaves = 2.0,
+        )
+        val r = AutoEqRenderer.render(grid, awful, TargetCurve(TargetType.HARMAN), settings)
+        assertEquals(900.0, r.lowLimitHz, 1e-9)
+        val hpHz = r.highPassHz
+        assertTrue("hp $hpHz", hpHz != null && hpHz in 650.0..750.0)
+        assertTrue("bands ${r.bands.size}", r.bands.size in 1..10)
+        assertTrue("max boost ${r.maxFilterBoostDb}", r.maxFilterBoostDb <= 4.5)
     }
 
     @Test

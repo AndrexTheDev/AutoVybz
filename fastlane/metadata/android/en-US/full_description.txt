@@ -11,7 +11,7 @@ AutoVybz automatically calibrates your external loudspeaker (Bluetooth, AUX, USB
 <li>Dynamic smoothing (strong in the bass, 1/3 octave in mids and highs)</li>
 <li>Up to 10 parametric filters fitted to your target, without boosting bass your speaker can't play</li>
 <li>Automatic pre-gain and limiter against clipping</li>
-<li>Optional precise mode: 3 positions, power-averaged – ignores dips that exist only at one spot</li>
+<li>Precise mode: 3 positions, power-averaged – ignores dips that exist only at one spot (AutoVybz Pro / trial; Free uses 1 position)</li>
 <li>Outdoor / party mode: max +3 dB boost to keep the loudness, ignores ground reflections and noisy ranges (wind, traffic, birds), detects wind and Bluetooth dropouts, limiter always on, full screen brightness in sunlight</li>
 </ul>
 
@@ -19,10 +19,12 @@ AutoVybz automatically calibrates your external loudspeaker (Bluetooth, AUX, USB
 
 <b>Pro area</b>: full Equalizer314 engine – 10-band parametric EQ with graph, multiband compressor, limiter, presets, AutoEQ.
 
-<b>Export &amp; share</b>: Equalizer APO / Peace text, parametric EQ JSON, CSV for REW, and a share card with your real measurement.
+<b>Export &amp; share</b>: AutoVybz Pro exports Equalizer APO / Peace text, parametric EQ JSON and CSV for REW. Free keeps internal presets and the share card with your real measurement.
+
+<b>Free &amp; Pro</b>: Free includes the permanent banner, one saved profile and quick 1-position calibration. A 7-day Pro trial starts after the first result. Pro is US$1.99/month, US$19.99/year or US$99 lifetime in the Alpha, payable only with SOL, BTC or ETH and without auto-renewal.
 
 Available in English, German and Spanish.
 
 Headphones are intentionally excluded – AutoVybz is made for loudspeakers.
 
-100 % open source (GPL-3.0), donationware, no ads, no tracking. Based on Equalizer314 by bearinmindcat.
+Open source (GPL-3.0), no account, no tracking and no ad SDK. Based on Equalizer314 by bearinmindcat.

@@ -55,6 +55,8 @@ fun ExportButton(
     modifier: Modifier = Modifier,
     fillWidth: Boolean = false,
     openTag: String = "avz:export:open",
+    externalExportsEnabled: Boolean = true,
+    onOpenPremium: () -> Unit = {},
 ) {
     val context = LocalContext.current
     var menu by remember { mutableStateOf(false) }
@@ -81,6 +83,10 @@ fun ExportButton(
 
     fun start(format: ExportFormat) {
         menu = false
+        if (format != ExportFormat.INTERNAL && !externalExportsEnabled) {
+            onOpenPremium()
+            return
+        }
         val p = preset() ?: return
         pending = format
         val fileName = p.name + format.suffix
@@ -97,6 +103,13 @@ fun ExportButton(
             Icon(Icons.Filled.ArrowDropDown, contentDescription = null)
         }
         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+            if (!externalExportsEnabled) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.avz_premium_locked_exports)) },
+                    onClick = { menu = false; onOpenPremium() },
+                    modifier = Modifier.testTag("avz:export:LOCKED"),
+                )
+            }
             DropdownMenuItem(text = { Text(stringResource(R.string.avz_export_apo)) }, onClick = { start(ExportFormat.APO) }, modifier = Modifier.testTag("avz:export:APO"))
             DropdownMenuItem(text = { Text(stringResource(R.string.avz_export_json)) }, onClick = { start(ExportFormat.PEQ_JSON) }, modifier = Modifier.testTag("avz:export:PEQ_JSON"))
             if (preset()?.measurement != null) {

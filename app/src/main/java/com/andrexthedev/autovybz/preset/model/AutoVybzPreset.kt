@@ -27,6 +27,8 @@ class MeasurementSnapshot(
     val environment: String = "INDOOR",
     /** Number of averaged measurement positions. */
     val positions: Int = 1,
+    /** [com.andrexthedev.autovybz.measurement.SpeakerClass] name; STANDARD for older presets. */
+    val speakerClass: String = "STANDARD",
 ) {
     init {
         val n = frequencies.size
@@ -64,12 +66,14 @@ data class AutoVybzPreset(
             PeqType.PEAK -> "BELL"
             PeqType.LOW_SHELF -> "LOW_SHELF"
             PeqType.HIGH_SHELF -> "HIGH_SHELF"
+            PeqType.HIGH_PASS -> "HIGH_PASS"
         }
 
         fun peqTypeFromFilterTypeName(name: String): PeqType? = when (name) {
             "BELL" -> PeqType.PEAK
             "LOW_SHELF" -> PeqType.LOW_SHELF
             "HIGH_SHELF" -> PeqType.HIGH_SHELF
+            "HIGH_PASS" -> PeqType.HIGH_PASS
             else -> null
         }
     }
@@ -130,6 +134,7 @@ data class AutoVybzPreset(
             append("    \"warnings\": [").append(m.warnings.joinToString(", ") { PresetExporters.jsonString(it) }).append("],\n")
             append("    \"environment\": ").append(PresetExporters.jsonString(m.environment)).append(",\n")
             append("    \"positions\": ").append(m.positions).append(",\n")
+            append("    \"speakerClass\": ").append(PresetExporters.jsonString(m.speakerClass)).append(",\n")
             arr("frequencies", m.frequencies, ",\n")
             arr("rawDb", m.rawDb, ",\n")
             arr("smoothedDb", m.smoothedDb, ",\n")

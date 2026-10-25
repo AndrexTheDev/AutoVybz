@@ -4,9 +4,9 @@
   "lang_name": "English",
   "meta": {
     "title": "AutoVybz – Your speaker, tuned to your room in 10 seconds",
-    "description": "Free & open-source Android app: measures your Bluetooth or wired speaker in your room with your phone's mic and auto-tunes a 10-band EQ. One tap, 10 seconds, no ads, no account.",
+    "description": "Open-source Android speaker calibration: measure your Bluetooth or wired speaker with your phone mic and auto-tune a 10-band EQ. Limited Free tier, 7-day Pro trial, no account or tracking.",
     "og_title": "Your speaker sounds wrong. AutoVybz fixes it in 10 seconds.",
-    "og_desc": "One tap. Your phone measures your speaker in your room and tunes it automatically. Free, open source, no ads.",
+    "og_desc": "One tap. Your phone measures your speaker in your room and tunes it automatically. Start with limited Free, then try full Pro for 7 days.",
     "keywords": "speaker calibration, room correction, android equalizer, bluetooth speaker eq, auto eq, room eq app, open source equalizer"
   },
   "nav": {
@@ -14,21 +14,22 @@
     "how": "How it works",
     "roast": "Speaker Roast",
     "features": "Features",
+    "plans": "Free & Pro",
     "faq": "FAQ",
     "get": "Get AutoVybz",
     "skip": "Skip to content",
     "lang": "Language"
   },
   "hero": {
-    "badge": "🇯🇲 Free · Open source · Android",
+    "badge": "Alpha · Limited Free · 7-day Pro trial",
     "h1_a": "Your speaker sounds wrong.",
     "h1_b": "Fixed in",
     "h1_c": "seconds.",
-    "sub": "AutoVybz listens to your speaker <b>in your room</b> through your phone's microphone and tunes it automatically. One tap. No knowledge needed. No ads. No account. Free forever.",
+    "sub": "AutoVybz listens to your speaker <b>in your room</b> through your phone's microphone and tunes it automatically. One tap. No knowledge needed. Start with the strictly limited Free tier; <b>7 days of full Pro</b> unlock after your first successful calibration. No account. No tracking.",
     "cta_demo": "▶ Hear the difference",
     "cta_get": "Get AutoVybz",
     "cta_star": "Star on GitHub",
-    "trust": "GPL-3.0 · No tracking · No cookies · Built on Equalizer314",
+    "trust": "GPL-3.0 · No account · No tracking · Built on Equalizer314",
     "stars": "stars"
   },
   "phone": {
@@ -43,13 +44,13 @@
     "🔊 1 tap",
     "⏱ 10 seconds",
     "🎯 10-band parametric EQ",
-    "🆓 Free forever",
-    "🔓 100 % open source",
-    "🚫 No ads, no tracking",
+    "🆓 Limited Free tier",
+    "⭐ 7-day full Pro trial",
+    "🚫 No account, no tracking",
     "📶 Works with Bluetooth",
-    "🎛 Pro mode inside",
-    "📤 Export to Equalizer APO & REW",
-    "🇯🇲 Jamaica vibes"
+    "🎛 Studio & expert engine",
+    "📤 Pro export to APO / JSON / REW",
+    "🎶 Jamaica vibes"
   ],
   "problem": {
     "kicker": "The dirty secret of every speaker",
@@ -67,14 +68,14 @@
         "t": "Time AutoVybz needs to measure your speaker"
       },
       {
-        "n": "0",
-        "u": "€",
-        "t": "Price. Today, tomorrow, forever"
+        "n": "7",
+        "u": "days",
+        "t": "Full Pro trial after your first successful calibration"
       },
       {
         "n": "0",
         "u": "",
-        "t": "Ads, trackers and accounts"
+        "t": "Accounts, trackers and third-party ad SDKs"
       }
     ]
   },
@@ -150,7 +151,7 @@
       {
         "i": "🎯",
         "t": "Smart target curves",
-        "d": "Smart (gentle bass lift), Neutral, Bass Boost, Harman-style Loudness or your own custom curve."
+        "d": "Smart (gentle bass lift), Neutral, Bass Boost, Harman-style Loudness or your own custom curve with Pro/Trial."
       },
       {
         "i": "🎚",
@@ -165,7 +166,7 @@
       {
         "i": "🎙",
         "t": "Mic compensation",
-        "d": "Profiles for popular phones correct the built-in mic. Pro: plug in a USB measurement mic with its calibration file."
+        "d": "Profiles for popular phones correct the built-in mic. With Pro/Trial, plug in a USB measurement mic with its calibration file."
       },
       {
         "i": "⚡",
@@ -179,13 +180,13 @@
       },
       {
         "i": "📤",
-        "t": "Export everything",
-        "d": "Equalizer APO / Peace / AutoEq text, JSON, CSV for REW and the native AutoVybz format."
+        "t": "Pro exports",
+        "d": "With Pro/Trial: Equalizer APO / Peace / AutoEq text, JSON and CSV for REW. Free keeps the native AutoVybz format."
       },
       {
         "i": "🎛",
-        "t": "Pro mode included",
-        "d": "Full Equalizer314 engine: parametric EQ graph, multiband compressor, limiter, presets, AutoEQ for headphones."
+        "t": "Studio & expert engine",
+        "d": "Full Equalizer314 engine: parametric EQ graph, multiband compressor, limiter, presets and AutoEQ. Expert measurement and mic settings unlock with Pro/Trial."
       }
     ]
   },
@@ -202,7 +203,7 @@
         "Price",
         "free",
         "often €€ – €€€",
-        "<b>free</b>"
+        "<b>Limited Free · Pro from US$1.99</b>"
       ],
       [
         "Time",
@@ -235,6 +236,42 @@
         "<b>never</b>"
       ]
     ]
+  },
+  "plans": {
+    "kicker": "Free & Pro",
+    "title": "Start free. Unlock precision when it counts.",
+    "sub": "Free stays useful with the permanent banner and strict limits. Your first successful calibration automatically starts <b>7 days of full Pro</b>—no wallet or account needed for the trial.",
+    "items": [
+      {
+        "name": "Free",
+        "price": "US$0",
+        "period": "always available, limited",
+        "desc": "Permanent banner · 1 saved profile · 1-position quick calibration · safe defaults · internal presets"
+      },
+      {
+        "name": "Pro 30 days",
+        "price": "US$1.99",
+        "period": "one payment · no auto-renewal",
+        "desc": "All limits removed for 30 days: unlimited profiles, 3 positions, expert tools and external exports"
+      },
+      {
+        "name": "Pro 365 days",
+        "price": "US$19.99",
+        "period": "one payment · no auto-renewal",
+        "desc": "A full year of unlimited profiles, precise measurements, expert mic/target settings and exports"
+      },
+      {
+        "name": "Pro Lifetime",
+        "price": "US$99",
+        "period": "one payment · forever",
+        "desc": "Every Pro unlock with one payment—pay once, keep measuring",
+        "badge": "Best value",
+        "highlight": true
+      }
+    ],
+    "note": "Alpha payment is crypto-only (SOL, BTC or ETH) to the project addresses below. Enter the TXID in the app; payments are reconciled manually during Alpha. The app stores only a SHA-256 hash of the TXID.",
+    "cta": "Get the Alpha",
+    "payment_cta": "See crypto addresses"
   },
   "roast": {
     "kicker": "Speaker Roast 🔥",
@@ -276,9 +313,9 @@
     ]
   },
   "share": {
-    "title": "Spread the vybz 🇯🇲",
+    "title": "Spread the vybz",
     "sub": "AutoVybz has no ad budget – just you. One share helps more than you think.",
-    "text": "My speaker just got tuned to my room in 10 seconds 🔊🇯🇲 Free & open source: AutoVybz",
+    "text": "My speaker just got tuned to my room in 10 seconds 🔊 Open source: AutoVybz",
     "tags": "#AutoVybz #10SecondVybz",
     "native": "Share…",
     "copy": "Copy link",
@@ -287,22 +324,26 @@
   "get": {
     "kicker": "Get it",
     "title": "Ready to fix your sound?",
-    "text": "AutoVybz is in <b>alpha</b>. Signed APKs are published on GitHub Releases. Star and watch the repo to be first when a new build drops.",
+    "text": "AutoVybz is in <b>alpha/beta testing</b>. Get the latest signed APK from GitHub Releases when available, or build it from source. Star and watch the repo to be first when a new build drops.",
     "releases": "Download from GitHub Releases",
     "watch": "Watch for releases",
     "source": "Build from source",
-    "req": "Android 9+ · external speaker · 10 seconds of quiet"
+    "req": "Android 9+ · external or device speakers · no Google Play services required"
   },
   "faq": {
     "title": "Questions? Answers.",
     "items": [
       {
-        "q": "Is it really free?",
-        "a": "Yes. AutoVybz is 100 % open source under the GPL-3.0. No ads, no in-app purchases, no account, no subscription. If you like it, you can donate – completely voluntary."
+        "q": "What does Free include—and what does Pro add?",
+        "a": "Free is deliberately strict: permanent banner, 1 saved profile, 1 measurement position, safe default expert inputs and internal presets. A one-time 7-day trial starts after your first successful calibration or manually in the app. Pro removes the limits—unlimited profiles, 3 positions, expert measurement/USB-mic/custom-target settings and APO/JSON/REW exports—and costs US$1.99 for 30 days, US$19.99 for 365 days or US$99 lifetime, with no auto-renewal."
+      },
+      {
+        "q": "How do I pay without Google Play?",
+        "a": "During Alpha, send the USD equivalent in SOL, BTC or ETH to the project address shown in the app and below, then enter the TXID in the app. The app stores only a SHA-256 hash of the TXID, does not contact a blockchain and payments are reconciled manually. Always check the coin, network and address. This also works on GrapheneOS without Google services."
       },
       {
         "q": "Why only speakers and not headphones?",
-        "a": "A phone mic can't measure what reaches your eardrum inside headphones, and the phone's own speaker sits right next to its mic. For headphones, the Pro area includes Equalizer314's AutoEQ with thousands of headphone profiles."
+        "a": "A phone mic can't measure what reaches your eardrum inside headphones. AutoVybz is built for external speakers—and has a separate mode for this phone or tablet's own speakers. For headphones, the expert engine includes Equalizer314 AutoEQ profiles."
       },
       {
         "q": "Does it work with Bluetooth speakers?",
@@ -310,7 +351,7 @@
       },
       {
         "q": "Which phones are supported?",
-        "a": "Android 9 or newer (system-wide EQ uses Android's DynamicsProcessing). Popular phones get a matching mic profile, all others a generic one. For maximum accuracy, plug in a USB measurement microphone."
+        "a": "Android 9 or newer (system-wide EQ uses Android's DynamicsProcessing). The 191 included mic profiles cover many phones; all others get a generic profile. Google Play services are not required. For maximum accuracy, Pro/Trial can use a USB measurement microphone."
       },
       {
         "q": "Is my audio recorded or uploaded?",
@@ -326,7 +367,7 @@
       },
       {
         "q": "How accurate can a phone mic be?",
-        "a": "Accurate enough for the biggest problem by far: room bass. Above roughly 8 kHz phone mics differ, which is what the compensation profiles and the optional USB mic are for."
+        "a": "Accurate enough for the biggest problem by far: room bass. Above roughly 8 kHz phone mics differ, which is what the compensation profiles and the optional Pro/Trial USB mic are for."
       },
       {
         "q": "Who is behind AutoVybz?",
@@ -335,11 +376,11 @@
     ]
   },
   "donate": {
-    "kicker": "Donationware",
-    "title": "Keep the vybz free.",
-    "text": "No investors, no ads, no data selling. If AutoVybz made your speaker sound better, buy the developer a coffee in crypto.",
+    "kicker": "Pro & support",
+    "title": "Pay with crypto. No account.",
+    "text": "Use the same project addresses for an Alpha Pro payment or a voluntary donation. For Pro, choose a plan in the app, send the USD equivalent and enter the TXID there. For a donation, send any amount—thank you.",
     "copy": "Copy",
-    "note": "Always double-check the address after pasting. Donations are voluntary gifts without any consideration and cannot be refunded."
+    "note": "Always double-check the coin, network and address. Crypto transfers are irreversible. Donations are voluntary gifts without consideration. For Pro, keep the TXID and contact us if a correct payment does not activate; statutory rights remain unaffected."
   },
   "footer": {
     "tagline": "Your speaker, tuned to your room.",
@@ -369,7 +410,7 @@
     "copy_fail": "Copy failed – please select manually",
     "link_copied": "Link copied – now paste it everywhere 😄",
     "tab_away": "🔊 Come back – your speaker misses you",
-    "bass_mode": "🇯🇲 Bass mode unlocked! Respect.",
+    "bass_mode": "Bass mode unlocked! Respect.",
     "audio_fail": "Your browser blocked audio – tap play again.",
     "roast_share": "My speaker got roasted 🔥 Vybz score {score}/100 – \"{title}\". Fix it in 10 s:",
     "roast_pick": "Pick both first 😉",

@@ -205,6 +205,19 @@ input[type=range] { accent-color: var(--green); width: 140px; }
 .compare .hl { background: rgba(30,237,97,.14); color: #fff; }
 .compare thead .hl { background: var(--green); color: var(--on-green); }
 
+/* Free / Pro plans */
+.plans { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; margin: 46px auto 26px; align-items: stretch; }
+@media (max-width: 1000px) { .plans { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px) { .plans { grid-template-columns: 1fr; } }
+.plan { position: relative; background: var(--bg3); border: 1px solid var(--line); border-radius: var(--r); padding: 30px 24px 26px; }
+.plan-hl { border-color: var(--gold); box-shadow: 0 18px 50px -24px rgba(252, 210, 7, .75); }
+.plan-badge { position: absolute; top: -13px; right: 18px; background: var(--gold); color: #1D252B; font-size: .72rem; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; padding: 6px 10px; border-radius: 999px; }
+.plan h3 { color: #fff; }
+.plan-price { font-size: clamp(2rem, 4vw, 3rem); font-weight: 900; line-height: 1; color: var(--green-hi); margin-top: 18px; }
+.plan-hl .plan-price { color: var(--gold); }
+.plan-period { color: #DDE3E7; font-weight: 800; margin: 8px 0 16px; }
+.plan p { color: var(--muted); font-size: .94rem; margin: 0; }
+
 /* challenge + share */
 .challenge-steps { list-style: none; padding: 0; margin: 30px 0 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; counter-reset: c; }
 .challenge-steps li { background: #192025; border: 1px solid #3D4955; border-radius: 999px; padding: 10px 18px; font-weight: 700; }

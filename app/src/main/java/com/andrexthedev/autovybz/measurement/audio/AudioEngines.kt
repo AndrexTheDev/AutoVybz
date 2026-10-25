@@ -22,7 +22,7 @@ import kotlin.math.max
 data class CaptureConfig(
     val sampleRate: Int,
     val source: InputSource,
-    /** External USB mic (Pro), null = built-in microphone. */
+    /** Input device to pin (external USB mic, or the built-in primary mic); null = system default route. */
     val inputDevice: AudioDeviceInfo? = null,
     val extraRecordSeconds: Double = 1.0,
     val outputGain: Float = 1.0f,
@@ -133,7 +133,7 @@ class JavaMeasurementEngine : MeasurementAudioEngine {
                 AudioFormat.Builder().setEncoding(AudioFormat.ENCODING_PCM_FLOAT).setSampleRate(fs)
                     .setChannelMask(AudioFormat.CHANNEL_OUT_STEREO).build(),
             )
-            .setBufferSizeInBytes(max(outMin, fs / 10 * 8))
+            .setBufferSizeInBytes(max(outMin, fs / 4 * 8)) // ~0.25 s: no underruns over UI hiccups
             .setTransferMode(AudioTrack.MODE_STREAM)
             .build()
 
@@ -233,7 +233,9 @@ class JavaMeasurementEngine : MeasurementAudioEngine {
                 if (r.state != AudioRecord.STATE_INITIALIZED || r.sampleRate != fs) {
                     r.release(); continue
                 }
-                if (src == InputSource.USB && config.inputDevice != null) r.setPreferredDevice(config.inputDevice)
+                // Pin the requested input (USB measurement mic or the built-in primary mic) - a
+                // preference, so a device that vanished in the meantime just falls back to default.
+                config.inputDevice?.let { runCatching { r.setPreferredDevice(it) } }
                 return r to src
             } catch (t: Throwable) {
                 lastError = t

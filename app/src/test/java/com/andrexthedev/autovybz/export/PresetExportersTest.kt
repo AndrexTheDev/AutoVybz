@@ -17,6 +17,19 @@ class PresetExportersTest {
     )
 
     @Test
+    fun apoHighPassHasNoGainTokenAndRoundTrips() {
+        val hp = listOf(PeqBand(PeqType.HIGH_PASS, 142.0, 0.0, 0.707))
+        val txt = PresetExporters.toApoText(hp, -1.0)
+        assertTrue(txt.contains("Filter 1: ON HPQ Fc 142 Hz Q 0.71"))
+        assertFalse(txt.contains("Gain"))
+        val (_, parsed) = PresetExporters.parseApoText(txt)
+        assertEquals(1, parsed.size)
+        assertEquals(PeqType.HIGH_PASS, parsed[0].type)
+        assertEquals(142.0, parsed[0].frequency, 1e-9)
+        assertEquals(0.0, parsed[0].gainDb, 1e-9)
+    }
+
+    @Test
     fun apoTextRoundTrip() {
         val txt = PresetExporters.toApoText(bands, -4.3, "AutoVybz test")
         assertTrue(txt.contains("Preamp: -4.3 dB"))

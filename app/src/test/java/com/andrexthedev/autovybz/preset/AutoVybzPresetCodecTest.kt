@@ -49,4 +49,24 @@ class AutoVybzPresetCodecTest {
         assertEquals("INDOOR", old.environment)
         assertEquals(1, old.positions)
     }
+
+    @Test
+    fun speakerClassAndHighPassRoundTripAndOldFilesDefaultToStandard() {
+        val snap = MeasurementSnapshot(doubleArrayOf(20.0, 20000.0), doubleArrayOf(1.0, 2.0), doubleArrayOf(1.0, 2.0),
+            doubleArrayOf(0.0, 0.0), doubleArrayOf(0.5, 0.5), "x", "desc", "UNPROCESSED", "Oboe", 5.0, 40.0,
+            emptyList(), speakerClass = "DEVICE")
+        val p = AutoVybzPreset(
+            "AutoVybz_Device_2026-10-25", 1L, "Google", "Pixel 8", "Device speakers", TargetType.HARMAN, 10,
+            listOf(PeqBand(PeqType.HIGH_PASS, 480.0, 0.0, 0.707), PeqBand(PeqType.PEAK, 3100.0, -4.0, 1.2)),
+            -1.5, 600.0, 12000.0, snap,
+        )
+        val json = p.toInternalJson()
+        val back = AutoVybzPresetCodec.fromInternalJson(json)
+        assertEquals("DEVICE", back.measurement!!.speakerClass)
+        assertEquals(p.bands, back.bands) // the protective high pass survives the round trip
+
+        // Files written before speaker classes existed have no such field.
+        val legacy = json.lines().filterNot { it.contains("\"speakerClass\"") }.joinToString("\n")
+        assertEquals("STANDARD", AutoVybzPresetCodec.fromInternalJson(legacy).measurement!!.speakerClass)
+    }
 }

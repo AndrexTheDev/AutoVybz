@@ -7,6 +7,41 @@
     <string name="avz_nav_about">About</string>
     <string name="avz_nav_home">Sound</string>
     <string name="avz_tagline">Your speaker, perfectly tuned</string>
+    <string name="avz_sticky_footer_placeholder">Banner placeholder</string>
+    <string name="avz_premium_open">Unlock AutoVybz Pro</string>
+    <string name="avz_premium_manage">Manage Pro</string>
+    <string name="avz_premium_status_title">AutoVybz Pro and Free limits</string>
+    <string name="avz_premium_subtitle">Free stays usable with strict limits. Pro removes the limits – paid only with SOL, BTC or ETH.</string>
+    <string name="avz_premium_free_status">Free: %1$d saved profile · %2$d measurement position</string>
+    <string name="avz_premium_trial_status">Pro trial active until %1$s</string>
+    <string name="avz_premium_pro_status">Pro active until %1$s</string>
+    <string name="avz_premium_lifetime_status">Pro Lifetime active</string>
+    <string name="avz_premium_trial_cta">Start 7-day Pro trial</string>
+    <string name="avz_premium_trial_note">The trial also starts automatically after your first successful calibration.</string>
+    <string name="avz_premium_benefit_profiles">Unlimited saved speaker profiles (Free: 1)</string>
+    <string name="avz_premium_benefit_positions">Precise 3-position measurements (Free: 1 position)</string>
+    <string name="avz_premium_benefit_tools">Expert measurement, microphone and custom-target settings</string>
+    <string name="avz_premium_benefit_exports">External exports for Equalizer APO, PEQ JSON and REW</string>
+    <string name="avz_premium_benefit_support">Supports development – no account, no tracking</string>
+    <string name="avz_premium_plan_monthly">1 month</string>
+    <string name="avz_premium_plan_yearly">12 months</string>
+    <string name="avz_premium_plan_lifetime">Lifetime</string>
+    <string name="avz_premium_price">US$%1$s</string>
+    <string name="avz_premium_best_value">Best value</string>
+    <string name="avz_premium_no_autorenew">No auto-renewal. Pay again only if you want to extend.</string>
+    <string name="avz_premium_pay_title">Pay with crypto</string>
+    <string name="avz_premium_pay_instructions">Send the USD equivalent to the address below, then enter the transaction ID (TXID).</string>
+    <string name="avz_premium_sol_tip">Tip: SOL is usually the cheapest network for the 1-month pass.</string>
+    <string name="avz_premium_alpha_note">Alpha: activation happens on this device after you enter the TXID; the payment is reconciled manually. Always double-check the network.</string>
+    <string name="avz_premium_txid_label">Transaction ID (TXID)</string>
+    <string name="avz_premium_txid_invalid">This TXID format does not match the selected coin.</string>
+    <string name="avz_premium_activate">Activate Pro</string>
+    <string name="avz_premium_activated">AutoVybz Pro is active.</string>
+    <string name="avz_premium_reset_alpha">Alpha test: reset Pro status</string>
+    <string name="avz_premium_locked_positions">Precise 3-position mode is available with AutoVybz Pro.</string>
+    <string name="avz_premium_locked_profile">Free saves one speaker profile. Overwrite it or unlock Pro for unlimited profiles.</string>
+    <string name="avz_premium_locked_settings">These expert settings are available with AutoVybz Pro.</string>
+    <string name="avz_premium_locked_exports">External exports are available with AutoVybz Pro.</string>
     <string name="avz_intro_skip">Skip</string>
     <string name="avz_intro_a11y">AutoVybz intro. Tap to skip.</string>
     <string name="avz_home_title">Your sound</string>
@@ -93,7 +128,7 @@
     <string name="avz_route_headphones_title">Headphones detected</string>
     <string name="avz_route_headphones_text">AutoVybz only calibrates loudspeakers. Disconnect headphones or headsets and connect a speaker.</string>
     <string name="avz_route_builtin_title">No external speaker</string>
-    <string name="avz_route_builtin_text">The phone\'s own speaker can\'t be measured with its own microphone. Connect an external speaker via Bluetooth, cable, USB or HDMI.</string>
+    <string name="avz_route_builtin_text">The sound is coming from this phone itself. Connect an external speaker via Bluetooth, cable, USB or HDMI, or calibrate the built-in speakers of this device instead.</string>
     <string name="avz_retry">Try again</string>
     <string name="avz_back">Back</string>
     <string name="avz_safety_title">Safety check</string>
@@ -241,7 +276,7 @@
     <string name="avz_help_s7_body">The speaker plays pink noise and a logarithmic sine sweep (20 Hz – 20 kHz) for exactly 10 seconds while the phone records. AutoVybz calculates the frequency response, compensates the typical behaviour of phone microphones, smooths it (stronger in the bass, ⅓ octave in mids and highs) and fits up to 10 parametric filters that bring your speaker towards the chosen target. A negative pre-gain and the limiter prevent clipping.</string>
     <string name="avz_help_s8_title">Limits</string>
     <string name="avz_help_s8_body">Phone microphones are not measurement microphones; the built-in profiles are estimates. Deep bass the speaker physically can\'t play is never boosted (protects the speaker). For lab-grade results use a USB measurement microphone with its calibration file (Studio).</string>
-    <string name="avz_about_text" formatted="false">AutoVybz is 100 % open source and donationware: no ads, no tracking, no paywall.</string>
+    <string name="avz_about_text" formatted="false">AutoVybz is 100 % open source (GPL-3.0). Free is intentionally limited; AutoVybz Pro removes the limits. No tracking, no account.</string>
     <string name="avz_about_version">Version %1$s</string>
     <string name="avz_about_dev">Developer: AndrexTheDev</string>
     <string name="avz_about_contact">Contact: hippie.highho@gmail.com</string>
@@ -292,7 +327,7 @@
         <item quantity="other">%1$d filters · pre-gain %2$s dB</item>
     </plurals>
     <string name="avz_share_card_positions" tools:ignore="PluralsCandidate">%1$d positions</string>
-    <string name="avz_share_card_free">free · open source · no ads</string>
+    <string name="avz_share_card_free">free · open source · no tracking</string>
 
     <!-- Outdoor / party mode -->
     <string name="avz_env_label">Where do you play?</string>
@@ -346,4 +381,32 @@
     <string name="avz_a11y_level" tools:ignore="PluralsCandidate">Microphone level %1$d percent</string>
     <string name="avz_a11y_positions" tools:ignore="PluralsCandidate">%1$d of %2$d positions measured</string>
     <string name="avz_a11y_chart">Frequency response chart: measured, target and corrected curve. Deviation before %1$s dB, after %2$s dB.</string>
+
+    <!-- Speaker classes: weak-speaker rescue + device speakers -->
+    <string name="avz_class_label">Speaker type</string>
+    <string name="avz_class_standard">External speaker</string>
+    <string name="avz_class_standard_desc">Bluetooth, cable, USB or HDMI speaker – the classic, precise calibration.</string>
+    <string name="avz_class_rescue">Weak / cheap speaker</string>
+    <string name="avz_class_rescue_desc">For speakers that sound bad: a decisive tidy-up against booming bass and harshness, plus a protective cut of bass the speaker cannot play anyway – cleaner and louder instead of rattling.</string>
+    <string name="avz_class_device">This phone / tablet</string>
+    <string name="avz_class_device_desc">Calibrates the built-in speakers of this device, measured with its own microphone. No external speaker may be connected.</string>
+    <string name="avz_device_speaker_name">Device speakers</string>
+    <string name="avz_device_before_1">Disconnect everything: no Bluetooth, cable or USB audio – this device itself will play.</string>
+    <string name="avz_device_before_2">Lay the device screen-up on a table, speakers and microphone uncovered. Keep your usual case on if you always use one.</string>
+    <string name="avz_device_before_3">Keep the room quiet for 10 seconds and do not touch the device.</string>
+    <string name="avz_route_ext_title">External output active</string>
+    <string name="avz_route_ext_text">For the device speakers, this phone itself has to play. Switch off or disconnect the Bluetooth, USB or cable output, then try again.</string>
+    <string name="avz_route_use_device">Calibrate this device instead</string>
+    <string name="avz_safety_text_device">The test plays noise and a sweep through the speakers of this device for 10 seconds. The volume is set lower than usual on purpose: the microphone sits right next to the speaker.</string>
+    <string name="avz_device_check_title">For a clean measurement</string>
+    <string name="avz_device_check_1">The device lies screen-up on a table – not in your hand, because a hand muffles the sound and moves the device.</string>
+    <string name="avz_device_check_2">Speakers and microphone are uncovered and clean.</string>
+    <string name="avz_device_check_3">Step back for the 10 seconds and do not touch the device.</string>
+    <string name="avz_result_highpass">Protective high-pass at %1$d Hz: bass below this is removed, because the speaker cannot play it anyway and only distorts trying.</string>
+    <string name="avz_result_limiter">The limiter is switched on automatically with this calibration and protects the speaker at high volume.</string>
+    <string name="avz_result_device_profile">This profile is tuned for the speakers of this device. When you listen through an external speaker again, switch back to its profile.</string>
+    <string name="avz_help_rescue_title">Rescuing weak speakers</string>
+    <string name="avz_help_rescue_body">Choose the speaker type for weak or cheap speakers and measure as usual. AutoVybz then works more decisively: boomy bass and harsh mids are cut deeper, missing treble is lifted broadly, and a protective high-pass removes deep bass that the little driver cannot reproduce – on its own that takes away most rattling and distortion and leaves room for cleaner loudness. Physics stays physics: real deep bass will not appear, but balanced and clear is very much possible.</string>
+    <string name="avz_help_device_title">Calibrating this phone or tablet</string>
+    <string name="avz_help_device_body">The speaker type for this device measures the built-in speakers with the built-in microphone: disconnect all external outputs and lay the device screen-up on a table. Because the microphone sits only a few centimetres from the speaker, AutoVybz corrects gently and only up to 12 kHz – but it removes the inaudible deep bass that only makes small speakers distort, tames the typical shouty mids and keeps the limiter armed. The result is a normal profile; switch profiles when you connect an external speaker again.</string>
 </resources>

@@ -91,6 +91,12 @@ def circle_mask(px: int) -> Image.Image:
     return big.resize((px, px), Image.LANCZOS)
 
 
+def save_res_webp(img: Image.Image, path) -> None:
+    """Resources ship as lossless WebP (exact: keep RGB under alpha=0 -> pixel-identical
+    to the PNG, ~40% smaller). Store/branding assets below stay PNG."""
+    img.save(path, lossless=True, method=6, exact=True)
+
+
 def main() -> None:
     src = np.asarray(Image.open(SRC).convert("RGB")).astype(float)
     weights = unmix(src)
@@ -107,7 +113,7 @@ def main() -> None:
     # UI header asset (density independent, transparent).
     nodpi = RES / "drawable-nodpi"
     nodpi.mkdir(exist_ok=True)
-    art.resize((512, 512), Image.LANCZOS).save(nodpi / "autovybz_logo.png", optimize=True)
+    save_res_webp(art.resize((512, 512), Image.LANCZOS), nodpi / "autovybz_logo.webp")
 
     for name, d in DENSITIES.items():
         folder = RES / f"mipmap-{name}"
@@ -115,17 +121,17 @@ def main() -> None:
         fg_px = int(round(108 * d))
         # Adaptive icon: 108dp canvas, 66dp safe circle -> keep artwork inside ~62dp.
         fg = place(art, fg_px, 62 / 108)
-        fg.save(folder / "ic_launcher_foreground.png", optimize=True)
+        save_res_webp(fg, folder / "ic_launcher_foreground.webp")
         # Monochrome (themed icons): Android only uses the alpha channel.
         mono = Image.new("RGBA", fg.size, (255, 255, 255, 0))
         mono.putalpha(fg.getchannel("A"))
-        mono.save(folder / "ic_launcher_monochrome.png", optimize=True)
+        save_res_webp(mono, folder / "ic_launcher_monochrome.webp")
         # Legacy (< API 26) icon: round charcoal badge with the artwork.
         legacy_px = int(round(48 * d))
         badge = place(art, legacy_px, 0.80, bg=(0x12, 0x12, 0x12, 255))
         badge.putalpha(circle_mask(legacy_px))
-        badge.save(folder / "ic_launcher.png", optimize=True)
-        badge.save(folder / "ic_launcher_round.png", optimize=True)
+        save_res_webp(badge, folder / "ic_launcher.webp")
+        save_res_webp(badge, folder / "ic_launcher_round.webp")
         stale = folder / "ic_launcher_background.png"
         if stale.exists():
             stale.unlink()  # background is now the @color/ic_launcher_background resource

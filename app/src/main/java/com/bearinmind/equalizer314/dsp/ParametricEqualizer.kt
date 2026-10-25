@@ -51,6 +51,10 @@ class ParametricEqualizer(private val sampleRate: Int = 48000) {
     }
 
     companion object {
+        /** tanh(1.0) — baseline of the saturation response (tanh of a flat signal);
+         *  a constant, so compute it once instead of per sampled point. */
+        private val TANH_1 = tanh(1.0)
+
         /** Compute n log-spaced frequencies across 10–22000 Hz */
         fun logSpacedFrequencies(n: Int): FloatArray {
             val logMin = kotlin.math.log10(10f)
@@ -150,7 +154,9 @@ class ParametricEqualizer(private val sampleRate: Int = 48000) {
         filters.forEach { it.reset() }
     }
 
-    fun getFrequencyResponse(frequency: Float): Float {
+    /** Product of every enabled band's linear magnitude at [frequency] — shared by
+     *  the plain and saturation responses so callers needing both pay one band pass. */
+    private fun totalMagnitude(frequency: Float): Float {
         var totalMagnitude = 1f
 
         for (i in filters.indices) {
@@ -160,7 +166,21 @@ class ParametricEqualizer(private val sampleRate: Int = 48000) {
             }
         }
 
-        return 20f * kotlin.math.log10(totalMagnitude.coerceAtLeast(0.0001f))
+        return totalMagnitude
+    }
+
+    fun getFrequencyResponse(frequency: Float): Float {
+        return 20f * kotlin.math.log10(totalMagnitude(frequency).coerceAtLeast(0.0001f))
+    }
+
+    /** [getFrequencyResponse] into `out[0]` and [getFrequencyResponseWithSaturation]
+     *  into `out[1]`, from a single magnitude-product pass (the graph samples both
+     *  curves at every point, every frame). */
+    fun getFrequencyResponsesDb(frequency: Float, out: FloatArray) {
+        val totalMagnitude = totalMagnitude(frequency)
+        out[0] = 20f * kotlin.math.log10(totalMagnitude.coerceAtLeast(0.0001f))
+        val saturated = tanh(totalMagnitude.toDouble()) / TANH_1
+        out[1] = 20f * kotlin.math.log10(saturated.coerceAtLeast(0.0001).toFloat())
     }
 
     /** Response of a single band in dB at [frequency]. Used by the
@@ -181,16 +201,7 @@ class ParametricEqualizer(private val sampleRate: Int = 48000) {
      * Shows how much tanh compresses boosts at full volume.
      */
     fun getFrequencyResponseWithSaturation(frequency: Float): Float {
-        var totalMagnitude = 1f
-
-        for (i in filters.indices) {
-            if (bands[i].enabled) {
-                totalMagnitude *= filters[i].getFrequencyResponse(frequency)
-            }
-        }
-
-        val tanhRef = tanh(1.0) // baseline: tanh applied to flat signal
-        val saturated = tanh(totalMagnitude.toDouble()) / tanhRef
+        val saturated = tanh(totalMagnitude(frequency).toDouble()) / TANH_1
         return 20f * kotlin.math.log10(saturated.coerceAtLeast(0.0001).toFloat())
     }
 

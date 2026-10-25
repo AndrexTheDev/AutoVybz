@@ -26,6 +26,33 @@ class MicProfilesTest {
     )
 
     @Test
+    fun manufacturerNormalisation() {
+        // Mirror of normalise() in tools/micdb/generate_mic_profiles.py.
+        val cases = mapOf(
+            "Samsung Electronics" to "samsung",
+            "POCO" to "xiaomi",
+            "Redmi" to "xiaomi",
+            "XIAOMI" to "xiaomi",
+            "HMD Global Oy" to "hmd global",
+            "TECNO MOBILE LIMITED" to "tecno",
+            "Infinix Mobility Limited" to "infinix",
+            "itel" to "itel",
+            "Black Shark" to "blackshark",
+            "BLACKSHARK" to "blackshark",
+            "Bullitt Group Limited" to "cat",
+            "Amazon" to "amazon",
+            "TCL Communication" to "tcl",
+            "Gigaset Communications" to "gigaset",
+            "Sony" to "sony",
+            " Google " to "google",
+            "DOOGEE" to "doogee",
+        )
+        for ((raw, expected) in cases) {
+            assertEquals(raw, expected, MicProfileMatcher.normaliseManufacturer(raw))
+        }
+    }
+
+    @Test
     fun matcherPrefersModelThenManufacturerThenDefault() {
         assertEquals("samsung-s-measured", MicProfileMatcher.match(db, default, "samsung", "SM-S921B").id)
         assertEquals("samsung-s", MicProfileMatcher.match(db, default, "Samsung", "SM-S928U").id)

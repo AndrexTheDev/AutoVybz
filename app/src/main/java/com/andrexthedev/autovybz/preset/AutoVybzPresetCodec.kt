@@ -38,6 +38,7 @@ object AutoVybzPresetCodec {
                 warnings = mo.optJSONArray("warnings")?.let { w -> (0 until w.length()).map { w.getString(it) } } ?: emptyList(),
                 environment = mo.optString("environment", "INDOOR").ifEmpty { "INDOOR" },
                 positions = mo.optInt("positions", 1),
+                speakerClass = mo.optString("speakerClass", "STANDARD").ifEmpty { "STANDARD" },
             )
         }
         return AutoVybzPreset(

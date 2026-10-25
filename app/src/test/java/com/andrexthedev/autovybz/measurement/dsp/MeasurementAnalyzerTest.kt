@@ -77,6 +77,43 @@ class MeasurementAnalyzerTest {
         assertTrue(MeasurementWarning.LOW_SNR in analyzer.analyze(noisy.play(stimulus.signal), stimulus).warnings)
     }
 
+    @Test
+    fun irPeakSearchIgnoresIsolatedSpike() {
+        // The direct arrival concentrates energy (main peak + ringing) inside
+        // ~1 ms; a single taller noise sample must not steal the latency.
+        val fs = 48000
+        val ir = DoubleArray(fs / 2)
+        val rnd = java.util.Random(7)
+        for (i in ir.indices) ir[i] = rnd.nextGaussian() * 0.10
+        val peak = 10000
+        ir[peak] = 1.0
+        ir[peak - 1] = 0.6
+        ir[peak + 1] = 0.62
+        ir[peak - 2] = 0.3
+        ir[peak + 2] = 0.28
+        for (j in 3 until 48) {
+            ir[peak + j] += 0.5 * kotlin.math.exp(-j / 18.0) * kotlin.math.sin(2 * Math.PI * 900.0 * j / fs)
+        }
+        ir[3000] = 1.45 // isolated deconvolved-noise spike, taller than the direct peak
+        assertEquals(peak, analyzer.locateIrPeak(ir, ir.size - 1, fs))
+    }
+
+    @Test
+    fun latencyIsFoundDespiteNoiseAndReflection() {
+        val sim = SpeakerSimulator(
+            highPassHz = 80.0,
+            latencySeconds = 0.30,
+            gain = 0.06,
+            noiseRms = 0.0015,
+            reflectionDelaySeconds = 0.008,
+            reflectionGain = 0.3,
+        )
+        val r = analyzer.analyze(sim.play(stimulus.signal), stimulus)
+        assertEquals(300.0, r.latencyMs, 1.0)
+        val err = maxErrorDb(r, sim, 200.0, 6000.0)
+        assertTrue("max error $err dB", err < 3.0)
+    }
+
     @Test(expected = MeasurementException::class)
     fun silenceThrows() {
         analyzer.analyze(FloatArray(stimulus.signal.size + 1000), stimulus)

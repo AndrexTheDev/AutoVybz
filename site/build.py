@@ -32,7 +32,7 @@ REPO_API = "https://api.github.com/repos/AndrexTheDev/AutoVybz"
 EMAIL = "hippie.highho@gmail.com"
 LANGS = os.environ.get("AVZ_LANGS", "en,de,es").split(",")  # first = default (root)
 LEGAL_PAGES = ["imprint", "privacy", "terms", "disclaimer"]
-LEGAL_DATE = "2026-10-24"
+LEGAL_DATE = "2026-10-25"
 
 WALLETS = [
     ("SOL", "Solana", "79KsqtJJdhKFJ9woxnYgtf3nq7HxQveafWBCtC3mxWi8", "sol"),
@@ -124,6 +124,15 @@ def render_lists(t: dict, ctx: dict) -> dict:
         "<tr>" + "".join((f'<th scope="row">{c}</th>' if i == 0 else f'<td{" class=hl" if i == 3 else ""}>{c}</td>')
                          for i, c in enumerate(r)) + "</tr>" for r in t["compare"]["rows"]) + "</tbody>"
     L["compare"] = head + body
+
+    def plan_card(p: dict) -> str:
+        badge = f'<span class="plan-badge">{esc(p["badge"])}</span>' if p.get("badge") else ""
+        highlight = " plan-hl" if p.get("highlight") else ""
+        return (f'<article class="plan reveal{highlight}">{badge}<h3>{esc(p["name"])}</h3>'
+                f'<div class="plan-price">{esc(p["price"])}</div>'
+                f'<div class="plan-period">{esc(p["period"])}</div><p>{esc(p["desc"])}</p></article>')
+
+    L["plans"] = "".join(plan_card(p) for p in t["plans"]["items"])
     L["roast_types"] = "".join(f'<button class="chip" data-value="{k}">{esc(v)}</button>'
                                for k, v in t["roast"]["types"].items())
     L["roast_places"] = "".join(f'<button class="chip" data-value="{k}">{esc(v)}</button>'
@@ -161,7 +170,8 @@ def jsonld(t: dict, lang: str, version: str) -> str:
         "softwareVersion": version, "license": "https://www.gnu.org/licenses/gpl-3.0.html",
         "isAccessibleForFree": True, "image": SITE_URL + "assets/img/logo-512.png",
         "author": {"@type": "Person", "name": "AndrexTheDev", "email": EMAIL},
-        "offers": {"@type": "Offer", "price": "0", "priceCurrency": "EUR"},
+        "offers": {"@type": "AggregateOffer", "lowPrice": "0", "highPrice": "99",
+                   "priceCurrency": "USD", "offerCount": 4},
         "codeRepository": REPO,
     }
     faq = {

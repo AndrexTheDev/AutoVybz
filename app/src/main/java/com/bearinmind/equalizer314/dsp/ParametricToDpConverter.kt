@@ -84,6 +84,27 @@ object ParametricToDpConverter {
         }
     }
 
+    /** Sparse table over [grid] for O(1) range-min ([isMin]) or range-max queries:
+     *  `st[k][i]` aggregates `grid[i until i + 2^k]`. Entries past the last full
+     *  window stay 0 and are never queried. */
+    private fun buildSparse(grid: FloatArray, levels: Int, isMin: Boolean): Array<FloatArray> {
+        val st = Array(levels) { FloatArray(grid.size) }
+        grid.copyInto(st[0])
+        var len = 1
+        for (k in 1 until levels) {
+            val prev = st[k - 1]
+            val cur = st[k]
+            val limit = grid.size - (len shl 1)
+            if (isMin) {
+                for (i in 0..limit) { val a = prev[i]; val b = prev[i + len]; cur[i] = if (a < b) a else b }
+            } else {
+                for (i in 0..limit) { val a = prev[i]; val b = prev[i + len]; cur[i] = if (a > b) a else b }
+            }
+            len = len shl 1
+        }
+        return st
+    }
+
     private fun adaptiveCutoffs(
         grids: List<FloatArray>,
         anchors: List<Float>,
@@ -93,20 +114,43 @@ object ParametricToDpConverter {
         val gMin = 10f
         val gMax = 20000f
         val logSpan = ln(gMax / gMin)
-        fun gi(f: Float): Int {
+        // gi() is a pure function of f, but the searches below call it ~10⁵ times per
+        // conversion on ~10² distinct frequencies — memoize instead of recomputing ln().
+        val giCache = HashMap<Float, Int>()
+        fun gi(f: Float): Int = giCache.getOrPut(f) {
             val fc = f.coerceIn(gMin, gMax)
-            return ((ln(fc / gMin) / logSpan) * (GRID_SIZE - 1) + 0.5f).toInt()
+            ((ln(fc / gMin) / logSpan) * (GRID_SIZE - 1) + 0.5f).toInt()
                 .coerceIn(0, GRID_SIZE - 1)
         }
+
+        // Range min/max over a grid, for variation(): answered in O(1) from sparse
+        // tables instead of an O(range) scan (the refinement loop asks ~10⁵ times).
+        // Min/max selection on FINITE floats is exact under reordering, so results
+        // are identical to the scan; a grid holding NaN/Inf (degenerate EQ) keeps
+        // the original scan, whose NaN/Inf behaviour differs subtly.
+        val useRmq = grids.all { gridDb -> gridDb.all { it.isFinite() } }
+        val lg = IntArray(GRID_SIZE + 1)
+        for (i in 2..GRID_SIZE) lg[i] = lg[i shr 1] + 1
+        val levels = lg[GRID_SIZE] + 1
+        val stMin = if (useRmq) Array(grids.size) { g -> buildSparse(grids[g], levels, isMin = true) } else null
+        val stMax = if (useRmq) Array(grids.size) { g -> buildSparse(grids[g], levels, isMin = false) } else null
+
         fun variation(lo: Float, hi: Float): Float {
             val i0 = gi(lo); val i1 = gi(hi)
             var worst = 0f
-            for (gridDb in grids) {
+            for (g in grids.indices) {
+                val gridDb = grids[g]
                 val v = if (i1 <= i0) {
                     abs(gridDb[i1] - gridDb[i0])
+                } else if (stMin != null && stMax != null) {
+                    val k = lg[i1 - i0 + 1]
+                    val j = i1 - (1 shl k) + 1
+                    val mnA = stMin[g][k][i0]; val mnB = stMin[g][k][j]
+                    val mxA = stMax[g][k][i0]; val mxB = stMax[g][k][j]
+                    (if (mxA > mxB) mxA else mxB) - (if (mnA < mnB) mnA else mnB)
                 } else {
                     var mn = Float.MAX_VALUE; var mx = -Float.MAX_VALUE
-                    for (k in i0..i1) { val g = gridDb[k]; if (g < mn) mn = g; if (g > mx) mx = g }
+                    for (k in i0..i1) { val gv = gridDb[k]; if (gv < mn) mn = gv; if (gv > mx) mx = gv }
                     mx - mn
                 }
                 if (v > worst) worst = v
@@ -217,15 +261,11 @@ object ParametricToDpConverter {
             if (starts[i] <= stop) prev = stop
         }
         val x = FloatArray(cutoffs.size)
-        val meanT = FloatArray(cutoffs.size)
-        var lastStop = -1
         for (i in cutoffs.indices) {
             if (starts[i] <= stops[i]) {
                 var s = 0f
                 for (k in starts[i]..stops[i]) s += tDb[k]
-                meanT[i] = s / (stops[i] - starts[i] + 1)
-                x[i] = meanT[i]
-                lastStop = stops[i]
+                x[i] = s / (stops[i] - starts[i] + 1)
             } else {
                 // Collapsed into an already-covered bin — DP renders nothing
                 // for this band; keep the plain point sample (harmless).

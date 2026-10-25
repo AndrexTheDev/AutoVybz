@@ -35,6 +35,20 @@ data class AutoEqSettings(
     val broadBoostOctaves: Double? = null,
     /** Width of the boost ramp above the bass roll-off (excursion guard), octaves. */
     val excursionGuardOctaves: Double = 1.0,
+    /**
+     * Where the bass roll-off scan starts ([AutoEqRenderer.detectLowLimit]) and its upper clamp.
+     * The defaults suit normal external speakers (roll-off below 200 Hz); tiny drivers need a
+     * wider scan or the detection saturates at the clamp (phone speakers roll off at 400-900 Hz).
+     */
+    val lowLimitScanHz: Double = 200.0,
+    val lowLimitMaxHz: Double = 160.0,
+    /**
+     * Add a 2nd-order protective high pass at the measured bass roll-off (-6 dB point): signal the
+     * driver cannot reproduce only costs excursion, rattling and intermodulation distortion.
+     * Removing it is pure win for weak / tiny speakers (more clean headroom). Consumes one of the
+     * [bandCount] bands; skipped when the speaker plays (almost) full-range anyway.
+     */
+    val protectiveHighPass: Boolean = false,
 ) {
     init {
         require(bandCount in 1..16)
@@ -61,6 +75,8 @@ class AutoEqResult(
     val maxFilterBoostDb: Double,
     /** Frequency ranges (Hz) inside the correction range that were skipped because of background noise. */
     val noiseGatedRanges: List<Pair<Double, Double>> = emptyList(),
+    /** Corner frequency of the protective high pass in [bands], if one was added. */
+    val highPassHz: Double? = null,
 )
 
 /**
@@ -75,8 +91,28 @@ class AutoEqResult(
  *    guard) and faded to 0 dB over half an octave outside the range.
  * 3. Fit [AutoEqSettings.bandCount] biquads ([PeqFitter]).
  * 4. Anti-clipping: pre-gain = -(max combined boost + headroom).
+ *
+ * With [AutoEqSettings.protectiveHighPass] one of the fitted bands is replaced by a
+ * high pass at the measured -6 dB roll-off point, so weak drivers stop wasting their
+ * excursion (and the listener's patience) on bass they cannot play. The fitter is told
+ * about the pass (its slope inside the correction band is compensated in the desired
+ * curve), so the band edge is not cut twice.
  */
 object AutoEqRenderer {
+
+    /** [detectLowLimit] reports the measured -6 dB point times this safety factor. */
+    const val LOW_LIMIT_SAFETY = 1.25
+
+    /** Below this corner a protective pass is pointless (the speaker plays (almost) full-range). */
+    const val MIN_PROTECTIVE_HP_HZ = 35.0
+    const val MAX_PROTECTIVE_HP_HZ = 1000.0
+
+    /** Butterworth, 12 dB/oct. */
+    const val PROTECTIVE_HP_Q = 0.707
+
+    /** Protective-pass corner for a detected [lowLimitHz] (the -6 dB point), or null if pointless. */
+    internal fun protectiveHighPassHz(lowLimitHz: Double): Double? =
+        (lowLimitHz / LOW_LIMIT_SAFETY).takeIf { it >= MIN_PROTECTIVE_HP_HZ }?.coerceAtMost(MAX_PROTECTIVE_HP_HZ)
 
     fun render(
         frequencies: DoubleArray,
@@ -97,9 +133,11 @@ object AutoEqRenderer {
         val measuredDb = normalise(frequencies, measuredDb)
         val rollOffDb = normalise(frequencies, rollOffDb)
 
-        val lowLimit = if (settings.autoLowLimit) detectLowLimit(frequencies, rollOffDb)
-        else settings.manualLowLimitHz.coerceIn(20.0, 500.0)
+        val lowLimit = if (settings.autoLowLimit) {
+            detectLowLimit(frequencies, rollOffDb, settings.lowLimitScanHz, maxHz = settings.lowLimitMaxHz)
+        } else settings.manualLowLimitHz.coerceIn(20.0, 500.0)
         val highLimit = settings.highLimitHz.coerceIn(2000.0, 20000.0)
+        val highPassHz = if (settings.protectiveHighPass) protectiveHighPassHz(lowLimit) else null
 
         val inRange = DoubleArray(frequencies.size) { rangeWeight(frequencies[it], lowLimit, highLimit) }
         val reliable = DoubleArray(frequencies.size) { i ->
@@ -118,7 +156,8 @@ object AutoEqRenderer {
 
         val grid = BiquadMath.Grid(frequencies, settings.sampleRate)
         val constraints = FitConstraints(
-            maxBands = settings.bandCount,
+            // The protective pass takes one slot, so presets stay within the promised band count.
+            maxBands = if (highPassHz != null) (settings.bandCount - 1).coerceAtLeast(1) else settings.bandCount,
             maxBoostDb = settings.maxBoostDb,
             maxCutDb = settings.maxCutDb,
             minFrequency = (lowLimit * 0.8).coerceAtLeast(20.0),
@@ -130,7 +169,21 @@ object AutoEqRenderer {
             allowShelves = true,
             noBoostBelowHz = lowLimit / 2,
         )
-        val bands = PeqFitter(grid, desired, weights, constraints).fit()
+        val highPass = highPassHz?.let { PeqBand(PeqType.HIGH_PASS, it, 0.0, PROTECTIVE_HP_Q) }
+        // The fitter must see the world *with* the protective pass in place: inside the correction
+        // band its slope is part of the desired curve (otherwise the low edge ends up cut twice -
+        // by the fit and by the pass, up to ~1.5 dB at the low limit). Outside the band nothing is
+        // compensated: there the cut is the protection. The excursion guard was already applied to
+        // [desired], so compensating the slope can never increase the electrical signal beyond
+        // what the guard budgeted.
+        val fitDesired = if (highPass != null) {
+            val hp = DoubleArray(frequencies.size).also { grid.response(highPass, it) }
+            DoubleArray(frequencies.size) { i -> desired[i] - hp[i] * inRange[i] * reliable[i] }
+        } else desired
+        val fitted = PeqFitter(grid, fitDesired, weights, constraints).fit()
+        val bands = if (highPass != null) {
+            (fitted + highPass).sortedBy { it.frequency }
+        } else fitted
         val response = grid.response(bands)
         val predicted = DoubleArray(frequencies.size) { measuredDb[it] + response[it] }
 
@@ -152,6 +205,7 @@ object AutoEqRenderer {
             rmsErrorAfterDb = rmsDeviation(frequencies, predicted, targetDb, lowLimit, highLimit),
             maxFilterBoostDb = maxBoost,
             noiseGatedRanges = gatedRanges(frequencies, reliable, lowLimit, highLimit),
+            highPassHz = highPassHz,
         )
     }
 
@@ -197,20 +251,41 @@ object AutoEqRenderer {
     }
 
     /**
-     * Speaker bass extension: scanning down from 200 Hz, the first frequency
-     * where the (1/3 octave) response falls 6 dB below the 300 Hz - 3 kHz
-     * reference. Correction starts a little above it (x1.25) so the EQ never
-     * fights the physical roll-off (driver excursion!). Clamped to 25..160 Hz.
+     * Speaker bass extension: the frequency where the (1/3 octave) response falls 6 dB below its
+     * midrange reference. Correction starts a little above it ([LOW_LIMIT_SAFETY]) so the EQ
+     * never fights the physical roll-off (driver excursion!).
+     *
+     * The crossing is the top of the below-threshold run that reaches the bottom of the grid -
+     * an isolated room dip above the true roll-off must not be mistaken for it (this matters once
+     * [scanFromHz] reaches into the midrange for tiny speakers). If measurement noise lifts the
+     * deepest bins above the threshold, the classic scan-down from [scanFromHz] is the fallback.
+     *
+     * The reference band starts at max(300 Hz, 0.75 * [scanFromHz]): with the wide tiny-speaker
+     * scan the classic 300 Hz edge would sit *inside* the roll-off it is supposed to find, which
+     * depresses the reference and biases the result low (phone speaker: 519 Hz detected instead
+     * of the true 665 Hz; with the scaled reference: 644 Hz). The defaults (scan from 200 Hz,
+     * clamp 25..160 Hz) preserve the original external-speaker values exactly.
      */
-    fun detectLowLimit(frequencies: DoubleArray, measuredDb: DoubleArray): Double {
-        val ref = FrequencyGrid.bandMean(frequencies, measuredDb, 300.0, 3000.0)
-        var start = frequencies.indexOfLast { it <= 200.0 }
-        if (start < 0) return 25.0
-        while (start >= 0) {
-            if (measuredDb[start] < ref - 6.0) return (frequencies[start] * 1.25).coerceIn(25.0, 160.0)
-            start--
+    fun detectLowLimit(
+        frequencies: DoubleArray,
+        measuredDb: DoubleArray,
+        scanFromHz: Double = 200.0,
+        minHz: Double = 25.0,
+        maxHz: Double = 160.0,
+    ): Double {
+        val ref = FrequencyGrid.bandMean(frequencies, measuredDb, maxOf(300.0, scanFromHz * 0.75), 3000.0)
+        val threshold = ref - 6.0
+        val scanIdx = frequencies.indexOfLast { it <= scanFromHz }
+        if (scanIdx < 0) return minHz
+        var runTop = -1
+        while (runTop + 1 <= scanIdx && measuredDb[runTop + 1] < threshold) runTop++
+        if (runTop >= 0) return (frequencies[runTop] * LOW_LIMIT_SAFETY).coerceIn(minHz, maxHz)
+        var i = scanIdx
+        while (i >= 0) {
+            if (measuredDb[i] < threshold) return (frequencies[i] * LOW_LIMIT_SAFETY).coerceIn(minHz, maxHz)
+            i--
         }
-        return 25.0
+        return minHz
     }
 
     /**

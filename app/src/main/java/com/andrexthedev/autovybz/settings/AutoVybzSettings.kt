@@ -3,6 +3,8 @@ package com.andrexthedev.autovybz.settings
 import android.content.Context
 import com.andrexthedev.autovybz.measurement.ListeningEnvironment
 import com.andrexthedev.autovybz.measurement.MeasurementRequest
+import com.andrexthedev.autovybz.measurement.SpeakerClass
+import com.andrexthedev.autovybz.measurement.SpeakerClassTuning
 import com.andrexthedev.autovybz.measurement.dsp.SmoothingProfile
 import com.andrexthedev.autovybz.measurement.eq.CustomTarget
 import com.andrexthedev.autovybz.measurement.eq.TargetType
@@ -40,6 +42,12 @@ class AutoVybzSettings(context: Context) {
         get() = runCatching { ListeningEnvironment.valueOf(prefs.getString("environment", null) ?: "") }
             .getOrDefault(ListeningEnvironment.INDOOR)
         set(v) = prefs.edit().putString("environment", v.name).apply()
+
+    /** External speaker (default), weak-speaker rescue, or this device's own speakers. */
+    var speakerClass: SpeakerClass
+        get() = runCatching { SpeakerClass.valueOf(prefs.getString("speakerClass", null) ?: "") }
+            .getOrDefault(SpeakerClass.STANDARD)
+        set(v) = prefs.edit().putString("speakerClass", v.name).apply()
 
     var smoothing: SmoothingChoice
         get() = runCatching { SmoothingChoice.valueOf(prefs.getString("smoothing", null) ?: "") }.getOrDefault(SmoothingChoice.DYNAMIC)
@@ -104,17 +112,22 @@ class AutoVybzSettings(context: Context) {
         tiltDbPerOctave = customTiltDbPerOct.toDouble(),
     )
 
-    fun buildRequest(speakerName: String?, target: TargetType = this.target): MeasurementRequest = MeasurementRequest(
-        speakerName = speakerName?.trim()?.takeIf { it.isNotEmpty() },
-        target = target,
-        customTarget = customTarget(),
-        bandCount = bandCount,
-        maxBoostDb = maxBoostDb.toDouble(),
-        smoothing = smoothing.profile,
-        useUsbMic = useUsbMic,
-        usbCalibration = loadCurve(usbCalibrationFile),
-        userMicOffset = loadCurve(userOffsetFile),
-        micProfileOverrideId = micProfileOverrideId,
-        environment = environment,
-    )
+    fun buildRequest(speakerName: String?, target: TargetType = this.target): MeasurementRequest {
+        val cls = speakerClass
+        return MeasurementRequest(
+            speakerName = speakerName?.trim()?.takeIf { it.isNotEmpty() },
+            target = target,
+            customTarget = customTarget(),
+            bandCount = bandCount,
+            maxBoostDb = maxBoostDb.toDouble(),
+            smoothing = smoothing.profile,
+            // A device-speaker calibration is defined around the phone's own microphone.
+            useUsbMic = useUsbMic && !SpeakerClassTuning.of(cls).forcePhoneMic,
+            usbCalibration = loadCurve(usbCalibrationFile),
+            userMicOffset = loadCurve(userOffsetFile),
+            micProfileOverrideId = micProfileOverrideId,
+            environment = environment,
+            speakerClass = cls,
+        )
+    }
 }

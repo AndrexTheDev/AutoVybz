@@ -11,7 +11,7 @@ AutoVybz misst deinen externen Lautsprecher (Bluetooth, AUX, USB, HDMI) mit dem 
 <li>Dynamische Glättung (stark im Bass, 1/3 Oktave in Mitten und Höhen)</li>
 <li>Bis zu 10 parametrische Filter passend zu deinem Ziel – ohne Bass zu verstärken, den dein Lautsprecher nicht spielen kann</li>
 <li>Automatischer Pre-Gain und Limiter gegen Übersteuerung</li>
-<li>Optionaler Präzisionsmodus: 3 Positionen, leistungsgemittelt – ignoriert Senken, die es nur an einer Stelle gibt</li>
+<li>Präzisionsmodus: 3 Positionen, leistungsgemittelt – ignoriert Senken, die es nur an einer Stelle gibt (AutoVybz Pro/Trial; Free nutzt 1 Position)</li>
 <li>Outdoor-/Party-Modus: max. +3 dB Anhebung für volle Lautstärke, ignoriert Bodenreflexionen und verrauschte Bereiche (Wind, Verkehr, Vögel), erkennt Wind und Bluetooth-Aussetzer, Limiter immer an, volle Bildschirmhelligkeit in der Sonne</li>
 </ul>
 
@@ -19,8 +19,10 @@ AutoVybz misst deinen externen Lautsprecher (Bluetooth, AUX, USB, HDMI) mit dem 
 
 <b>Pro-Bereich</b>: komplette Equalizer314-Engine – 10-Band-PEQ mit Graph, Multiband-Kompressor, Limiter, Presets, AutoEQ.
 
-<b>Export &amp; Teilen</b>: Equalizer APO / Peace, parametrisches EQ-JSON, CSV für REW und eine Share-Karte mit deiner echten Messung.
+<b>Export &amp; Teilen</b>: AutoVybz Pro exportiert Equalizer APO / Peace, parametrisches EQ-JSON und CSV für REW. Free behält interne Presets und die Share-Karte mit deiner echten Messung.
+
+<b>Free &amp; Pro</b>: Free enthält das permanente Banner, ein gespeichertes Profil und die schnelle 1-Position-Kalibrierung. Der 7-tägige Pro-Trial startet nach dem ersten Ergebnis. Pro kostet in der Alpha 1,99 US$/Monat, 19,99 US$/Jahr oder 99 US$ Lifetime, zahlbar nur mit SOL, BTC oder ETH und ohne automatische Verlängerung.
 
 Kopfhörer sind bewusst ausgeschlossen – AutoVybz ist für Lautsprecher gemacht.
 
-100 % Open Source (GPL-3.0), Donationware, keine Werbung, kein Tracking. Basiert auf Equalizer314 von bearinmindcat.
+Open Source (GPL-3.0), kein Konto, kein Tracking und kein Werbe-SDK. Basiert auf Equalizer314 von bearinmindcat.

@@ -38,6 +38,8 @@ class SimulatedRoomEngine : MeasurementAudioEngine {
         ROUTE_CHANGE,
         /** Capture works, but with buffer under-/overruns. */
         GLITCH,
+        /** Dreadful cheap Bluetooth box: no bass below ~260 Hz, boom, shout, dull top (rescue mode). */
+        CHEAP_SPEAKER,
     }
 
     override val name = "Simulated room (E2E)"
@@ -61,6 +63,13 @@ class SimulatedRoomEngine : MeasurementAudioEngine {
         PeqBand(PeqType.HIGH_SHELF, 9000.0, -3.0, 0.7),
     )
 
+    /** The [Mode.CHEAP_SPEAKER] colouration on top of its 260 Hz bass cut-off. */
+    private val cheapSpeaker = listOf(
+        PeqBand(PeqType.PEAK, 320.0, 7.0, 1.0),
+        PeqBand(PeqType.PEAK, 3200.0, 6.0, 1.5),
+        PeqBand(PeqType.HIGH_SHELF, 7000.0, -8.0, 0.7),
+    )
+
     override suspend fun capture(
         stimulus: FloatArray,
         config: CaptureConfig,
@@ -82,8 +91,9 @@ class SimulatedRoomEngine : MeasurementAudioEngine {
             FloatArray(stimulus.size + fs)
         } else {
             // A slightly different ground reflection per capture = a different microphone position.
+            val (bands, cutOffHz) = if (mode == Mode.CHEAP_SPEAKER) cheapSpeaker to 260.0 else speaker to 65.0
             var rec = SpeakerSimulator(
-                sampleRate = fs, bands = speaker, highPassHz = 65.0, gain = 0.3, latencySeconds = 0.18,
+                sampleRate = fs, bands = bands, highPassHz = cutOffHz, gain = 0.3, latencySeconds = 0.18,
                 reflectionDelaySeconds = 0.0015 + 0.0007 * (n % 5), reflectionGain = 0.5, noiseRms = 1e-4,
                 extraTailSeconds = 1.0, seed = 40 + n,
             ).play(stimulus)
