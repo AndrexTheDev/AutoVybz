@@ -201,7 +201,9 @@ dependencies {
 // F-Droid reproducible builds: disable baseline profile generation. The
 // output of baseline.prof is non-deterministic across machines and would
 // cause F-Droid's build reproducibility check to fail.
-tasks.whenTaskAdded {
+// configureEach, not whenTaskAdded: the latter breaks AGP 8.1+'s task wiring
+// (merged_java_res/base.jar missing when R8 reads it — issuetracker 277166577).
+tasks.configureEach {
     if (name.contains("ArtProfile")) {
         enabled = false
     }
