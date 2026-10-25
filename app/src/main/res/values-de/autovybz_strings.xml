@@ -93,7 +93,7 @@
     <string name="avz_route_headphones_title">Kopfhörer erkannt</string>
     <string name="avz_route_headphones_text">AutoVybz misst nur Lautsprecher ein. Bitte Kopfhörer/Headsets trennen und einen Lautsprecher verbinden.</string>
     <string name="avz_route_builtin_title">Kein externer Lautsprecher</string>
-    <string name="avz_route_builtin_text">Der eingebaute Handy-Lautsprecher lässt sich nicht mit dem eigenen Mikrofon einmessen. Verbinde einen externen Lautsprecher per Bluetooth, Kabel, USB oder HDMI.</string>
+    <string name="avz_route_builtin_text">Der Ton kommt aus diesem Handy selbst. Verbinde einen externen Lautsprecher per Bluetooth, Kabel, USB oder HDMI, oder kalibriere stattdessen die eingebauten Lautsprecher dieses Geräts.</string>
     <string name="avz_retry">Erneut prüfen</string>
     <string name="avz_back">Zurück</string>
     <string name="avz_safety_title">Sicherheitshinweis</string>
@@ -346,4 +346,30 @@
     <string name="avz_a11y_level" tools:ignore="PluralsCandidate">Mikrofonpegel %1$d Prozent</string>
     <string name="avz_a11y_positions" tools:ignore="PluralsCandidate">%1$d von %2$d Positionen gemessen</string>
     <string name="avz_a11y_chart">Frequenzgang-Diagramm: gemessene, Ziel- und korrigierte Kurve. Abweichung vorher %1$s dB, nachher %2$s dB.</string>
+
+    <!-- Speaker classes: weak-speaker rescue + device speakers -->
+    <string name="avz_class_label">Lautsprecher-Typ</string>
+    <string name="avz_class_standard">Externer Lautsprecher</string>
+    <string name="avz_class_standard_desc">Bluetooth-, Kabel-, USB- oder HDMI-Lautsprecher – die klassische, präzise Kalibrierung.</string>
+    <string name="avz_class_rescue">Schwacher / billiger Lautsprecher</string>
+    <string name="avz_class_rescue_desc">Für Lautsprecher, die schlecht klingen: kräftiges Aufräumen gegen Dröhnen und Schärfe plus Schutzschnitt für Bass, den der Lautsprecher ohnehin nicht kann – sauberer und lauter statt Klappern.</string>
+    <string name="avz_class_device">Dieses Handy / Tablet</string>
+    <string name="avz_class_device_desc">Kalibriert die eingebauten Lautsprecher dieses Geräts, gemessen mit dem eigenen Mikrofon. Es darf kein externer Lautsprecher verbunden sein.</string>
+    <string name="avz_device_speaker_name">Gerätelautsprecher</string>
+    <string name="avz_device_before_1">Alles trennen: kein Bluetooth-, Kabel- oder USB-Audio – dieses Gerät spielt selbst.</string>
+    <string name="avz_device_before_2">Lege das Gerät mit dem Bildschirm nach oben auf einen Tisch, Lautsprecher und Mikrofon frei. Lass deine übliche Hülle dran, wenn du sie immer nutzt.</string>
+    <string name="avz_device_before_3">Halte den Raum 10 Sekunden ruhig und berühre das Gerät nicht.</string>
+    <string name="avz_route_ext_title">Externe Ausgabe aktiv</string>
+    <string name="avz_route_ext_text">Für die Gerätelautsprecher muss dieses Handy selbst spielen. Schalte die Ausgabe per Bluetooth, USB oder Kabel aus oder trenne sie und versuche es erneut.</string>
+    <string name="avz_route_use_device">Stattdessen dieses Gerät kalibrieren</string>
+    <string name="avz_safety_text_device">Der Test spielt 10 Sekunden Rauschen und einen Sweep über die Lautsprecher dieses Geräts. Die Lautstärke ist absichtlich niedriger als sonst: Das Mikrofon sitzt direkt neben dem Lautsprecher.</string>
+    <string name="avz_device_check_title">Für eine saubere Messung</string>
+    <string name="avz_device_check_1">Das Gerät liegt mit dem Bildschirm nach oben auf dem Tisch – nicht in der Hand, denn die Hand dämpft den Klang und bewegt das Gerät.</string>
+    <string name="avz_device_check_2">Lautsprecher und Mikrofon sind frei und sauber.</string>
+    <string name="avz_device_check_3">Tritt für die 10 Sekunden zurück und berühre das Gerät nicht.</string>
+    <string name="avz_result_highpass">Schutz-Hochpass bei %1$d Hz: Bass darunter wird entfernt, weil der Lautsprecher ihn ohnehin nicht wiedergeben kann und dabei nur verzerrt.</string>
+    <string name="avz_help_rescue_title">Schwache Lautsprecher retten</string>
+    <string name="avz_help_rescue_body">Wähle den Lautsprecher-Typ für schwache oder billige Lautsprecher und miss wie gewohnt. AutoVybz greift dann entschlossener ein: Dröhnender Bass und schrille Mitten werden tiefer geschnitten, fehlende Höhen breit angehoben, und ein Schutz-Hochpass entfernt Tiefbass, den der kleine Treiber nicht wiedergeben kann – allein das nimmt den größten Teil von Klappern und Verzerrung und schafft Platz für saubere Lautstärke. Physik bleibt Physik: Echter Tiefbass entsteht nicht, aber ausgewogen und klar ist sehr wohl möglich.</string>
+    <string name="avz_help_device_title">Dieses Handy oder Tablet kalibrieren</string>
+    <string name="avz_help_device_body">Der Lautsprecher-Typ für dieses Gerät misst die eingebauten Lautsprecher mit dem eingebauten Mikrofon: Trenne alle externen Ausgänge und lege das Gerät mit dem Bildschirm nach oben auf einen Tisch. Weil das Mikrofon nur wenige Zentimeter neben dem Lautsprecher sitzt, korrigiert AutoVybz behutsam und nur bis 12 kHz – entfernt aber den unhörbaren Tiefbass, der kleine Lautsprecher nur verzerrt, zähmt die typisch schreienden Mitten und lässt den Limiter aktiv. Das Ergebnis ist ein normales Profil; wechsle das Profil, wenn du wieder einen externen Lautsprecher verbindest.</string>
 </resources>

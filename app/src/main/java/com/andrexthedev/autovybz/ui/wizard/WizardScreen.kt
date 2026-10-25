@@ -96,6 +96,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.andrexthedev.autovybz.measurement.ListeningEnvironment
 import com.andrexthedev.autovybz.measurement.MeasurementProgress
+import com.andrexthedev.autovybz.measurement.SpeakerClass
 import com.andrexthedev.autovybz.measurement.audio.RouteClassifier
 import com.andrexthedev.autovybz.measurement.dsp.MeasurementWarning
 import com.andrexthedev.autovybz.measurement.eq.TargetType
@@ -165,7 +166,12 @@ fun WizardScreen(
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 when (val step = shown) {
                     WizardStep.Idle -> IdleStep(state, vm, startMeasurement, onOpenHelp)
-                    is WizardStep.RouteBlocked -> RouteBlockedStep(step, onRetry = startMeasurement, onBack = vm::onReset)
+                    is WizardStep.RouteBlocked -> RouteBlockedStep(
+                        step,
+                        onRetry = startMeasurement,
+                        onBack = vm::onReset,
+                        onUseDeviceSpeakers = { vm.onSpeakerClassChanged(SpeakerClass.DEVICE); startMeasurement() },
+                    )
                     is WizardStep.ConfirmSafety -> SafetyStep(step, state.environment, vm)
                     is WizardStep.Countdown -> CountdownStep(step, cancelSession)
                     WizardStep.Preparing -> BusyStep(stringResource(R.string.avz_preparing), null)
@@ -227,63 +233,106 @@ private fun IdleStep(state: WizardUiState, vm: WizardViewModel, onStart: () -> U
     )
     HintRow(stringResource(R.string.avz_speaker_name_profile_hint))
 
-    SectionTitle(stringResource(R.string.avz_env_label))
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { // wraps instead of splitting words (W10)
-        for ((env, label) in listOf(
-            ListeningEnvironment.INDOOR to R.string.avz_env_indoor,
-            ListeningEnvironment.OUTDOOR to R.string.avz_env_outdoor,
+    SectionTitle(stringResource(R.string.avz_class_label))
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        for ((cls, label) in listOf(
+            SpeakerClass.STANDARD to R.string.avz_class_standard,
+            SpeakerClass.RESCUE to R.string.avz_class_rescue,
+            SpeakerClass.DEVICE to R.string.avz_class_device,
         )) {
             FilterChip(
-                selected = state.environment == env,
-                onClick = { vm.onEnvironmentChanged(env) },
+                selected = state.speakerClass == cls,
+                onClick = { vm.onSpeakerClassChanged(cls) },
                 label = { Text(stringResource(label)) },
-                modifier = Modifier.testTag("avz:env:${env.name}"),
-                leadingIcon = {
-                    Icon(if (env == ListeningEnvironment.OUTDOOR) Icons.Filled.Star else Icons.Filled.Home, null, Modifier.size(18.dp))
-                },
+                modifier = Modifier.testTag("avz:class:${cls.name}"),
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = AutoVybzColors.Green,
                     selectedLabelColor = AutoVybzColors.OnGreen,
-                    selectedLeadingIconColor = AutoVybzColors.OnGreen,
                 ),
             )
         }
     }
     Text(
-        stringResource(if (state.environment == ListeningEnvironment.OUTDOOR) R.string.avz_env_outdoor_desc else R.string.avz_env_indoor_desc),
+        stringResource(
+            when (state.speakerClass) {
+                SpeakerClass.STANDARD -> R.string.avz_class_standard_desc
+                SpeakerClass.RESCUE -> R.string.avz_class_rescue_desc
+                SpeakerClass.DEVICE -> R.string.avz_class_device_desc
+            }
+        ),
         style = MaterialTheme.typography.bodySmall,
         color = AutoVybzColors.OnDarkMuted,
     )
+
+    // Room environment and multi-position averaging describe an external speaker in a room;
+    // a device-speaker calibration has fixed geometry, so both choices do not apply there.
+    if (state.speakerClass != SpeakerClass.DEVICE) {
+        SectionTitle(stringResource(R.string.avz_env_label))
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { // wraps instead of splitting words (W10)
+            for ((env, label) in listOf(
+                ListeningEnvironment.INDOOR to R.string.avz_env_indoor,
+                ListeningEnvironment.OUTDOOR to R.string.avz_env_outdoor,
+            )) {
+                FilterChip(
+                    selected = state.environment == env,
+                    onClick = { vm.onEnvironmentChanged(env) },
+                    label = { Text(stringResource(label)) },
+                    modifier = Modifier.testTag("avz:env:${env.name}"),
+                    leadingIcon = {
+                        Icon(if (env == ListeningEnvironment.OUTDOOR) Icons.Filled.Star else Icons.Filled.Home, null, Modifier.size(18.dp))
+                    },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = AutoVybzColors.Green,
+                        selectedLabelColor = AutoVybzColors.OnGreen,
+                        selectedLeadingIconColor = AutoVybzColors.OnGreen,
+                    ),
+                )
+            }
+        }
+        Text(
+            stringResource(if (state.environment == ListeningEnvironment.OUTDOOR) R.string.avz_env_outdoor_desc else R.string.avz_env_indoor_desc),
+            style = MaterialTheme.typography.bodySmall,
+            color = AutoVybzColors.OnDarkMuted,
+        )
+    }
 
     SectionTitle(stringResource(R.string.avz_target_label))
     TargetChooser(state.target, vm::onTargetChanged)
 
-    SectionTitle(stringResource(R.string.avz_positions_label))
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { // wraps instead of splitting words (W10)
-        for ((count, label) in listOf(1 to R.string.avz_positions_quick, 3 to R.string.avz_positions_precise)) {
-            FilterChip(
-                selected = state.positions == count,
-                onClick = { vm.onPositionsChanged(count) },
-                label = { Text(stringResource(label)) },
-                modifier = Modifier.testTag("avz:positions:$count"),
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = AutoVybzColors.Green,
-                    selectedLabelColor = AutoVybzColors.OnGreen,
-                ),
-            )
+    if (state.speakerClass != SpeakerClass.DEVICE) {
+        SectionTitle(stringResource(R.string.avz_positions_label))
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { // wraps instead of splitting words (W10)
+            for ((count, label) in listOf(1 to R.string.avz_positions_quick, 3 to R.string.avz_positions_precise)) {
+                FilterChip(
+                    selected = state.positions == count,
+                    onClick = { vm.onPositionsChanged(count) },
+                    label = { Text(stringResource(label)) },
+                    modifier = Modifier.testTag("avz:positions:$count"),
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = AutoVybzColors.Green,
+                        selectedLabelColor = AutoVybzColors.OnGreen,
+                    ),
+                )
+            }
         }
+        Text(
+            stringResource(if (state.positions == 3) R.string.avz_positions_precise_desc else R.string.avz_positions_quick_desc),
+            style = MaterialTheme.typography.bodySmall,
+            color = AutoVybzColors.OnDarkMuted,
+        )
     }
-    Text(
-        stringResource(if (state.positions == 3) R.string.avz_positions_precise_desc else R.string.avz_positions_quick_desc),
-        style = MaterialTheme.typography.bodySmall,
-        color = AutoVybzColors.OnDarkMuted,
-    )
 
     AvzCard {
         Text(stringResource(R.string.avz_wizard_before_title), style = MaterialTheme.typography.titleMedium)
-        NumberedLine(1, stringResource(R.string.avz_wizard_before_1))
-        NumberedLine(2, stringResource(R.string.avz_wizard_before_2))
-        NumberedLine(3, stringResource(R.string.avz_wizard_before_3))
+        if (state.speakerClass == SpeakerClass.DEVICE) {
+            NumberedLine(1, stringResource(R.string.avz_device_before_1))
+            NumberedLine(2, stringResource(R.string.avz_device_before_2))
+            NumberedLine(3, stringResource(R.string.avz_device_before_3))
+        } else {
+            NumberedLine(1, stringResource(R.string.avz_wizard_before_1))
+            NumberedLine(2, stringResource(R.string.avz_wizard_before_2))
+            NumberedLine(3, stringResource(R.string.avz_wizard_before_3))
+        }
         TextButton(onClick = onOpenHelp) {
             Icon(Icons.Filled.Info, contentDescription = null, tint = AutoVybzColors.Gold)
             Text("  " + stringResource(R.string.avz_wizard_help_link), color = AutoVybzColors.Gold)
@@ -360,22 +409,44 @@ private fun NumberedLine(n: Int, text: String) {
 /* --------------------------------------------------------- route blocked -- */
 
 @Composable
-private fun RouteBlockedStep(step: WizardStep.RouteBlocked, onRetry: () -> Unit, onBack: () -> Unit) {
+private fun RouteBlockedStep(
+    step: WizardStep.RouteBlocked,
+    onRetry: () -> Unit,
+    onBack: () -> Unit,
+    onUseDeviceSpeakers: () -> Unit,
+) {
     val headphones = step.verdict == RouteClassifier.Verdict.BLOCKED_HEADPHONES
+    // Device mode inverts the problem: an *external* output is in the way.
+    val titleRes = when {
+        step.deviceMode -> R.string.avz_route_ext_title
+        headphones -> R.string.avz_route_headphones_title
+        else -> R.string.avz_route_builtin_title
+    }
+    val textRes = when {
+        step.deviceMode -> R.string.avz_route_ext_text
+        headphones -> R.string.avz_route_headphones_text
+        else -> R.string.avz_route_builtin_text
+    }
     AvzCard(accent = AutoVybzColors.Error, modifier = Modifier.testTag("avz:blocked")) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Filled.Warning, contentDescription = null, tint = AutoVybzColors.Error)
             Spacer(Modifier.width(10.dp))
             Text(
-                stringResource(if (headphones) R.string.avz_route_headphones_title else R.string.avz_route_builtin_title),
+                stringResource(titleRes),
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.semantics { heading() },
             )
         }
-        Text(stringResource(if (headphones) R.string.avz_route_headphones_text else R.string.avz_route_builtin_text))
+        Text(stringResource(textRes))
         step.routeName?.let { Text(stringResource(R.string.avz_safety_route, it), color = AutoVybzColors.OnDarkMuted) }
         FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             OutlinedButton(onClick = onBack, modifier = Modifier.testTag("avz:blocked:back")) { Text(stringResource(R.string.avz_back)) }
+            // No external speaker connected? The device itself can be calibrated instead.
+            if (!step.deviceMode && step.verdict == RouteClassifier.Verdict.BLOCKED_BUILTIN_SPEAKER) {
+                OutlinedButton(onClick = onUseDeviceSpeakers, modifier = Modifier.testTag("avz:blocked:device")) {
+                    Text(stringResource(R.string.avz_route_use_device))
+                }
+            }
             Button(onClick = onRetry, modifier = Modifier.testTag("avz:blocked:retry")) {
                 Icon(Icons.Filled.Refresh, contentDescription = null)
                 Text("  " + stringResource(R.string.avz_retry))
@@ -397,7 +468,7 @@ private fun SafetyStep(step: WizardStep.ConfirmSafety, environment: ListeningEnv
             Spacer(Modifier.width(10.dp))
             Text(stringResource(R.string.avz_safety_title), style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
         }
-        Text(stringResource(R.string.avz_safety_text))
+        Text(stringResource(if (step.deviceMode) R.string.avz_safety_text_device else R.string.avz_safety_text))
         Bullet(stringResource(R.string.avz_safety_b1))
         Bullet(stringResource(R.string.avz_safety_b2))
         Bullet(stringResource(R.string.avz_safety_b3))
@@ -405,7 +476,20 @@ private fun SafetyStep(step: WizardStep.ConfirmSafety, environment: ListeningEnv
         step.routeName?.let { Text(stringResource(R.string.avz_safety_route, it), color = AutoVybzColors.GreenBright) }
     }
 
-    if (environment == ListeningEnvironment.OUTDOOR) {
+    if (step.deviceMode) {
+        AvzCard(accent = AutoVybzColors.Green) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = AutoVybzColors.GreenBright)
+                Spacer(Modifier.width(10.dp))
+                Text(stringResource(R.string.avz_device_check_title), style = MaterialTheme.typography.titleMedium)
+            }
+            Bullet(stringResource(R.string.avz_device_check_1))
+            Bullet(stringResource(R.string.avz_device_check_2))
+            Bullet(stringResource(R.string.avz_device_check_3))
+        }
+    }
+
+    if (!step.deviceMode && environment == ListeningEnvironment.OUTDOOR) {
         AvzCard(accent = AutoVybzColors.Green) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Filled.Star, contentDescription = null, tint = AutoVybzColors.Gold)
@@ -688,6 +772,13 @@ private fun ResultStep(step: WizardStep.Result, state: WizardUiState, vm: Wizard
                 color = AutoVybzColors.GreenBright,
             )
         }
+        e.highPassHz?.let { hz ->
+            Text(
+                stringResource(R.string.avz_result_highpass, hz.roundToInt()),
+                style = MaterialTheme.typography.bodyMedium,
+                color = AutoVybzColors.GreenBright,
+            )
+        }
     }
 
     if ((o.positionSpreadDb ?: 0.0) > HIGH_POSITION_SPREAD_DB) {
@@ -727,7 +818,7 @@ private fun ResultStep(step: WizardStep.Result, state: WizardUiState, vm: Wizard
         }
     }
 
-    if (o.request.environment == ListeningEnvironment.OUTDOOR) {
+    if (o.request.environment == ListeningEnvironment.OUTDOOR && o.request.speakerClass != SpeakerClass.DEVICE) {
         AvzCard(accent = AutoVybzColors.Green) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Filled.Star, contentDescription = null, tint = AutoVybzColors.Gold)

@@ -93,7 +93,7 @@
     <string name="avz_route_headphones_title">Headphones detected</string>
     <string name="avz_route_headphones_text">AutoVybz only calibrates loudspeakers. Disconnect headphones or headsets and connect a speaker.</string>
     <string name="avz_route_builtin_title">No external speaker</string>
-    <string name="avz_route_builtin_text">The phone\'s own speaker can\'t be measured with its own microphone. Connect an external speaker via Bluetooth, cable, USB or HDMI.</string>
+    <string name="avz_route_builtin_text">The sound is coming from this phone itself. Connect an external speaker via Bluetooth, cable, USB or HDMI, or calibrate the built-in speakers of this device instead.</string>
     <string name="avz_retry">Try again</string>
     <string name="avz_back">Back</string>
     <string name="avz_safety_title">Safety check</string>
@@ -346,4 +346,30 @@
     <string name="avz_a11y_level" tools:ignore="PluralsCandidate">Microphone level %1$d percent</string>
     <string name="avz_a11y_positions" tools:ignore="PluralsCandidate">%1$d of %2$d positions measured</string>
     <string name="avz_a11y_chart">Frequency response chart: measured, target and corrected curve. Deviation before %1$s dB, after %2$s dB.</string>
+
+    <!-- Speaker classes: weak-speaker rescue + device speakers -->
+    <string name="avz_class_label">Speaker type</string>
+    <string name="avz_class_standard">External speaker</string>
+    <string name="avz_class_standard_desc">Bluetooth, cable, USB or HDMI speaker – the classic, precise calibration.</string>
+    <string name="avz_class_rescue">Weak / cheap speaker</string>
+    <string name="avz_class_rescue_desc">For speakers that sound bad: a decisive tidy-up against booming bass and harshness, plus a protective cut of bass the speaker cannot play anyway – cleaner and louder instead of rattling.</string>
+    <string name="avz_class_device">This phone / tablet</string>
+    <string name="avz_class_device_desc">Calibrates the built-in speakers of this device, measured with its own microphone. No external speaker may be connected.</string>
+    <string name="avz_device_speaker_name">Device speakers</string>
+    <string name="avz_device_before_1">Disconnect everything: no Bluetooth, cable or USB audio – this device itself will play.</string>
+    <string name="avz_device_before_2">Lay the device screen-up on a table, speakers and microphone uncovered. Keep your usual case on if you always use one.</string>
+    <string name="avz_device_before_3">Keep the room quiet for 10 seconds and do not touch the device.</string>
+    <string name="avz_route_ext_title">External output active</string>
+    <string name="avz_route_ext_text">For the device speakers, this phone itself has to play. Switch off or disconnect the Bluetooth, USB or cable output, then try again.</string>
+    <string name="avz_route_use_device">Calibrate this device instead</string>
+    <string name="avz_safety_text_device">The test plays noise and a sweep through the speakers of this device for 10 seconds. The volume is set lower than usual on purpose: the microphone sits right next to the speaker.</string>
+    <string name="avz_device_check_title">For a clean measurement</string>
+    <string name="avz_device_check_1">The device lies screen-up on a table – not in your hand, because a hand muffles the sound and moves the device.</string>
+    <string name="avz_device_check_2">Speakers and microphone are uncovered and clean.</string>
+    <string name="avz_device_check_3">Step back for the 10 seconds and do not touch the device.</string>
+    <string name="avz_result_highpass">Protective high-pass at %1$d Hz: bass below this is removed, because the speaker cannot play it anyway and only distorts trying.</string>
+    <string name="avz_help_rescue_title">Rescuing weak speakers</string>
+    <string name="avz_help_rescue_body">Choose the speaker type for weak or cheap speakers and measure as usual. AutoVybz then works more decisively: boomy bass and harsh mids are cut deeper, missing treble is lifted broadly, and a protective high-pass removes deep bass that the little driver cannot reproduce – on its own that takes away most rattling and distortion and leaves room for cleaner loudness. Physics stays physics: real deep bass will not appear, but balanced and clear is very much possible.</string>
+    <string name="avz_help_device_title">Calibrating this phone or tablet</string>
+    <string name="avz_help_device_body">The speaker type for this device measures the built-in speakers with the built-in microphone: disconnect all external outputs and lay the device screen-up on a table. Because the microphone sits only a few centimetres from the speaker, AutoVybz corrects gently and only up to 12 kHz – but it removes the inaudible deep bass that only makes small speakers distort, tames the typical shouty mids and keeps the limiter armed. The result is a normal profile; switch profiles when you connect an external speaker again.</string>
 </resources>

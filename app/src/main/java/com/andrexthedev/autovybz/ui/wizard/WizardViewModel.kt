@@ -13,6 +13,8 @@ import com.andrexthedev.autovybz.measurement.MeasurementController
 import com.andrexthedev.autovybz.measurement.MeasurementOutcome
 import com.andrexthedev.autovybz.measurement.MeasurementProgress
 import com.andrexthedev.autovybz.measurement.MeasurementRequest
+import com.andrexthedev.autovybz.measurement.SpeakerClass
+import com.andrexthedev.autovybz.measurement.SpeakerClassTuning
 import com.andrexthedev.autovybz.measurement.audio.CaptureException
 import com.andrexthedev.autovybz.measurement.audio.CaptureInterruptedException
 import com.andrexthedev.autovybz.measurement.audio.RouteClassifier
@@ -23,6 +25,7 @@ import com.andrexthedev.autovybz.measurement.dsp.MeasurementWarning
 import com.andrexthedev.autovybz.measurement.eq.TargetType
 import com.andrexthedev.autovybz.preset.AutoVybzPresetStore
 import com.andrexthedev.autovybz.preset.model.AutoVybzPreset
+import com.bearinmind.equalizer314.R
 import com.andrexthedev.autovybz.settings.AutoVybzSettings
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -40,14 +43,21 @@ enum class WizardError { PERMISSION_DENIED, NO_SIGNAL, CAPTURE_FAILED, ROUTE_CHA
 sealed interface WizardStep {
     /** Start screen with the big "Calibrate speaker" button. */
     object Idle : WizardStep
-    /** Headphones or the phone's own speaker are active. */
-    data class RouteBlocked(val verdict: RouteClassifier.Verdict, val routeName: String?) : WizardStep
+    /** Headphones or the phone's own speaker are active (or, in device mode, an external output is). */
+    data class RouteBlocked(
+        val verdict: RouteClassifier.Verdict,
+        val routeName: String?,
+        /** Device-speaker calibration: the situation is inverted - an external output blocks. */
+        val deviceMode: Boolean = false,
+    ) : WizardStep
     /** Safety warning + volume slider; measurement starts only after explicit confirmation. */
     data class ConfirmSafety(
         val routeName: String?,
         val needsSpeakerConfirmation: Boolean,
         val volume: Float,
         val volumeFixed: Boolean,
+        /** Device-speaker calibration (own speakers, own microphone, lower volume). */
+        val deviceMode: Boolean = false,
     ) : WizardStep
     /** "Be quiet, don't touch the phone" - gives the user time to step back before each position. */
     data class Countdown(val secondsLeft: Int, val position: Int = 1, val totalPositions: Int = 1) : WizardStep
@@ -91,6 +101,8 @@ data class WizardUiState(
     /** 1 = quick, 3 = precise (multi-position average). */
     val positions: Int = 1,
     val environment: ListeningEnvironment = ListeningEnvironment.INDOOR,
+    /** External speaker, weak-speaker rescue, or this device's own speakers. */
+    val speakerClass: SpeakerClass = SpeakerClass.STANDARD,
 )
 
 class WizardViewModel(app: Application) : AndroidViewModel(app) {
@@ -108,6 +120,7 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
             bandCount = settings.bandCount,
             positions = settings.positions,
             environment = settings.environment,
+            speakerClass = settings.speakerClass,
         ),
     )
     val state: StateFlow<WizardUiState> = _state.asStateFlow()
@@ -130,7 +143,10 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
 
     /** The Pro tab edits the same preferences - pick up changes when the wizard becomes visible again. */
     fun reloadSettings() = _state.update {
-        it.copy(target = settings.target, bandCount = settings.bandCount, positions = settings.positions, environment = settings.environment)
+        it.copy(
+            target = settings.target, bandCount = settings.bandCount, positions = settings.positions,
+            environment = settings.environment, speakerClass = settings.speakerClass,
+        )
     }
 
     fun onSpeakerNameChanged(name: String) = _state.update { it.copy(speakerName = name.take(40)) }
@@ -161,12 +177,50 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
         _state.update { it.copy(positions = settings.positions) }
     }
 
+    /**
+     * Speaker type picked. Rescue / device speakers pre-select their forgiving target (the chip
+     * stays changeable); device mode pre-fills the profile name.
+     */
+    fun onSpeakerClassChanged(speakerClass: SpeakerClass) {
+        if (speakerClass == _state.value.speakerClass) return
+        settings.speakerClass = speakerClass
+        val suggested = SpeakerClassTuning.of(speakerClass).suggestedTarget
+        if (suggested != null) settings.target = suggested
+        _state.update { s ->
+            s.copy(
+                speakerClass = speakerClass,
+                target = suggested ?: s.target,
+                speakerName = if (speakerClass == SpeakerClass.DEVICE && s.speakerName.isBlank()) {
+                    getApplication<Application>().getString(R.string.avz_device_speaker_name)
+                } else s.speakerName,
+            )
+        }
+    }
+
     /** Step 1: big button pressed (permission already checked by the screen). */
     fun onStartClicked(hasRecordPermission: Boolean) {
         if (job?.isActive == true) return
         if (!hasRecordPermission) return setStep(WizardStep.Error(WizardError.PERMISSION_DENIED, null))
         val decision = AutoVybzServices.routeInspector(getApplication())
         val routeName = decision.route?.name?.takeIf { it.isNotBlank() }
+        if (_state.value.speakerClass == SpeakerClass.DEVICE) {
+            // Inverted route logic: this device itself must play, so any external output blocks.
+            if (!decision.builtinSpeakerActive) {
+                return setStep(WizardStep.RouteBlocked(decision.verdict, routeName, deviceMode = true))
+            }
+            val fraction = SpeakerClassTuning.of(SpeakerClass.DEVICE).measurementVolumeFraction
+                ?: VolumeMath.MEASUREMENT_FRACTION
+            volume.setFraction(fraction)
+            return setStep(
+                WizardStep.ConfirmSafety(
+                    routeName = routeName,
+                    needsSpeakerConfirmation = false,
+                    volume = volume.currentFraction,
+                    volumeFixed = volume.isFixed,
+                    deviceMode = true,
+                ),
+            )
+        }
         when (decision.verdict) {
             RouteClassifier.Verdict.BLOCKED_HEADPHONES, RouteClassifier.Verdict.BLOCKED_BUILTIN_SPEAKER ->
                 setStep(WizardStep.RouteBlocked(decision.verdict, routeName))
@@ -203,7 +257,8 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
         settings.lastSpeakerName = s.speakerName
         partial.clear()
         activeRequest = settings.buildRequest(s.speakerName, s.target)
-        activeTotal = s.positions
+        // Fixed geometry (device speakers): extra positions would measure the same thing again.
+        activeTotal = if (SpeakerClassTuning.of(s.speakerClass).singlePosition) 1 else s.positions
         measureNextPosition()
     }
 
@@ -235,9 +290,12 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
     private fun routeStillAllowed(): Boolean {
         if (_state.value.step !is WizardStep.Error) return true
         val decision = AutoVybzServices.routeInspector(getApplication())
-        if (decision.canMeasure || decision.verdict == RouteClassifier.Verdict.UNKNOWN) return true
+        val deviceMode = activeRequest?.speakerClass == SpeakerClass.DEVICE
+        val allowed = if (deviceMode) decision.builtinSpeakerActive
+        else decision.canMeasure || decision.verdict == RouteClassifier.Verdict.UNKNOWN
+        if (allowed) return true
         resetSession()
-        setStep(WizardStep.RouteBlocked(decision.verdict, decision.route?.name?.takeIf { it.isNotBlank() }))
+        setStep(WizardStep.RouteBlocked(decision.verdict, decision.route?.name?.takeIf { it.isNotBlank() }, deviceMode))
         return false
     }
 

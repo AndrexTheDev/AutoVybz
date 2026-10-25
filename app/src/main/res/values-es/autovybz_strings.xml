@@ -93,7 +93,7 @@
     <string name="avz_route_headphones_title">Auriculares detectados</string>
     <string name="avz_route_headphones_text">AutoVybz solo calibra altavoces. Desconecta los auriculares o cascos y conecta un altavoz.</string>
     <string name="avz_route_builtin_title">No hay altavoz externo</string>
-    <string name="avz_route_builtin_text">El altavoz del propio móvil no se puede medir con su propio micrófono. Conecta un altavoz externo por Bluetooth, cable, USB o HDMI.</string>
+    <string name="avz_route_builtin_text">El sonido sale de este propio teléfono. Conecta un altavoz externo por Bluetooth, cable, USB o HDMI, o calibra en su lugar los altavoces integrados de este dispositivo.</string>
     <string name="avz_retry">Reintentar</string>
     <string name="avz_back">Atrás</string>
     <string name="avz_safety_title">Control de seguridad</string>
@@ -348,4 +348,30 @@
     <string name="avz_a11y_level" tools:ignore="PluralsCandidate">Nivel del micrófono %1$d por ciento</string>
     <string name="avz_a11y_positions" tools:ignore="PluralsCandidate">%1$d de %2$d posiciones medidas</string>
     <string name="avz_a11y_chart">Gráfico de respuesta en frecuencia: curva medida, objetivo y corregida. Desviación antes %1$s dB, después %2$s dB.</string>
+
+    <!-- Speaker classes: weak-speaker rescue + device speakers -->
+    <string name="avz_class_label">Tipo de altavoz</string>
+    <string name="avz_class_standard">Altavoz externo</string>
+    <string name="avz_class_standard_desc">Altavoz por Bluetooth, cable, USB o HDMI: la calibración clásica y precisa.</string>
+    <string name="avz_class_rescue">Altavoz débil / barato</string>
+    <string name="avz_class_rescue_desc">Para altavoces que suenan mal: limpieza decidida contra los graves retumbantes y la aspereza, y corte protector de los graves que el altavoz no puede reproducir de todos modos: más limpio y más fuerte, sin traqueteos.</string>
+    <string name="avz_class_device">Este teléfono / tableta</string>
+    <string name="avz_class_device_desc">Calibra los altavoces integrados de este dispositivo, medidos con su propio micrófono. No debe haber ningún altavoz externo conectado.</string>
+    <string name="avz_device_speaker_name">Altavoces del dispositivo</string>
+    <string name="avz_device_before_1">Desconecta todo: sin audio por Bluetooth, cable ni USB; este dispositivo reproducirá el sonido.</string>
+    <string name="avz_device_before_2">Deja el dispositivo boca arriba sobre una mesa, con los altavoces y el micrófono descubiertos. Deja puesta tu funda habitual si siempre la usas.</string>
+    <string name="avz_device_before_3">Mantén la habitación en silencio durante 10 segundos y no toques el dispositivo.</string>
+    <string name="avz_route_ext_title">Salida externa activa</string>
+    <string name="avz_route_ext_text">Para usar los altavoces del dispositivo, este teléfono debe reproducir el sonido. Apaga o desconecta la salida por Bluetooth, USB o cable e inténtalo de nuevo.</string>
+    <string name="avz_route_use_device">Calibrar este dispositivo en su lugar</string>
+    <string name="avz_safety_text_device">La prueba reproduce ruido y un Barrido durante 10 segundos por los altavoces de este dispositivo. El volumen se ha bajado a propósito: el micrófono está justo al lado del altavoz.</string>
+    <string name="avz_device_check_title">Para una medición limpia</string>
+    <string name="avz_device_check_1">El dispositivo está boca arriba sobre la mesa, no en tu mano, porque la mano amortigua el sonido y mueve el dispositivo.</string>
+    <string name="avz_device_check_2">Los altavoces y el micrófono están descubiertos y limpios.</string>
+    <string name="avz_device_check_3">Aléjate durante los 10 segundos y no toques el dispositivo.</string>
+    <string name="avz_result_highpass">Paso alto protector a %1$d Hz: los graves por debajo se eliminan, porque el altavoz no puede reproducirlos y solo distorsionaría al intentarlo.</string>
+    <string name="avz_help_rescue_title">Rescatar altavoces débiles</string>
+    <string name="avz_help_rescue_body">Elige el tipo de altavoz para altavoces débiles o baratos y mide como siempre. AutoVybz intervendrá con más decisión: los graves retumbantes y los medios ásperos se recortan más, los agudos que faltan se refuerzan de forma amplia y un paso alto protector elimina los graves profundos que el pequeño altavoz no puede reproducir; solo eso ya quita la mayor parte de los traqueteos y la distorsión y deja sitio para un volumen más limpio. La física es la física: no aparecerán graves profundos de verdad, pero un sonido equilibrado y claro sí es posible.</string>
+    <string name="avz_help_device_title">Calibrar este teléfono o tableta</string>
+    <string name="avz_help_device_body">El tipo de altavoz para este dispositivo mide los altavoces integrados con el micrófono integrado: desconecta todas las salidas externas y deja el dispositivo boca arriba sobre una mesa. Como el micrófono está a solo unos centímetros del altavoz, AutoVybz corrige con suavidad y solo hasta 12 kHz, pero elimina los graves profundos inaudibles que solo hacen distorsionar a los altavoces pequeños, doma los medios chillones típicos y mantiene el limitador activado. El resultado es un perfil normal; cambia de perfil cuando vuelvas a conectar un altavoz externo.</string>
 </resources>
