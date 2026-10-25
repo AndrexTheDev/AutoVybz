@@ -355,8 +355,8 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
         val preset = MeasurementController.buildPreset(name, step.outcome)
         val app = getApplication<Application>()
         AutoVybzPresetStore.save(app, preset)
-        // Outdoor / party calibrations always arm the limiter (party volume).
-        val limiter = settings.enableLimiterOnApply || step.outcome.request.tuning.forceLimiter
+        // Outdoor / party, rescue and device-speaker calibrations always arm the limiter.
+        val limiter = settings.enableLimiterOnApply || step.outcome.request.forceLimiter
         if (apply) AutoVybzPresetStore.apply(app, preset, limiter)
         setStep(WizardStep.Saved(name, apply, step.outcome))
     }

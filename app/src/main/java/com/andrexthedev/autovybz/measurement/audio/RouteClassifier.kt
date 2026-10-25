@@ -49,6 +49,14 @@ object RouteClassifier {
 
     data class Decision(val verdict: Verdict, val route: Route?) {
         val canMeasure: Boolean get() = verdict == Verdict.OK || verdict == Verdict.NEEDS_SPEAKER_CONFIRMATION
+
+        /**
+         * True when media playback will come out of the phone's own speaker: the built-in route
+         * won and no headphones are on the path. Blocks normal measurements, but is exactly the
+         * route a device-speaker calibration ([com.andrexthedev.autovybz.measurement.SpeakerClass.DEVICE])
+         * needs.
+         */
+        val builtinSpeakerActive: Boolean get() = verdict == Verdict.BLOCKED_BUILTIN_SPEAKER
     }
 
     fun kindOf(type: Int): RouteKind = when (type) {
@@ -99,6 +107,13 @@ object RouteClassifier {
 /** Volume helpers (pure): target ~70 % of STREAM_MUSIC as required by the measurement spec. */
 object VolumeMath {
     const val MEASUREMENT_FRACTION = 0.70f
+
+    /**
+     * Device-speaker self-measurement: the microphone sits centimetres from the driver, so
+     * ~50 % already gives a huge SNR; 70 % could clip the mic and excite chassis rattles
+     * that a listener never hears.
+     */
+    const val DEVICE_MEASUREMENT_FRACTION = 0.50f
 
     fun indexFor(fraction: Float, min: Int, max: Int): Int {
         require(max >= min)

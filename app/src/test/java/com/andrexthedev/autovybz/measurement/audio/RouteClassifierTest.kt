@@ -36,6 +36,17 @@ class RouteClassifierTest {
     }
 
     @Test
+    fun builtinSpeakerActiveOnlyForBuiltinRoute() {
+        // Exactly the route a device-speaker calibration needs (its own speaker will play).
+        assertTrue(RouteClassifier.decide(null, listOf(speaker)).builtinSpeakerActive)
+        assertTrue(RouteClassifier.decide(listOf(speaker), listOf(speaker, bt)).builtinSpeakerActive)
+        // Anything external will take the playback instead.
+        assertFalse(RouteClassifier.decide(null, listOf(speaker, bt)).builtinSpeakerActive)
+        assertFalse(RouteClassifier.decide(null, listOf(speaker, wired)).builtinSpeakerActive)
+        assertFalse(RouteClassifier.decide(emptyList(), emptyList()).builtinSpeakerActive)
+    }
+
+    @Test
     fun volumeMathTargetsSeventyPercent() {
         assertEquals(11, VolumeMath.indexFor(VolumeMath.MEASUREMENT_FRACTION, 0, 15))
         assertEquals(105, VolumeMath.indexFor(0.7f, 0, 150))
