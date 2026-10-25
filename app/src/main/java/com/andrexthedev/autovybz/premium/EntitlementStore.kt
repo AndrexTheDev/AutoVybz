@@ -9,13 +9,13 @@ class EntitlementStore(context: Context) {
     fun load(nowEpochMs: Long = System.currentTimeMillis()): Entitlement {
         val stored = Entitlement(
             tier = enumValue(prefs.getString(KEY_TIER, null), EntitlementTier.FREE),
-            plan = enumValueOrNull(prefs.getString(KEY_PLAN, null)),
+            plan = enumValueOrNull<PremiumPlan>(prefs.getString(KEY_PLAN, null)),
             source = enumValue(prefs.getString(KEY_SOURCE, null), EntitlementSource.NONE),
             startedAtEpochMs = prefs.getLong(KEY_STARTED_AT, 0L),
             expiresAtEpochMs = prefs.getLong(KEY_EXPIRES_AT, NO_EXPIRY).takeIf { it != NO_EXPIRY },
             lastSeenEpochMs = prefs.getLong(KEY_LAST_SEEN, 0L),
             trialUsed = prefs.getBoolean(KEY_TRIAL_USED, false),
-            coin = enumValueOrNull(prefs.getString(KEY_COIN, null)),
+            coin = enumValueOrNull<CryptoCoin>(prefs.getString(KEY_COIN, null)),
             txidHash = prefs.getString(KEY_TXID_HASH, null),
         )
         val touched = EntitlementPolicy.touch(stored, nowEpochMs)

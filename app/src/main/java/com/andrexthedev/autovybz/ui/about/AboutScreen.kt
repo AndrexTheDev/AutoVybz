@@ -96,7 +96,7 @@ fun AboutScreen(entitlement: Entitlement = Entitlement.free(), onOpenPremium: ()
         VybzStripe(Modifier.width(64.dp).height(4.dp))
         Text(stringResource(R.string.avz_about_text), textAlign = TextAlign.Center)
 
-        PremiumStatusCard(entitlement = entitlement, onOpen = onOpenPremium)
+        PremiumStatusCard(entitlement = entitlement, onOpenPremium = onOpenPremium)
 
         Button(
             onClick = { showDonate = true },

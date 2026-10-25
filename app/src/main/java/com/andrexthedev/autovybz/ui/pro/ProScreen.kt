@@ -125,7 +125,7 @@ fun ProScreen(entitlement: Entitlement = Entitlement.free(), onOpenPremium: () -
 
         HintRow(stringResource(R.string.avz_pro_intro))
 
-        PremiumStatusCard(entitlement = entitlement, onOpen = onOpenPremium)
+        PremiumStatusCard(entitlement = entitlement, onOpenPremium = onOpenPremium)
 
         SectionTitle(stringResource(R.string.avz_studio_tone_title))
         ToneCard(settings)
