@@ -73,6 +73,7 @@ import com.andrexthedev.autovybz.ui.components.VybzIcons
 import com.andrexthedev.autovybz.ui.components.VybzRings
 import com.andrexthedev.autovybz.ui.components.rememberEqPower
 import com.andrexthedev.autovybz.ui.components.rememberPulse
+import com.andrexthedev.autovybz.ui.components.NoPulse
 import com.andrexthedev.autovybz.ui.theme.AutoVybzColors
 import com.bearinmind.equalizer314.R
 import kotlinx.coroutines.Dispatchers
@@ -150,7 +151,7 @@ fun SoundScreen(onCalibrate: () -> Unit) {
 @Composable
 private fun PowerHero(speaker: String?, style: SoundStyle) {
     val power = rememberEqPower()
-    val pulse = if (power.on) rememberPulse() else 0f
+    val pulse = if (power.on) rememberPulse() else NoPulse
     val stateText = stringResource(if (power.on) R.string.avz_home_power_on else R.string.avz_home_power_off)
     AvzCard(accent = if (power.on) AutoVybzColors.Green.copy(alpha = 0.55f) else null) {
         Row(verticalAlignment = Alignment.CenterVertically) {

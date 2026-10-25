@@ -17,6 +17,11 @@ object VybzSound {
     private const val KEY_TREBLE = "trebleDb"
     private const val KEY_USE_CAL = "useCalibration"
 
+    /** Engine-update coalescing, see [reapply]. */
+    private const val COALESCE_MS = 150L
+    private val generation = java.util.concurrent.atomic.AtomicLong()
+    private val applyLock = Any()
+
     private fun prefs(context: Context) = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
     fun selection(context: Context): SoundSelection {
@@ -61,8 +66,9 @@ object VybzSound {
     /** Pick a speaker profile: a calibration name, or null for "without calibration". */
     fun useProfile(context: Context, calibrationName: String?) {
         prefs(context).edit().putBoolean(KEY_USE_CAL, calibrationName != null).apply()
-        val preset = calibrationName?.let { AutoVybzPresetStore.loadFull(context, it) }
-        applyBase(context, preset)
+        // remembered right away, so the UI never shows a stale profile while the engine update is coalesced
+        if (calibrationName != null) AutoVybzPresetStore.markActive(context, calibrationName)
+        reapply(context)
     }
 
     /** Called whenever a calibration is applied from the wizard / profile list: that speaker is now in use. */
@@ -70,10 +76,23 @@ object VybzSound {
         prefs(context).edit().putBoolean(KEY_USE_CAL, true).apply()
     }
 
-    /** Re-applies the current combination (after a style / tone change). */
+    /**
+     * Re-applies the current combination (after a style / tone / profile change). Call off the main thread.
+     *
+     * Bursts are coalesced: every engine update makes the sound service rebuild its DSP chain on the main thread, so
+     * ten quick taps on styles must not become ten rebuilds (a monkey run turned that into an ANR). Each call waits
+     * [COALESCE_MS]; only the newest request of a burst writes the engine - it reads the preferences, so it already
+     * contains every earlier change.
+     */
     fun reapply(context: Context) {
-        val preset = activeCalibrationName(context)?.let { AutoVybzPresetStore.loadFull(context, it) }
-        applyBase(context, preset)
+        val mine = generation.incrementAndGet()
+        Thread.sleep(COALESCE_MS)
+        if (generation.get() != mine) return // a newer request will apply the same (newer) state
+        synchronized(applyLock) {
+            if (generation.get() != mine) return
+            val preset = activeCalibrationName(context)?.let { AutoVybzPresetStore.loadFull(context, it) }
+            applyBase(context, preset)
+        }
     }
 
     private fun applyBase(context: Context, preset: com.andrexthedev.autovybz.preset.model.AutoVybzPreset?) {

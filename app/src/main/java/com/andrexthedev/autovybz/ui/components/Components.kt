@@ -163,13 +163,14 @@ fun VybzStripe(modifier: Modifier = Modifier) {
 
 /**
  * The brand sign: an outer neon-green ring and an inner gold ring, like the logo. [progress] (0..1) draws the outer
- * ring as a sweep (countdown, measuring); [pulse] (0..1) adds a soft glow ring that breathes outwards.
+ * ring as a sweep (countdown, measuring); [pulse] (0..1) adds a soft glow ring that breathes outwards. It is a
+ * lambda read only while drawing, so the breathing redraws the canvas without recomposing the surrounding card.
  */
 @Composable
 fun VybzRings(
     modifier: Modifier = Modifier,
     progress: Float? = null,
-    pulse: Float = 0f,
+    pulse: () -> Float = NoPulse,
     outer: Color = AutoVybzColors.Green,
     inner: Color = AutoVybzColors.Gold,
     strokeWidth: Dp = 6.dp,
@@ -178,6 +179,7 @@ fun VybzRings(
         val stroke = strokeWidth.toPx()
         val radius = size.minDimension / 2f - stroke * 1.5f
         val center = Offset(size.width / 2f, size.height / 2f)
+        val pulse = pulse()
         if (pulse > 0f) {
             drawCircle(
                 outer.copy(alpha = 0.28f * (1f - pulse)), radius = radius + stroke * (1f + 4f * pulse), center = center,
@@ -201,17 +203,23 @@ fun VybzRings(
     }
 }
 
-/** Infinite 0..1 breathing value for [VybzRings] - static (0) when the system has animations switched off. */
+/** No breathing. */
+val NoPulse: () -> Float = { 0f }
+
+/**
+ * Infinite 0..1 breathing value for [VybzRings], as a lambda for draw-phase reads (no recomposition per frame).
+ * Static when the system has animations switched off.
+ */
 @Composable
-fun rememberPulse(periodMs: Int = 2_400): Float {
-    if (!animationsEnabled()) return 0f
+fun rememberPulse(periodMs: Int = 2_400): () -> Float {
+    if (!animationsEnabled()) return NoPulse
     val transition = rememberInfiniteTransition(label = "pulse")
-    val v by transition.animateFloat(
+    val v = transition.animateFloat(
         initialValue = 0f, targetValue = 1f,
         animationSpec = infiniteRepeatable(tween(periodMs, easing = LinearEasing), RepeatMode.Restart),
         label = "pulse",
     )
-    return v
+    return remember(v) { { v.value } }
 }
 
 /** False when the user (or a test device) removed animations - decorative motion then stays still. */

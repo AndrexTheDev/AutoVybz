@@ -153,6 +153,11 @@ object AutoVybzPresetStore {
         return true
     }
 
+    /** Marks [name] as the speaker profile in use (before its engine update has been written). */
+    fun markActive(context: Context, name: String) {
+        context.getSharedPreferences(AVZ_PREFS, Context.MODE_PRIVATE).edit().putString(KEY_LAST_PRESET, name).apply()
+    }
+
     fun lastAppliedName(context: Context): String? =
         context.getSharedPreferences(AVZ_PREFS, Context.MODE_PRIVATE).getString(KEY_LAST_PRESET, null)
 }

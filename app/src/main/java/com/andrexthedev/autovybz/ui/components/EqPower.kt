@@ -21,6 +21,8 @@ import com.bearinmind.equalizer314.audio.EqService
 
 /** Live on/off state of the system-wide sound engine plus the calibration that is audible. */
 @Stable
+private const val MIN_TOGGLE_INTERVAL_MS = 600L
+
 class EqPowerState internal constructor(private val context: Context) {
     var on by mutableStateOf(EqService.isDpRunning)
         internal set
@@ -28,7 +30,13 @@ class EqPowerState internal constructor(private val context: Context) {
         internal set
     internal var requests by mutableIntStateOf(0)
 
+    private var lastToggleAt = 0L
+
     fun set(want: Boolean) {
+        // Every toggle starts or stops the sound service (DSP rebuild on the main thread): ignore rapid-fire taps.
+        val now = android.os.SystemClock.uptimeMillis()
+        if (now - lastToggleAt < MIN_TOGGLE_INTERVAL_MS) return
+        lastToggleAt = now
         on = want // optimistic; the engine's broadcast (or the re-check) confirms it
         requests++
         if (want) EqBypass.resume(context)
