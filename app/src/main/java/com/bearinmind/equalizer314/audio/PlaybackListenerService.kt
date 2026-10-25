@@ -64,6 +64,9 @@ class PlaybackListenerService : NotificationListenerService() {
         // Hop off the binder thread immediately. Registration touches
         // system services that prefer to be called from a Looper thread.
         handler.post {
+            // The first snapshot after (re)connect always runs in full.
+            lastSnapshotEmpty = false
+            idleSkipCount = 0
             registerCallbacks(handler)
             // Initial scan once the listener is alive so the UI sees
             // whatever was already playing at the moment of bind.
@@ -98,43 +101,54 @@ class PlaybackListenerService : NotificationListenerService() {
         super.onListenerDisconnected()
     }
 
+    /** Active media controllers, fetched once per snapshot (was: one binder round-trip
+     *  per collector). Empty on any failure — callers degrade to the dump/fallback paths. */
+    private fun activeControllers(): List<MediaController> {
+        return try {
+            val msm = getSystemService(MediaSessionManager::class.java) ?: return emptyList()
+            val component = ComponentName(this, PlaybackListenerService::class.java)
+            msm.getActiveSessions(component) ?: emptyList()
+        } catch (t: Throwable) {
+            Log.w(TAG, "getActiveSessions failed", t)
+            emptyList()
+        }
+    }
+
     /** Packages whose active MediaController reports [PlaybackState.STATE_PLAYING] now. Drives the
      *  per-row speaker-pulse animation. Apps without a MediaSession (some games, custom players) are
      *  absent even if outputting — acceptable since nearly every EQ-relevant app uses MediaSession. */
-    private fun collectActivelyPlayingPackages(): Set<String> {
-        return try {
-            val msm = getSystemService(MediaSessionManager::class.java) ?: return emptySet()
-            val component = ComponentName(this, PlaybackListenerService::class.java)
-            val controllers = msm.getActiveSessions(component) ?: return emptySet()
-            val own = packageName
-            controllers.asSequence()
-                .filter { it.playbackState?.state == PlaybackState.STATE_PLAYING }
-                .mapNotNull { it.packageName }
-                .filter { it != own && it.isNotBlank() }
-                .toSet()
-        } catch (t: Throwable) {
-            Log.w(TAG, "playbackState lookup failed", t)
-            emptySet()
-        }
+    private fun collectActivelyPlayingPackages(controllers: List<MediaController>): Set<String> {
+        val own = packageName
+        return controllers.asSequence()
+            .filter { it.playbackState?.state == PlaybackState.STATE_PLAYING }
+            .mapNotNull { it.packageName }
+            .filter { it != own && it.isNotBlank() }
+            .toSet()
     }
 
     /** Public-API fallback when audioserver's `dumpAsync` is denied. Returns packages owning an
      *  active media session — no session IDs (`AudioSessionId` is gated by `@SystemApi`). User sees
      *  "YouTube is playing" but can't per-session EQ it on this device. */
-    private fun collectActiveSessionPackages(): Set<String> {
-        return try {
-            val msm = getSystemService(MediaSessionManager::class.java) ?: return emptySet()
-            val component = ComponentName(this, PlaybackListenerService::class.java)
-            val controllers = msm.getActiveSessions(component) ?: return emptySet()
-            val own = packageName
-            controllers.asSequence()
-                .mapNotNull { it.packageName }
-                .filter { it != own && it.isNotBlank() }
-                .toSet()
-        } catch (t: Throwable) {
-            Log.w(TAG, "getActiveSessions fallback failed", t)
-            emptySet()
-        }
+    private fun collectActiveSessionPackages(controllers: List<MediaController>): Set<String> {
+        val own = packageName
+        return controllers.asSequence()
+            .mapNotNull { it.packageName }
+            .filter { it != own && it.isNotBlank() }
+            .toSet()
+    }
+
+    // Idle-skip state (detector thread only): after an all-empty snapshot, heartbeats
+    // re-verify with two cheap public-API probes before paying for a full audioserver
+    // dump + EqService dispatch. Every IDLE_BACKSTOP-th idle tick still runs the full
+    // snapshot, bounding worst-case detection lag if a public signal ever misses a player.
+    private var lastSnapshotEmpty = false
+    private var idleSkipCount = 0
+
+    private fun hasActivePlayback(): Boolean = try {
+        // On any doubt (null service, exception) answer "yes" so the full snapshot runs.
+        getSystemService(AudioManager::class.java)?.activePlaybackConfigurations?.isNotEmpty() ?: true
+    } catch (t: Throwable) {
+        true
     }
 
     /** Stable negative session id per package, marking "detected but no recoverable session id".
@@ -194,6 +208,22 @@ class PlaybackListenerService : NotificationListenerService() {
     private fun runSnapshot() {
         // Runs on the detector HandlerThread — safe to block on the
         // dumpAsync pipe read.
+        val controllers = activeControllers()
+
+        // Idle skip: the previous snapshot found nothing at all and both cheap public
+        // signals still say "nothing" (no media sessions, no active playback configs),
+        // so a full dump could only produce another empty snapshot — EqService's
+        // observe-diff and playing-set handling are no-ops for repeated empty input.
+        // A playback START can't be missed for long: it fires onPlaybackConfigChanged
+        // (a non-heartbeat snapshot) and makes the probes non-empty; the 20-tick
+        // backstop (~60 s) covers even a hypothetical probe blind spot.
+        if (lastSnapshotEmpty && controllers.isEmpty() && !hasActivePlayback()) {
+            if (++idleSkipCount < IDLE_BACKSTOP_TICKS) return
+            idleSkipCount = 0
+        } else {
+            idleSkipCount = 0
+        }
+
         val dumpResult = AudioPolicyDumpParser.dump(applicationContext)
 
         // Stock Android grants audioserver's dumpAsync to any binder caller; Samsung One UI + several
@@ -206,7 +236,7 @@ class PlaybackListenerService : NotificationListenerService() {
             merged.getOrPut(pkg) { mutableSetOf() }.addAll(sids)
         }
         if (dumpResult.isEmpty()) {
-            val fallback = collectActiveSessionPackages()
+            val fallback = collectActiveSessionPackages(controllers)
             for (pkg in fallback) {
                 if (pkg in merged) continue
                 merged.getOrPut(pkg) { mutableSetOf() }.add(syntheticSessionId(pkg))
@@ -218,7 +248,9 @@ class PlaybackListenerService : NotificationListenerService() {
 
         // Packages whose MediaController reports STATE_PLAYING now. Surfaces on Samsung even when
         // dumpsys is denied. Receiver uses it to decide per-row speaker pulse — paused rows go static.
-        val playingNow = collectActivelyPlayingPackages()
+        val playingNow = collectActivelyPlayingPackages(controllers)
+
+        lastSnapshotEmpty = merged.isEmpty() && playingNow.isEmpty()
 
         Log.d(TAG, "snapshot detected=${merged.size} packages, playing=${playingNow.size}")
 
@@ -267,5 +299,7 @@ class PlaybackListenerService : NotificationListenerService() {
         private const val TAG = "PlaybackListenerSvc"
         private const val DEBOUNCE_MS = 100L
         private const val HEARTBEAT_MS = 3000L
+        // Full snapshot at least every ~60 s even while idle-skipping (20 × 3 s).
+        private const val IDLE_BACKSTOP_TICKS = 20
     }
 }
