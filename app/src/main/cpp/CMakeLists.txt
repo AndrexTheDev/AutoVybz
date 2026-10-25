@@ -17,16 +17,20 @@ add_compile_options(-fno-ident)
 # Real-time DSP: optimise in debug builds too.
 set(DSP_FLAGS -O3 -ffp-contract=fast)
 
+# Smaller .so, faster symbol binding: hide everything except the JNIEXPORT entry
+# points, and let the linker garbage-collect unreferenced sections.
+set(SIZE_FLAGS -fvisibility=hidden -ffunction-sections -fdata-sections)
+
 # pffft is built twice like PipeWire's meson does: the SIMD kernels, then the scalar build carrying the public API + CPU pick.
 add_library(pffft_simd OBJECT ${PW_DIR}/pffft.c)
 target_compile_definitions(pffft_simd PRIVATE ${SIMD_DEF})
 target_include_directories(pffft_simd PRIVATE ${SHIM_DIR} ${PW_DIR})
-target_compile_options(pffft_simd PRIVATE ${DSP_FLAGS} -Wno-unused-function)
+target_compile_options(pffft_simd PRIVATE ${DSP_FLAGS} ${SIZE_FLAGS} -Wno-unused-function)
 
 add_library(pffft_c OBJECT ${PW_DIR}/pffft.c)
 target_compile_definitions(pffft_c PRIVATE PFFFT_SIMD_DISABLE ${SIMD_DEF})
 target_include_directories(pffft_c PRIVATE ${SHIM_DIR} ${PW_DIR})
-target_compile_options(pffft_c PRIVATE ${DSP_FLAGS} -Wno-unused-function)
+target_compile_options(pffft_c PRIVATE ${DSP_FLAGS} ${SIZE_FLAGS} -Wno-unused-function)
 
 add_library(eq314hrir SHARED
     hrir_jni.c
@@ -34,8 +38,9 @@ add_library(eq314hrir SHARED
     $<TARGET_OBJECTS:pffft_simd>
     $<TARGET_OBJECTS:pffft_c>)
 target_include_directories(eq314hrir PRIVATE ${SHIM_DIR} ${PW_DIR})
-target_compile_options(eq314hrir PRIVATE ${DSP_FLAGS})
+target_compile_options(eq314hrir PRIVATE ${DSP_FLAGS} ${SIZE_FLAGS})
 target_link_libraries(eq314hrir m)
+target_link_options(eq314hrir PRIVATE -Wl,--gc-sections)
 # No build id: keeps the .so byte-identical across machines (F-Droid reproducible builds).
 target_link_options(eq314hrir PRIVATE -Wl,--build-id=none)
 # 16 KB page alignment: Android 15+ phones with 16 KB pages can't load a 4 KB-aligned library (NDK r27 defaults to 4 KB).

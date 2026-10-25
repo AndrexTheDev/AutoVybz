@@ -23,6 +23,16 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
+        // Ship only the native ABIs that exist on API 28+ devices (drops 32-bit x86;
+        // CI emulators are x86_64). One universal APK, ~1.5 MB smaller.
+        ndk {
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")
+        }
+
+        // Only locales the app actually translates (values-* dirs above); strips the
+        // ~80 library locales AppCompat/Material/Compose would otherwise add.
+        resourceConfigurations += listOf("en", "de", "es", "pt", "ru", "uk", "zh-rCN")
+
         externalNativeBuild {
             cmake {
                 // Oboe's prefab package is built against the shared C++ runtime.
@@ -45,7 +55,14 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // R8 full mode (AGP 8 default): shrink + optimize + obfuscate, plus resource
+            // shrinking. Keep rules in proguard-rules.pro cover this app's only
+            // name-sensitive surfaces: JNI exports (mangled C names) and enum constants,
+            // which are persisted by name in preferences and preset files. Reflection is
+            // framework-only, components/views are kept by AAPT's generated rules, and
+            // library consumer rules cover Compose/AppCompat/Material/coroutines.
+            isMinifyEnabled = true
+            isShrinkResources = true
             signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
