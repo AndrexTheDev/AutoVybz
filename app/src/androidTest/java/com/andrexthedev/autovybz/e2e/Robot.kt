@@ -110,6 +110,25 @@ fun ComposeTestRule.confirmSafetyAndStart() {
     if (has("avz:safety:speaker")) tap("avz:safety:speaker")
     tap("avz:safety:confirm")
     tap("avz:safety:start")
+    // Slow emulators (API 28) occasionally swallowed this tap: the start button was still disabled because the
+    // confirm tick had not been recomposed yet. Retry once - logged, and only if the screen really did not move on.
+    val moved = runCatching { waitUntil(8_000) { !has("avz:safety:start") }; true }.getOrDefault(false)
+    if (!moved) {
+        val disabled = onNodeWithTag("avz:safety:start").fetchSemanticsNode().config.contains(SemanticsProperties.Disabled)
+        android.util.Log.w("AvzE2E", "safety start did not proceed (button disabled=$disabled) - retrying once")
+        if (disabled) {
+            ensureChecked("avz:safety:speaker")
+            ensureChecked("avz:safety:confirm")
+        }
+        tap("avz:safety:start")
+    }
+}
+
+/** Taps a checkbox/switch only if it is present and reports "off" (a second tap would untick it). */
+private fun ComposeTestRule.ensureChecked(tag: String) {
+    if (!has(tag)) return
+    val state = onNodeWithTag(tag).fetchSemanticsNode().config.getOrNull(SemanticsProperties.ToggleableState)
+    if (state == androidx.compose.ui.state.ToggleableState.Off) tap(tag)
 }
 
 /** Answers every "move the phone" screen with continue/finish until the result appears. */
