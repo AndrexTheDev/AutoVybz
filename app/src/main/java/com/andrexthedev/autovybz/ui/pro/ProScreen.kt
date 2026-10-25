@@ -71,6 +71,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.andrexthedev.autovybz.measurement.ListeningEnvironment
+import com.andrexthedev.autovybz.measurement.SpeakerClass
 import com.andrexthedev.autovybz.measurement.audio.InputSourceResolver
 import com.andrexthedev.autovybz.measurement.mic.MicProfileDatabase
 import com.andrexthedev.autovybz.preset.AutoVybzPresetStore
@@ -279,7 +280,8 @@ private fun CalibrationList() {
             Text(
                 "${df.format(Date(p.createdAtMillis))} · ${stringResource(targetLabel(p.target))} · ${p.bands.size} PEQ · " +
                     String.format(Locale.US, "%.1f dB", p.preampDb) +
-                    (if (p.measurement?.environment == ListeningEnvironment.OUTDOOR.name) " · " + stringResource(R.string.avz_env_outdoor_short) else ""),
+                    (if (p.measurement?.environment == ListeningEnvironment.OUTDOOR.name) " · " + stringResource(R.string.avz_env_outdoor_short) else "") +
+                    (if (p.measurement?.speakerClass == SpeakerClass.DEVICE.name) " · " + stringResource(R.string.avz_device_speaker_name) else ""),
                 style = MaterialTheme.typography.bodySmall,
                 color = AutoVybzColors.OnDarkMuted,
             )
