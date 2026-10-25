@@ -368,6 +368,8 @@
     <string name="avz_device_check_2">Speakers and microphone are uncovered and clean.</string>
     <string name="avz_device_check_3">Step back for the 10 seconds and do not touch the device.</string>
     <string name="avz_result_highpass">Protective high-pass at %1$d Hz: bass below this is removed, because the speaker cannot play it anyway and only distorts trying.</string>
+    <string name="avz_result_limiter">The limiter is switched on automatically with this calibration and protects the speaker at high volume.</string>
+    <string name="avz_result_device_profile">This profile is tuned for the speakers of this device. When you listen through an external speaker again, switch back to its profile.</string>
     <string name="avz_help_rescue_title">Rescuing weak speakers</string>
     <string name="avz_help_rescue_body">Choose the speaker type for weak or cheap speakers and measure as usual. AutoVybz then works more decisively: boomy bass and harsh mids are cut deeper, missing treble is lifted broadly, and a protective high-pass removes deep bass that the little driver cannot reproduce – on its own that takes away most rattling and distortion and leaves room for cleaner loudness. Physics stays physics: real deep bass will not appear, but balanced and clear is very much possible.</string>
     <string name="avz_help_device_title">Calibrating this phone or tablet</string>

@@ -370,6 +370,8 @@
     <string name="avz_device_check_2">Los altavoces y el micrófono están descubiertos y limpios.</string>
     <string name="avz_device_check_3">Aléjate durante los 10 segundos y no toques el dispositivo.</string>
     <string name="avz_result_highpass">Paso alto protector a %1$d Hz: los graves por debajo se eliminan, porque el altavoz no puede reproducirlos y solo distorsionaría al intentarlo.</string>
+    <string name="avz_result_limiter">El limitador se activa automáticamente con esta calibración y protege el altavoz a volumen alto.</string>
+    <string name="avz_result_device_profile">Este perfil está ajustado para los altavoces de este dispositivo. Cuando vuelvas a escuchar por un altavoz externo, regresa a su perfil.</string>
     <string name="avz_help_rescue_title">Rescatar altavoces débiles</string>
     <string name="avz_help_rescue_body">Elige el tipo de altavoz para altavoces débiles o baratos y mide como siempre. AutoVybz intervendrá con más decisión: los graves retumbantes y los medios ásperos se recortan más, los agudos que faltan se refuerzan de forma amplia y un paso alto protector elimina los graves profundos que el pequeño altavoz no puede reproducir; solo eso ya quita la mayor parte de los traqueteos y la distorsión y deja sitio para un volumen más limpio. La física es la física: no aparecerán graves profundos de verdad, pero un sonido equilibrado y claro sí es posible.</string>
     <string name="avz_help_device_title">Calibrar este teléfono o tableta</string>

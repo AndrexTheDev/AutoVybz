@@ -99,6 +99,7 @@ import com.andrexthedev.autovybz.measurement.MeasurementProgress
 import com.andrexthedev.autovybz.measurement.SpeakerClass
 import com.andrexthedev.autovybz.measurement.audio.RouteClassifier
 import com.andrexthedev.autovybz.measurement.dsp.MeasurementWarning
+import com.andrexthedev.autovybz.measurement.eq.PeqType
 import com.andrexthedev.autovybz.measurement.eq.TargetType
 import com.andrexthedev.autovybz.measurement.mic.ProfileConfidence
 import com.andrexthedev.autovybz.ui.components.AvzCard
@@ -779,6 +780,21 @@ private fun ResultStep(step: WizardStep.Result, state: WizardUiState, vm: Wizard
                 color = AutoVybzColors.GreenBright,
             )
         }
+        // Outdoors the dedicated card below already explains the limiter.
+        if (o.request.forceLimiter && o.request.environment == ListeningEnvironment.INDOOR) {
+            Text(
+                stringResource(R.string.avz_result_limiter),
+                style = MaterialTheme.typography.bodyMedium,
+                color = AutoVybzColors.OnDarkMuted,
+            )
+        }
+        if (o.request.speakerClass == SpeakerClass.DEVICE) {
+            Text(
+                stringResource(R.string.avz_result_device_profile),
+                style = MaterialTheme.typography.bodyMedium,
+                color = AutoVybzColors.OnDarkMuted,
+            )
+        }
     }
 
     if ((o.positionSpreadDb ?: 0.0) > HIGH_POSITION_SPREAD_DB) {
@@ -916,7 +932,12 @@ private fun ResultStep(step: WizardStep.Result, state: WizardUiState, vm: Wizard
         Text(stringResource(R.string.avz_detail_bands), style = MaterialTheme.typography.titleSmall)
         for (b in e.bands) {
             Text(
-                String.format(Locale.US, "%-4s %7.1f Hz  %+5.1f dB  Q %.2f", b.type.apoCode, b.frequency, b.gainDb, b.q),
+                // A protective pass has no gain - show its slope instead of a meaningless +0.0 dB.
+                if (b.type == PeqType.HIGH_PASS) {
+                    String.format(Locale.US, "%-4s %7.1f Hz  12 dB/oct  Q %.2f", b.type.apoCode, b.frequency, b.q)
+                } else {
+                    String.format(Locale.US, "%-4s %7.1f Hz  %+5.1f dB  Q %.2f", b.type.apoCode, b.frequency, b.gainDb, b.q)
+                },
                 style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
                 color = AutoVybzColors.OnDarkMuted,
             )
