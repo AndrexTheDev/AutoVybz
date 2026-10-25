@@ -55,7 +55,13 @@ jobs:
       - name: Release build smoke test (R8 + shrinkResources)
         run: |
           set -o pipefail
-          if ! ./gradlew assembleRelease --no-daemon --console=plain --stacktrace 2>&1 | tee release.log; then
+          keytool -genkeypair -keystore "$RUNNER_TEMP/release.jks" -storepass android -keypass android \
+            -alias dryrun -keyalg RSA -keysize 2048 -validity 1 -dname "CN=Dry run" >/dev/null
+          export ORG_GRADLE_PROJECT_RELEASE_STORE_FILE="$RUNNER_TEMP/release.jks"
+          export ORG_GRADLE_PROJECT_RELEASE_STORE_PASSWORD=android
+          export ORG_GRADLE_PROJECT_RELEASE_KEY_ALIAS=dryrun
+          export ORG_GRADLE_PROJECT_RELEASE_KEY_PASSWORD=android
+          if ! ./gradlew assembleRelease --no-daemon --console=plain 2>&1 | tee release.log; then
             grep -n -A60 "What went wrong" release.log | head -80 | sed 's/^/::error::/'
             ls -la app/build/intermediates/merged_java_res/release/ 2>&1 | sed 's/^/::error::/'
             python3 - <<'PYEOF' 2>&1 | sed 's/^/::error::/'
