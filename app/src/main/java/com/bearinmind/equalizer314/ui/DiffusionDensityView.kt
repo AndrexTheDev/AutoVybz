@@ -1,0 +1,345 @@
+package com.bearinmind.equalizer314.ui
+
+import android.content.Context
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.Path
+import android.os.SystemClock
+import android.util.AttributeSet
+import android.view.MotionEvent
+import android.view.View
+import java.util.Random
+import kotlin.math.abs
+import kotlin.math.max
+import kotlin.math.sqrt
+
+/**
+ * X/Y editor for EnvironmentalReverb's Diffusion (X) and Density (Y).
+ * [LimiterCeilingView]-style paints; fills its card edge-to-edge with a small
+ * inset for axis labels and the bottom value readout.
+ */
+class DiffusionDensityView @JvmOverloads constructor(
+    context: Context,
+    attrs: AttributeSet? = null,
+) : View(context, attrs) {
+
+    init {
+        setLayerType(LAYER_TYPE_SOFTWARE, null)
+    }
+
+    /** 0..100 % */
+    var diffusionPct: Float = 100f
+        set(v) { field = v.coerceIn(0f, 100f); invalidate() }
+    /** 0..100 % */
+    var densityPct: Float = 100f
+        set(v) { field = v.coerceIn(0f, 100f); invalidate() }
+
+    /** Fired live during drag with (diffusion, density) in 0..100 %. */
+    var onChanged: ((Float, Float) -> Unit)? = null
+
+    private val density = context.resources.displayMetrics.density
+
+    // Background matches the main EQ graph + MBC graph (#1E1E1E),
+    // with the same darker grid line color (#3A3A3A).
+    private val plotBgPaint = Paint().apply { color = 0xFF2D3742.toInt() }
+    private val gridPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = 0xFF43505C.toInt(); strokeWidth = 1f
+    }
+    // Same as the main EQ / MBC grid labels (#888888, 24 px); drawn into the
+    // gridline gap so the line doesn't cut through the digit.
+    private val gridLabelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = 0xFF8E9AA5.toInt(); textSize = 24f
+    }
+
+    // Rounded "axis pill" labels — same paint trio as EqGraphView's band pill.
+    private val axisPillTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = 0xFFA9B4BE.toInt(); textSize = 20f
+    }
+    private val axisPillBgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = 0xFF2B353F.toInt(); style = Paint.Style.FILL
+    }
+    private val axisPillStrokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = 0xFF4C5A67.toInt(); style = Paint.Style.STROKE
+        strokeWidth = 2f
+    }
+    // Dot matches MBC's gate/compressor curves: dark graph-color fill punches
+    // through gridlines, light-grey ring on top.
+    private val dotBgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = 0xFF2D3742.toInt(); style = Paint.Style.FILL
+    }
+    private val dotRingPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = 0xFFDDE3E7.toInt(); strokeWidth = 2.5f; style = Paint.Style.STROKE
+    }
+    // Mini dots drawn INSIDE the X/Y dot to visualize what the
+    // density (count) and diffusion (jitter) values are doing.
+    private val miniDotPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = 0xFFA9B4BE.toInt(); style = Paint.Style.FILL
+    }
+    private val haloPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = 0x38A9B4BE.toInt(); style = Paint.Style.FILL
+    }
+    // Dotted crosshair, same dash style the limiter ceiling line uses.
+    private val crosshairPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = 0x66BAC3CB.toInt(); strokeWidth = 1f * density
+        style = Paint.Style.STROKE
+        pathEffect = android.graphics.DashPathEffect(floatArrayOf(8f, 5f), 0f)
+    }
+
+    // The plot now spans the full view; labels are overlaid inside.
+    private var plotL = 0f; private var plotT = 0f
+    private var plotR = 0f; private var plotB = 0f
+    private var dragging = false
+
+    // Halo fade state — same pattern as the reverb visualizer's dot ripples
+    // (alpha 0 → peak on grab, back to 0 on release).
+    private var haloStateChangeMs = 0L
+    private val haloFadeInMs = 120L
+    private val haloFadeOutMs = 220L
+    // Peak alpha matches the original 0x38 (~22 %) tint so the visual
+    // intensity at full grab is unchanged from before the fade was added.
+    private val haloPeakAlpha = 0x38 / 255f
+
+    private fun computePlot(w: Float, h: Float) {
+        plotL = 0f
+        plotT = 0f
+        plotR = w
+        plotB = h
+    }
+
+    override fun onDraw(canvas: Canvas) {
+        val w = width.toFloat(); val h = height.toFloat()
+        if (w <= 0f || h <= 0f) return
+        computePlot(w, h)
+
+        // Plot background fills the whole view, edge-to-edge.
+        canvas.drawRect(plotL, plotT, plotR, plotB, plotBgPaint)
+
+        // Gridlines at 20/40/60/80 % on both axes; labels sit ON the line (X near
+        // bottom, Y near left) with the gridline broken around them.
+        val gridValues = intArrayOf(20, 40, 60, 80)
+        val plotW = plotR - plotL
+        val plotH = plotB - plotT
+        val labelBounds = android.graphics.Rect()
+        val labelGap = 4f * density
+        for (v in gridValues) {
+            val label = "$v"
+            gridLabelPaint.getTextBounds(label, 0, label.length, labelBounds)
+            val labelW = labelBounds.width().toFloat()
+            val labelH = labelBounds.height().toFloat()
+
+            // Vertical line at X=v% — label sits near the bottom edge.
+            val gx = plotL + (v / 100f) * plotW
+            val xLabelBaselineY = plotB - 6f * density
+            val xLabelTopY = xLabelBaselineY - labelH - labelGap
+            val xLabelBottomY = xLabelBaselineY + labelGap
+            canvas.drawLine(gx, plotT, gx, xLabelTopY, gridPaint)
+            canvas.drawLine(gx, xLabelBottomY, gx, plotB, gridPaint)
+            canvas.drawText(label, gx - labelW / 2f, xLabelBaselineY, gridLabelPaint)
+
+            // Horizontal line at Y=v% — label at the left edge, gridline broken
+            // around it; the "Density" pill sits further right.
+            val gy = plotB - (v / 100f) * plotH
+            val yLabelLeftX = plotL + 6f * density
+            val yLabelRightX = yLabelLeftX + labelW + labelGap
+            canvas.drawLine(plotL, gy, yLabelLeftX - labelGap, gy, gridPaint)
+            canvas.drawLine(yLabelRightX, gy, plotR, gy, gridPaint)
+            canvas.drawText(label, yLabelLeftX, gy + labelH / 2f, gridLabelPaint)
+        }
+
+        // Crosshair through the current point — uses the raw (un-
+        // clamped) point so the lines run all the way to the edges.
+        val px = plotL + (diffusionPct / 100f) * (plotR - plotL)
+        val py = plotB - (densityPct / 100f) * (plotB - plotT)
+        canvas.drawLine(plotL, py, plotR, py, crosshairPaint)
+        canvas.drawLine(px, plotT, px, plotB, crosshairPaint)
+
+        // Dot clamped inside the graph so it stays visible at 0/100 (same trick
+        // as the gate/compressor curves); bg fill + light-grey ring.
+        val dotR = 40f
+        // 3 dp inset keeps the dot from clipping at the rounded corners; the
+        // crosshair still draws at un-clamped px/py so it reaches the edges.
+        val dotMargin = dotR + 3f * density
+        val dotX = px.coerceIn(plotL + dotMargin, plotR - dotMargin)
+        val dotY = py.coerceIn(plotT + dotMargin, plotB - dotMargin)
+        // Smooth fade halo: alpha eases from 0 → peak on grab and back
+        // to 0 on release, matching the reverb visualizer's dot ripples.
+        val elapsed = SystemClock.elapsedRealtime() - haloStateChangeMs
+        val haloAlphaFrac: Float
+        val animating: Boolean
+        if (dragging) {
+            haloAlphaFrac = (elapsed.toFloat() / haloFadeInMs).coerceIn(0f, 1f)
+            animating = haloAlphaFrac < 1f
+        } else {
+            haloAlphaFrac = (1f - elapsed.toFloat() / haloFadeOutMs).coerceIn(0f, 1f)
+            animating = haloAlphaFrac > 0f
+        }
+        if (haloAlphaFrac > 0.01f) {
+            haloPaint.alpha = (haloAlphaFrac * haloPeakAlpha * 255f).toInt()
+            canvas.drawCircle(dotX, dotY, dotR + 12f * density, haloPaint)
+        }
+        if (animating) postInvalidateOnAnimation()
+        canvas.drawCircle(dotX, dotY, dotR, dotBgPaint)
+        drawMiniDots(canvas, dotX, dotY, dotR)
+        canvas.drawCircle(dotX, dotY, dotR, dotRingPaint)
+
+        // Pill centres sit 40 dp from the left (Density) / bottom (Diffusion)
+        // edge so each pill's gap to its axis-number row is identical.
+        val pillEdgeOffset = 40f * density
+        drawAxisPill(canvas, context.getString(com.bearinmind.equalizer314.R.string.diffusion), (plotL + plotR) / 2f, plotB - pillEdgeOffset, rotated = false)
+        drawAxisPill(canvas, context.getString(com.bearinmind.equalizer314.R.string.density), plotL + pillEdgeOffset, (plotT + plotB) / 2f, rotated = true)
+    }
+
+    /** Mini-dot pattern inside the X/Y dot. Density → count 4..30 (latest dot
+     *  alpha-fades in per integer); diffusion → jitter (0 % = rowed grid, 100 % =
+     *  scattered). gridR scales smoothly with density so dots migrate, not snap.
+     *  Fixed RNG seed keeps jitter stable across redraws. */
+    private fun drawMiniDots(canvas: Canvas, cx: Float, cy: Float, dotR: Float) {
+        val miniR = 1.5f * density
+        val nDotsFloat = 4f + (densityPct / 100f) * 26f  // continuous 4..30
+        val effectiveR = dotR - miniR - 3f * density
+        if (effectiveR <= 0f) return
+        val diffFrac = (diffusionPct / 100f).coerceIn(0f, 1f)
+
+        // Grid extent grows with density: floor 0.85 so even 4 dots (2×2) fill
+        // most of the circle at min diffusion; grows to 0.95 at max density.
+        val densityFrac = ((nDotsFloat - 4f) / 26f).coerceIn(0f, 1f)
+        val gridR = effectiveR * (0.85f + 0.10f * densityFrac)
+        val gridHalfW = gridR * 0.781f   // 6 cols × 5 rows fits with
+        val gridHalfH = gridR * 0.625f   // square cells, corners on r
+        val cellStepX = gridHalfW * 2f / 5f
+        val cellStepY = gridHalfH * 2f / 4f
+
+        val rng = Random(42L)
+        val baseAlpha = miniDotPaint.alpha
+        for ((i, cell) in miniDotOrder.withIndex()) {
+            val alpha = (nDotsFloat - i).coerceIn(0f, 1f)
+            if (alpha <= 0f) break
+
+            val col = cell.first
+            val row = cell.second
+            var px = cx - gridHalfW + col * cellStepX
+            var py = cy - gridHalfH + row * cellStepY
+
+            // Diffusion scatters dots away from their grid cell.
+            val jitterScale = effectiveR * 0.7f * diffFrac
+            px += (rng.nextFloat() - 0.5f) * 2f * jitterScale
+            py += (rng.nextFloat() - 0.5f) * 2f * jitterScale
+
+            // Clamp to inside the X/Y dot's circle.
+            val dx = px - cx
+            val dy = py - cy
+            val dist = sqrt(dx * dx + dy * dy)
+            if (dist > effectiveR) {
+                px = cx + dx / dist * effectiveR
+                py = cy + dy / dist * effectiveR
+            }
+
+            miniDotPaint.alpha = (alpha * baseAlpha).toInt().coerceIn(0, 255)
+            canvas.drawCircle(px, py, miniR, miniDotPaint)
+        }
+        miniDotPaint.alpha = baseAlpha
+    }
+
+    /** Appearance order of the 30 grid cells as density grows: Chebyshev distance
+     *  from centre → concentric squares (4 = 2×2, 6 = 2×3, 12 = 4×3…); tie-break
+     *  row then col so the cluster grows symmetrically. */
+    private val miniDotOrder: List<Pair<Int, Int>> = run {
+        val maxCols = 6
+        val maxRows = 5
+        val centerCol = (maxCols - 1) / 2f
+        val centerRow = (maxRows - 1) / 2f
+        val cells = mutableListOf<Triple<Int, Int, Float>>()
+        for (col in 0 until maxCols) {
+            for (row in 0 until maxRows) {
+                val dx = abs(col - centerCol)
+                val dy = abs(row - centerRow)
+                val dist = max(dx, dy)
+                cells.add(Triple(col, row, dist))
+            }
+        }
+        cells.sortWith(compareBy({ it.third }, { it.second }, { it.first }))
+        cells.map { Pair(it.first, it.second) }
+    }
+
+    private fun drawAxisPill(canvas: Canvas, text: String, cx: Float, cy: Float, rotated: Boolean) {
+        val textW = axisPillTextPaint.measureText(text)
+        val padH = 14f
+        val padV = 8f
+        val cornerR = 12f * density
+        // Pill rect centered on (cx, cy) before rotation. Ascent is
+        // negative; the text baseline sits below center by half-height.
+        val rectW = textW + padH * 2f
+        val textHeight = 20f  // matches textSize
+        val rectH = textHeight + padV * 2f
+        val rect = android.graphics.RectF(
+            cx - rectW / 2f, cy - rectH / 2f,
+            cx + rectW / 2f, cy + rectH / 2f
+        )
+        canvas.save()
+        if (rotated) canvas.rotate(-90f, cx, cy)
+        canvas.drawRoundRect(rect, cornerR, cornerR, axisPillBgPaint)
+        canvas.drawRoundRect(rect, cornerR, cornerR, axisPillStrokePaint)
+        canvas.drawText(text, cx - textW / 2f, cy + textHeight / 2f - 4f, axisPillTextPaint)
+        canvas.restore()
+    }
+
+    private fun clipRoundRect(c: Canvas, l: Float, t: Float, r: Float, b: Float, rx: Float) {
+        val path = Path().apply { addRoundRect(l, t, r, b, rx, rx, Path.Direction.CW) }
+        c.clipPath(path)
+    }
+
+    // Capture (centre − touch) offset on grab so the dot's centre stays at
+    // (touch + offset) — the finger rides the ring, not the mini-dots inside.
+    private var grabOffsetX = 0f
+    private var grabOffsetY = 0f
+
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                val pad = 14f * density
+                if (event.x < plotL - pad || event.x > plotR + pad ||
+                    event.y < plotT - pad || event.y > plotB + pad) return false
+                // Compute the dot's current centre position so we can
+                // stash the (centre − touch) offset for the drag.
+                val w = (plotR - plotL).coerceAtLeast(1f)
+                val hh = (plotB - plotT).coerceAtLeast(1f)
+                val curDotX = plotL + (diffusionPct / 100f) * w
+                val curDotY = plotB - (densityPct / 100f) * hh
+                grabOffsetX = curDotX - event.x
+                grabOffsetY = curDotY - event.y
+                dragging = true
+                haloStateChangeMs = SystemClock.elapsedRealtime()
+                parent?.requestDisallowInterceptTouchEvent(true)
+                applyTouch(event.x + grabOffsetX, event.y + grabOffsetY)
+                invalidate()
+                return true
+            }
+            MotionEvent.ACTION_MOVE -> {
+                if (!dragging) return false
+                applyTouch(event.x + grabOffsetX, event.y + grabOffsetY)
+                invalidate()
+                return true
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                dragging = false
+                haloStateChangeMs = SystemClock.elapsedRealtime()
+                grabOffsetX = 0f
+                grabOffsetY = 0f
+                parent?.requestDisallowInterceptTouchEvent(false)
+                invalidate()
+                return true
+            }
+        }
+        return super.onTouchEvent(event)
+    }
+
+    private fun applyTouch(x: Float, y: Float) {
+        val w = (plotR - plotL).coerceAtLeast(1f)
+        val hh = (plotB - plotT).coerceAtLeast(1f)
+        val newDiff = ((x - plotL) / w * 100f).coerceIn(0f, 100f)
+        val newDens = ((plotB - y) / hh * 100f).coerceIn(0f, 100f)
+        diffusionPct = newDiff
+        densityPct = newDens
+        onChanged?.invoke(newDiff, newDens)
+    }
+}

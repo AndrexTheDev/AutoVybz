@@ -1,0 +1,26 @@
+<b>Ein Tap. 10 Sekunden. Dein Lautsprecher, eingemessen auf deinen Raum.</b>
+
+AutoVybz misst deinen externen Lautsprecher (Bluetooth, AUX, USB, HDMI) mit dem Mikrofon deines Handys automatisch in deinem Raum ein und wendet die Korrektur systemweit an.
+
+<b>So funktioniert es</b>
+<ul>
+<li>Exakt 10 s Test: Raumgeräusch, rosa Rauschen und ein logarithmischer Sinus-Sweep von 20 Hz bis 20 kHz</li>
+<li>Unbearbeiteter Mikrofoneingang (UNPROCESSED, Fallback VOICE_RECOGNITION) über eine native Oboe/C++-Engine</li>
+<li>Automatische Latenzerkennung – funktioniert mit Bluetooth-Lautsprechern</li>
+<li>Mikrofon-Kompensationsprofile nach Handymodell; USB-Messmikrofone mit Kalibrierdatei (Pro)</li>
+<li>Dynamische Glättung (stark im Bass, 1/3 Oktave in Mitten und Höhen)</li>
+<li>Bis zu 10 parametrische Filter passend zu deinem Ziel – ohne Bass zu verstärken, den dein Lautsprecher nicht spielen kann</li>
+<li>Automatischer Pre-Gain und Limiter gegen Übersteuerung</li>
+<li>Optionaler Präzisionsmodus: 3 Positionen, leistungsgemittelt – ignoriert Senken, die es nur an einer Stelle gibt</li>
+<li>Outdoor-/Party-Modus: max. +3 dB Anhebung für volle Lautstärke, ignoriert Bodenreflexionen und verrauschte Bereiche (Wind, Verkehr, Vögel), erkennt Wind und Bluetooth-Aussetzer, Limiter immer an, volle Bildschirmhelligkeit in der Sonne</li>
+</ul>
+
+<b>Ziele</b>: Smart (sanfter Bass-Boost), Neutral/Flat, Bass Boost, Harman/Loudness, Eigenes Ziel.
+
+<b>Pro-Bereich</b>: komplette Equalizer314-Engine – 10-Band-PEQ mit Graph, Multiband-Kompressor, Limiter, Presets, AutoEQ.
+
+<b>Export &amp; Teilen</b>: Equalizer APO / Peace, parametrisches EQ-JSON, CSV für REW und eine Share-Karte mit deiner echten Messung.
+
+Kopfhörer sind bewusst ausgeschlossen – AutoVybz ist für Lautsprecher gemacht.
+
+100 % Open Source (GPL-3.0), Donationware, keine Werbung, kein Tracking. Basiert auf Equalizer314 von bearinmindcat.

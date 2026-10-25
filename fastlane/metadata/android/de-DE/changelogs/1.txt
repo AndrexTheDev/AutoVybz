@@ -1,0 +1,7 @@
+AutoVybz 0.1.0-alpha – erste Version
+• 1-Klick-Assistent zum Einmessen von Lautsprecher & Raum (10 s Sweep + rosa Rauschen)
+• Präzisionsmodus: Mittelung über 3 Positionen
+• Handy-Mikrofonprofile, USB-Messmikrofone
+• Ziele Smart / Flat / Bass Boost / Harman / Eigenes, 5 oder 10 PEQ-Bänder
+• Auto-Pre-Gain + Limiter, Export: Equalizer APO, JSON, REW CSV
+• Share-Karte, Hilfe, Krypto-Spenden, Deutsch/Englisch/Spanisch

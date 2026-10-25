@@ -1,0 +1,56 @@
+# Landing page → GitHub Pages (https://andrexthedev.github.io/AutoVybz/)
+# Builds on every push/PR that touches the site (as a check); deploys only from main.
+# A daily run refreshes the GitHub star count (fetched at build time, never by visitors' browsers).
+name: Pages
+
+on:
+  push:
+    paths: ['site/**', 'app/build.gradle.kts', '.github/workflows/pages.yml']
+  pull_request:
+    paths: ['site/**', '.github/workflows/pages.yml']
+  schedule:
+    - cron: '17 4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build site
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 site/build.py --out _site
+
+      - name: Sanity checks
+        run: |
+          test -f _site/index.html && test -f _site/de/index.html && test -f _site/es/index.html
+          test -f _site/404.html && test -f _site/sitemap.xml
+          if grep -rl '{{' _site --include=*.html; then echo '::error::unresolved template tokens'; exit 1; fi
+
+      - uses: actions/upload-pages-artifact@v5
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

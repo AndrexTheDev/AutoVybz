@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<merge xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <LinearLayout
+        android:id="@+id/bottomBar"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:layout_gravity="bottom"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="?attr/colorSurfaceContainerHigh"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp">
+
+        <!-- Left group: EQ + MBC -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:gravity="center">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:layout_marginEnd="36dp">
+                <ImageButton
+                    android:id="@+id/navPresetsButton"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:src="@drawable/ic_nav_equalizer"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/eq"
+                    android:scaleType="centerInside"
+                    app:tint="?attr/colorOnSurface" />
+                <TextView
+                    android:id="@+id/navEqStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/on"
+                    android:textSize="8sp"
+                    android:textColor="#FF8E9AA5" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:gravity="center">
+                <ImageButton
+                    android:id="@+id/navMbcButton"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:src="@drawable/ic_nav_compress"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/multiband_compression"
+                    android:scaleType="centerInside"
+                    app:tint="?attr/colorOnSurface" />
+                <TextView
+                    android:id="@+id/navMbcStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/off_2"
+                    android:textSize="8sp"
+                    android:textColor="#FF8E9AA5" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Center: Power button inline -->
+        <ImageButton
+            android:id="@+id/powerFab"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/ic_nav_power"
+            android:scaleType="centerInside"
+            android:background="@drawable/bg_power_button_ripple"
+            android:contentDescription="@string/power"
+            android:focusable="true" />
+
+        <!-- Right group: Limiter + Settings -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:gravity="center">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:layout_marginEnd="36dp">
+                <ImageButton
+                    android:id="@+id/navLimiterButton"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:src="@drawable/ic_nav_limiter"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/limiter"
+                    android:scaleType="centerInside"
+                    app:tint="?attr/colorOnSurface" />
+                <TextView
+                    android:id="@+id/navLimiterStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/on"
+                    android:textSize="8sp"
+                    android:textColor="#FF8E9AA5" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:gravity="center">
+                <ImageButton
+                    android:id="@+id/navSettingsButton"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:src="@drawable/ic_nav_settings"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/settings"
+                    android:scaleType="centerInside"
+                    app:tint="?attr/colorOnSurface" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+
+</merge>

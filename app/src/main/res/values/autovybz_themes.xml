@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Window theme of the AutoVybz Compose activity (content colours come from ui/theme/AutoVybzTheme.kt). -->
+<resources>
+    <style name="Theme.AutoVybz" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">@color/avz_green</item>
+        <item name="colorOnPrimary">@color/avz_on_green</item>
+        <item name="colorSecondary">@color/avz_gold</item>
+        <item name="android:fontFamily">@font/outfit</item>
+        <item name="android:windowBackground">@color/avz_background</item>
+        <item name="android:colorBackground">@color/avz_background</item>
+        <item name="android:statusBarColor">@color/avz_background_deep</item>
+        <item name="android:navigationBarColor">@color/avz_background_deep</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>

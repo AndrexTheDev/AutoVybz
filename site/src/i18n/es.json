@@ -1,0 +1,203 @@
+{
+  "lang": "es",
+  "locale": "es_ES",
+  "lang_name": "Español",
+  "meta": {
+    "title": "AutoVybz – Tu altavoz, ajustado a tu habitación en 10 segundos",
+    "description": "App Android gratuita y de código abierto: mide tu altavoz Bluetooth o con cable en tu habitación con el micrófono del móvil y ajusta automáticamente un ecualizador de 10 bandas. Un toque, 10 segundos, sin anuncios, sin cuenta.",
+    "og_title": "Tu altavoz suena mal. AutoVybz lo arregla en 10 segundos.",
+    "og_desc": "Un toque. Tu móvil mide tu altavoz en tu habitación y lo ajusta automáticamente. Gratis, código abierto, sin anuncios.",
+    "keywords": "calibrar altavoz, corrección de sala, ecualizador android, ecualizador altavoz bluetooth, auto eq, app acústica de sala, ecualizador código abierto"
+  },
+  "nav": { "demo": "Demo", "how": "Cómo funciona", "roast": "Speaker Roast", "features": "Funciones", "faq": "FAQ", "get": "Consigue AutoVybz", "skip": "Saltar al contenido", "lang": "Idioma" },
+  "hero": {
+    "badge": "🇯🇲 Gratis · Código abierto · Android",
+    "h1_a": "Tu altavoz suena mal.",
+    "h1_b": "Arreglado en",
+    "h1_c": "segundos.",
+    "sub": "AutoVybz escucha tu altavoz <b>en tu habitación</b> a través del micrófono del móvil y lo ajusta automáticamente. Un toque. Sin conocimientos. Sin anuncios. Sin cuenta. Gratis para siempre.",
+    "cta_demo": "▶ Escucha la diferencia",
+    "cta_get": "Consigue AutoVybz",
+    "cta_star": "Estrella en GitHub",
+    "trust": "GPL-3.0 · Sin rastreo · Sin cookies · Basado en Equalizer314",
+    "stars": "estrellas"
+  },
+  "phone": { "calibrate": "Calibrar altavoz", "measuring": "Midiendo…", "done": "Ajustado ✓", "target": "Objetivo: Smart", "before": "antes", "after": "después" },
+  "ticker": ["🔊 1 toque", "⏱ 10 segundos", "🎯 Ecualizador paramétrico de 10 bandas", "🆓 Gratis para siempre", "🔓 100 % código abierto", "🚫 Sin anuncios ni rastreo", "📶 Funciona con Bluetooth", "🎛 Modo Pro incluido", "📤 Exporta a Equalizer APO y REW", "🇯🇲 Vibras de Jamaica"],
+  "problem": {
+    "kicker": "El secreto sucio de todo altavoz",
+    "title": "Tu habitación está arruinando tu música.",
+    "text": "Paredes, esquinas, estanterías y mesas deforman el sonido antes de que llegue a tus oídos. El bajo retumba en una nota y desaparece en la siguiente, las voces suenan a caja y los platillos chirrían. Los estudios lo solucionan con equipos de medición caros. Tú ahora lo solucionas con el móvil que llevas en el bolsillo.",
+    "facts": [
+      { "n": "±10", "u": "dB", "t": "Variación típica del bajo por resonancias de la sala en el punto de escucha" },
+      { "n": "10", "u": "s", "t": "Lo que tarda AutoVybz en medir tu altavoz" },
+      { "n": "0", "u": "€", "t": "Precio. Hoy, mañana y siempre" },
+      { "n": "0", "u": "", "t": "Anuncios, rastreadores y cuentas" }
+    ]
+  },
+  "demo": {
+    "kicker": "Demo interactiva",
+    "title": "Escúchalo. Ahora mismo. En tu navegador.",
+    "sub": "Pulsa play y cambia el interruptor. Simula un altavoz pequeño típico en una habitación típica – bajo retumbante, medios encajonados, agudos ásperos – y lo que hace una corrección de AutoVybz.",
+    "play": "Reproducir riddim demo",
+    "pause": "Pausa",
+    "off": "Altavoz sin corregir",
+    "on": "AutoVybz ON",
+    "volume": "Volumen",
+    "hint": "🎧 Consejo: usa auriculares para esta demo del navegador – irónicamente. La app está hecha para altavoces. Pulsa <b>A</b> para cambiar al instante.",
+    "legend_raw": "Altavoz en la sala (simulado)",
+    "legend_fix": "Con AutoVybz",
+    "legend_target": "Objetivo",
+    "disclaimer": "Simulación ilustrativa, con el volumen igualado para una comparación justa. Los resultados reales dependen de tu altavoz, tu sala y tu móvil. La música se genera en directo en tu navegador – no se sube nada."
+  },
+  "how": {
+    "kicker": "Cómo funciona",
+    "title": "Tres pasos. Diez segundos. Cero conocimientos.",
+    "steps": [
+      { "i": "🔌", "t": "Conecta tu altavoz", "d": "Altavoz Bluetooth, barra de sonido, altavoces de PC o de fiesta – también por AUX, USB y HDMI." },
+      { "i": "📱", "t": "Pon el móvil donde escuchas", "d": "A la altura de los oídos, con el micrófono inferior hacia el altavoz, no en la mano. La guía de la app te lo enseña." },
+      { "i": "👆", "t": "Toca una vez", "d": "AutoVybz reproduce una prueba de 10 segundos, mide, compensa el micrófono de tu móvil y guarda un preset de ecualización a medida." }
+    ],
+    "tl_title": "Qué pasa en esos 10 segundos",
+    "timeline": [
+      { "w": 7.5, "c": "silence", "t": "Ruido de sala" },
+      { "w": 27.5, "c": "pink", "t": "Ruido rosa" },
+      { "w": 5, "c": "silence", "t": "" },
+      { "w": 50, "c": "sweep", "t": "Barrido senoidal 20 Hz → 20 kHz" },
+      { "w": 10, "c": "silence", "t": "Eco" }
+    ],
+    "tl_caption": "Dos mediciones independientes se verifican entre sí. La latencia se detecta automáticamente, así que incluso los altavoces Bluetooth con retardo se miden correctamente."
+  },
+  "features": {
+    "kicker": "Bajo el capó",
+    "title": "Trucos de laboratorio, un gran botón.",
+    "items": [
+      { "i": "🎯", "t": "Curvas objetivo inteligentes", "d": "Smart (realce suave de graves), Neutral, Bass Boost, Loudness estilo Harman o tu propia curva." },
+      { "i": "🎚", "t": "Ecualizador paramétrico de 10 bandas", "d": "Calcula hasta 10 filtros precisos (o 5 para un toque más suave) y los aplica a todo el sistema, en cada app." },
+      { "i": "🛡", "t": "Protección del altavoz", "d": "Nunca realza graves que tu altavoz no puede reproducir. La preganancia automática y el limitador evitan la saturación." },
+      { "i": "🎙", "t": "Compensación del micrófono", "d": "Perfiles para móviles populares corrigen el micrófono integrado. Pro: conecta un micrófono de medición USB con su archivo de calibración." },
+      { "i": "⚡", "t": "Motor nativo en C++", "d": "Audio full-duplex con Oboe, entrada de micrófono sin procesar y una FFT nativa rápida." },
+      { "i": "🎉", "t": "Exterior y fiestas", "d": "Jardín, playa, parque: realce máx. +3 dB para conservar el volumen, ignora viento y ruido, detecta retardo y cortes de Bluetooth, limitador siempre activo." },
+      { "i": "📤", "t": "Exporta todo", "d": "Texto para Equalizer APO / Peace / AutoEq, JSON, CSV para REW y el formato nativo de AutoVybz." },
+      { "i": "🎛", "t": "Modo Pro incluido", "d": "Motor completo de Equalizer314: gráfico de EQ paramétrico, compresor multibanda, limitador, presets y AutoEQ para auriculares." }
+    ]
+  },
+  "compare": {
+    "title": "¿Por qué no mover unos cuantos deslizadores del ecualizador?",
+    "cols": ["", "Adivinar con deslizadores", "Corrección de sala de pago típica", "AutoVybz"],
+    "rows": [
+      ["Precio", "gratis", "a menudo €€ – €€€", "<b>gratis</b>"],
+      ["Tiempo", "eterno", "10 – 30 min", "<b>10 s</b>"],
+      ["Mide tu sala real", "✗ a oído", "✓", "<b>✓</b>"],
+      ["Funciona en todo Android", "depende", "rara vez", "<b>✓</b>"],
+      ["Código abierto", "–", "rara vez", "<b>✓ GPL-3.0</b>"],
+      ["Cuenta / rastreo", "–", "a veces", "<b>nunca</b>"]
+    ]
+  },
+  "roast": {
+    "kicker": "Speaker Roast 🔥",
+    "title": "¿Qué le pasa a TU altavoz?",
+    "sub": "Dos toques. Diagnóstico brutalmente sincero. Compártelo y ríete de los altavoces de tus amigos.",
+    "q_type": "Tu altavoz es…",
+    "q_place": "…y vive…",
+    "types": { "bt": "Altavoz Bluetooth", "bar": "Barra de sonido", "desk": "Altavoces de PC", "party": "Altavoz de fiesta", "hifi": "Hi-fi / estantería" },
+    "places": { "corner": "en una esquina", "wall": "pegado a la pared", "shelf": "en una estantería", "table": "en una mesa/escritorio", "floor": "en el suelo", "free": "en medio de la sala" },
+    "go": "Analiza mi altavoz 🔥",
+    "score": "Vybz score",
+    "again": "Probar otro",
+    "share": "Compartir mi roast",
+    "card": "Descargar tarjeta",
+    "fun": "Solo por diversión – basado en la acústica típica de una sala. Los números reales salen de una medición real con AutoVybz."
+  },
+  "challenge": {
+    "kicker": "#10SecondVybz",
+    "title": "Acepta el reto de los 10 segundos.",
+    "text": "Graba tu altavoz con tu canción favorita. Toca calibrar. Ponla otra vez. Publica el antes/después con <b>#10SecondVybz</b> y <b>#AutoVybz</b> – y etiqueta al amigo cuyo altavoz más lo necesita.",
+    "steps": ["🎬 Graba el «antes»", "👆 Toca calibrar", "🎬 Graba el «después»", "📣 Publica con #10SecondVybz"]
+  },
+  "share": {
+    "title": "Difunde las vybz 🇯🇲",
+    "sub": "AutoVybz no tiene presupuesto de publicidad – solo te tiene a ti. Compartir ayuda más de lo que crees.",
+    "text": "Mi altavoz acaba de ajustarse a mi habitación en 10 segundos 🔊🇯🇲 Gratis y de código abierto: AutoVybz",
+    "tags": "#AutoVybz #10SecondVybz",
+    "native": "Compartir…",
+    "copy": "Copiar enlace",
+    "qr": "Ábrelo en tu móvil"
+  },
+  "get": {
+    "kicker": "Consíguelo",
+    "title": "¿Listo para arreglar tu sonido?",
+    "text": "AutoVybz está en <b>alfa</b>. Los APK firmados se publican en GitHub Releases. Dale una estrella y sigue el repositorio para ser el primero cuando salga una nueva versión.",
+    "releases": "Descargar en GitHub Releases",
+    "watch": "Seguir las versiones",
+    "source": "Compilar desde el código",
+    "req": "Android 9+ · altavoz externo · 10 segundos de silencio"
+  },
+  "faq": {
+    "title": "¿Preguntas? Respuestas.",
+    "items": [
+      { "q": "¿De verdad es gratis?", "a": "Sí. AutoVybz es 100 % código abierto bajo la GPL-3.0. Sin anuncios, sin compras dentro de la app, sin cuenta, sin suscripción. Si te gusta, puedes donar – totalmente voluntario." },
+      { "q": "¿Por qué solo altavoces y no auriculares?", "a": "El micrófono del móvil no puede medir lo que llega a tu tímpano dentro de unos auriculares, y el altavoz del propio móvil está justo al lado de su micrófono. Para auriculares, el área Pro incluye el AutoEQ de Equalizer314 con miles de perfiles." },
+      { "q": "¿Funciona con altavoces Bluetooth?", "a": "Sí. AutoVybz detecta automáticamente el retardo Bluetooth, así que la medición sigue siendo precisa incluso con altavoces lentos." },
+      { "q": "¿Qué móviles son compatibles?", "a": "Android 9 o superior (el ecualizador de sistema usa DynamicsProcessing de Android). Los móviles populares reciben un perfil de micrófono propio, el resto uno genérico. Para la máxima precisión, conecta un micrófono de medición USB." },
+      { "q": "¿Se graba o se sube mi audio?", "a": "Los ~11 segundos de audio del micrófono se analizan en la memoria de tu móvil y se descartan de inmediato. No se guarda nada como audio y la app no hace peticiones a internet." },
+      { "q": "¿Hay versión para iPhone?", "a": "No. iOS no permite que las apps procesen el audio de otras apps en todo el sistema, así que allí no es posible un ecualizador de sistema real." },
+      { "q": "¿Puede dañar mi altavoz o mis oídos?", "a": "La prueba se reproduce a un nivel moderado tras una confirmación de seguridad, y AutoVybz nunca realza graves profundos por debajo del límite de tu altavoz. La preganancia y un limitador evitan la saturación. Aun así: empieza con volumen bajo y súbelo poco a poco." },
+      { "q": "¿Qué precisión tiene un micrófono de móvil?", "a": "Suficiente para el problema más grande con diferencia: los graves de la sala. Por encima de unos 8 kHz los micrófonos de móvil varían; para eso están los perfiles de compensación y el micrófono USB opcional." },
+      { "q": "¿Quién está detrás de AutoVybz?", "a": "AndrexTheDev. AutoVybz se basa en el excelente proyecto de código abierto Equalizer314 de bearinmindcat – todo nuestro respeto y agradecimiento." }
+    ]
+  },
+  "donate": {
+    "kicker": "Donationware",
+    "title": "Mantén las vybz gratis.",
+    "text": "Sin inversores, sin anuncios, sin venta de datos. Si AutoVybz hizo que tu altavoz suene mejor, invita al desarrollador a un café en cripto.",
+    "copy": "Copiar",
+    "note": "Comprueba siempre la dirección después de pegarla. Las donaciones son regalos voluntarios sin contraprestación y no se pueden reembolsar."
+  },
+  "footer": {
+    "tagline": "Tu altavoz, ajustado a tu habitación.",
+    "made": "Hecho con 💚💛 por AndrexTheDev · Basado en Equalizer314 de bearinmindcat",
+    "contact": "Contacto",
+    "source": "Código fuente",
+    "license": "Licencia (GPL-3.0)",
+    "app_privacy": "Privacidad de la app",
+    "nocookie": "🍪 Sin banner de cookies – porque no hay cookies.",
+    "tm": "Android es una marca de Google LLC. Harman es una marca de Harman International. Dolby es una marca de Dolby Laboratories. AutoVybz es un proyecto independiente y no está afiliado ni respaldado por ellas."
+  },
+  "legal": {
+    "imprint": "Aviso legal",
+    "privacy": "Política de privacidad",
+    "terms": "Condiciones de uso",
+    "disclaimer": "Descargo de responsabilidad",
+    "updated": "Última actualización",
+    "back": "← Volver a AutoVybz"
+  },
+  "notfound": { "title": "404 – esta página está desafinada", "text": "Ni siquiera AutoVybz puede calibrar una página que no existe.", "back": "Volver a las buenas vybz" },
+  "js": {
+    "copied": "Copiado ✓",
+    "copy_fail": "No se pudo copiar – selecciónalo manualmente",
+    "link_copied": "Enlace copiado – ahora pégalo en todas partes 😄",
+    "tab_away": "🔊 Vuelve – tu altavoz te echa de menos",
+    "bass_mode": "🇯🇲 ¡Modo bajo desbloqueado! Respect.",
+    "audio_fail": "Tu navegador bloqueó el audio – vuelve a pulsar play.",
+    "roast_share": "Mi altavoz ha sido destrozado 🔥 Vybz score {score}/100 – «{title}». Arréglalo en 10 s:",
+    "roast_pick": "Elige las dos cosas primero 😉",
+    "card_url": "andrexthedev.github.io/AutoVybz",
+    "card_fix": "Arréglalo en 10 segundos",
+    "diag": {
+      "corner": { "t": "El Monstruo del Bajo", "d": "Las esquinas acumulan graves: espera hasta +9 dB de retumbe de una sola nota entre 60 y 120 Hz que lo tapa todo." },
+      "wall": { "t": "El Abrazaparedes", "d": "La pared justo detrás añade unos dB de graves y emborrona los medios con reflexiones tempranas." },
+      "shelf": { "t": "El Cajón Retumbón", "d": "Las estanterías actúan como una caja de resonancia: medios encajonados y nasales entre 150 y 300 Hz y voces embarradas." },
+      "table": { "t": "El Niño Filtro Peine", "d": "La mesa refleja el sonido hacia tus oídos una fracción de segundo tarde y abre huecos en las voces entre 300 Hz y 1 kHz." },
+      "floor": { "t": "El Retumbador del Sótano", "d": "El suelo refuerza los graves y el tweeter apunta a tus tobillos – bajo retumbante, agudos apagados." },
+      "free": { "t": "El Casi Ángel", "d": "¡Buena colocación! Pero las resonancias de la sala siguen moviendo tus graves varios dB de una nota a otra." }
+    },
+    "types": {
+      "bt": "Además: los altavoces pequeños fingen graves con una joroba cerca de 120 Hz y simplemente dejan de sonar por debajo de ~70 Hz.",
+      "bar": "Además: a las barras de sonido les encanta un realce agresivo de «diálogo» entre 2 y 4 kHz que a volumen alto se vuelve áspero.",
+      "desk": "Además: los altavoces pequeños de escritorio suenan delgados y las reflexiones del monitor no ayudan.",
+      "party": "Además: los altavoces de fiesta vienen con un EQ en «sonrisa» de fábrica – retumbe y chisporroteo, sin medios.",
+      "hifi": "Además: sinceramente, ¡buena base! El cuello de botella es la sala, no tu altavoz."
+    }
+  }
+}

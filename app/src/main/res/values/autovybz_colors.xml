@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- AutoVybz "Vybz Slate" palette: slate = intro-video backdrop, neon green + gold = logo rings.
+     Mirrored 1:1 in the Compose theme (com.andrexthedev.autovybz.ui.theme.AutoVybzPalette) - change together;
+     ColorContrastAuditTest enforces the mirror and the WCAG contrast ratios. -->
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <color name="avz_background">#FF1E262D</color>
+    <color name="avz_background_deep">#FF161C21</color>
+    <color name="avz_surface">#FF26303A</color>
+    <color name="avz_surface_high">#FF313C47</color>
+    <color name="avz_outline">#FF7F8C98</color>
+    <color name="avz_green">#FF1EED61</color>
+    <color name="avz_green_bright">#FF5CF28C</color>
+    <color name="avz_green_container">#FF123A27</color>
+    <color name="avz_gold">#FFFCD207</color>
+    <color name="avz_gold_container">#FF3E3612</color>
+    <color name="avz_on_dark">#FFEEF2F5</color>
+    <color name="avz_on_dark_muted">#FFA7B2BC</color>
+    <color name="avz_on_green">#FF08130C</color>
+    <color name="avz_error">#FFFF8A8A</color>
+    <color name="avz_grid" tools:ignore="UnusedResources">#FF35414C</color>
+    <color name="avz_curve_measured" tools:ignore="UnusedResources">#FF93A0AC</color>
+    <color name="ic_launcher_background">#FF1E262D</color>
+</resources>

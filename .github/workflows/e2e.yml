@@ -1,0 +1,242 @@
+# Beta test campaign: every audit + the on-device suites on real Android emulators.
+#
+#   build     unit tests, debug + test APKs, Android Lint, dependency tree, and all static audits
+#             (secret scan, website, lint, APK, OSV vulnerabilities, native host check, mic DB)
+#   device    instrumented E2E suites + monkey + crash scan + cold start on API 28 (minimum) / 30 / 35
+#   shots     screenshot matrix (7 configurations: languages, font 130 %, small phone, tablet,
+#             landscape) + accessibility audit per configuration, API 35
+#   report    merges everything into one TEST_REPORT, step summary, contact sheets
+name: Beta test campaign
+
+on:
+  push:
+    branches: ['**']
+    paths-ignore: ['site/**', 'docs/**', '**.md']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NDK_VERSION: 27.2.12479018
+  CMAKE_VERSION: 3.22.1
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    outputs:
+      apks: ${{ steps.gradle.outputs.apks }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install the Android NDK and CMake
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;$NDK_VERSION" "cmake;$CMAKE_VERSION" >/dev/null
+
+      - name: Unit tests, APKs, lint
+        id: gradle
+        run: |
+          chmod +x gradlew
+          set -o pipefail
+          if ! ./gradlew testDebugUnitTest assembleDebug assembleDebugAndroidTest lintDebug --continue --no-daemon --console=plain 2>&1 | tee gradle.log; then
+            grep -E '^e: |error:|FAILED|What went wrong|expected:<' gradle.log | head -60 | sed 's/^/::error::/'
+            echo "GRADLE_FAILED=1" >> "$GITHUB_ENV"
+          fi
+          ./gradlew :app:dependencies --configuration debugRuntimeClasspath --no-daemon --console=plain > deps.txt 2>&1 || true
+          # Device jobs only need the two APKs; audit findings must not block them.
+          if [ -f app/build/outputs/apk/debug/app-debug.apk ] && [ -f app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk ]; then
+            echo "apks=ok" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Audits
+        if: always()
+        run: |
+          set +e
+          A=audits.md; RC=0
+          echo "## Static audits & JVM tests" > $A
+          step() { "$@" >> $A 2> >(tee -a audit_errors.txt >&2); r=$?; [ $r -ne 0 ] && RC=1; return 0; }
+          step python3 tools/audit/junit_summary.py app/build/test-results/testDebugUnitTest
+          step python3 tools/audit/lint_summary.py app/build/reports/lint-results-debug.xml
+          AAPT2=$(ls -d "$ANDROID_HOME"/build-tools/*/aapt2 | sort -V | tail -1)
+          step python3 tools/audit/apk_audit.py app/build/outputs/apk/debug/app-debug.apk "$AAPT2"
+          step python3 tools/audit/osv_check.py deps.txt
+          step python3 tools/audit/secret_scan.py .
+          python3 site/build.py --out site/_site --stars 0 > /dev/null
+          step python3 tools/audit/site_audit.py site/_site
+          if bash tools/native/host_check.sh > host.log 2>&1; then
+            echo "- ✅ **Native host check**: FFT vs. DFT, Oboe/JNI syntax" >> $A
+          else
+            echo "- ❌ **Native host check** (see host.log)" >> $A; tail -20 host.log | sed 's/^/::error title=Native::/'; RC=1
+          fi
+          python3 tools/micdb/generate_mic_profiles.py > /dev/null
+          if git diff --quiet app/src/main/assets/autovybz/mic_profiles.json; then
+            echo "- ✅ **Mic profile DB** regenerates byte-identical" >> $A
+          else
+            echo "- ❌ **Mic profile DB** is stale" >> $A; RC=1
+          fi
+          cat $A; cat $A >> "$GITHUB_STEP_SUMMARY"
+          [ -n "${GRADLE_FAILED:-}" ] && RC=1
+          exit $RC
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: apks
+          path: |
+            app/build/outputs/apk/debug/app-debug.apk
+            app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: audits
+          path: |
+            audits.md
+            deps.txt
+            gradle.log
+            host.log
+            app/build/reports/lint-results-debug.*
+            app/build/test-results/testDebugUnitTest/
+          if-no-files-found: ignore
+
+  device:
+    needs: build
+    if: ${{ !cancelled() && needs.build.outputs.apks == 'ok' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      matrix:
+        api: [28, 30, 35]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: apks
+          path: app/build/outputs/apk
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: E2E on API ${{ matrix.api }}
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api }}
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          ram-size: 3072M
+          disk-size: 6000M
+          emulator-boot-timeout: 900
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -camera-back none
+          disable-animations: true
+          script: bash tools/e2e/run_e2e.sh functional e2e-out/api${{ matrix.api }}
+      - name: Summary
+        if: always()
+        run: cat e2e-out/api${{ matrix.api }}/summary.md >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: e2e-api${{ matrix.api }}
+          path: e2e-out/
+          if-no-files-found: ignore
+
+  shots:
+    needs: build
+    if: ${{ !cancelled() && needs.build.outputs.apks == 'ok' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: apks
+          path: app/build/outputs/apk
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Screenshot matrix + accessibility (API 35)
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          ram-size: 3072M
+          disk-size: 6000M
+          emulator-boot-timeout: 900
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -camera-back none
+          disable-animations: true
+          script: bash tools/e2e/run_e2e.sh shots e2e-out/shots
+      - name: Summary
+        if: always()
+        run: cat e2e-out/shots/summary.md >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: e2e-shots
+          path: e2e-out/
+          if-no-files-found: ignore
+
+  report:
+    needs: [build, device, shots]
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # results bundle is stored as an (unreferenced) git blob
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          path: results
+      - name: Merge report
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set +e   # missing optional files (no crash, no shots) must not abort the merge
+          pip install --quiet pillow
+          mkdir -p bundle
+          {
+            echo "# AutoVybz beta test campaign – ${GITHUB_SHA::7}"
+            echo
+            echo "Jobs: build=${{ needs.build.result }} · device=${{ needs.device.result }} · shots=${{ needs.shots.result }}"
+            echo
+            cat results/audits/audits.md 2>/dev/null
+            for d in results/e2e-api*/api* results/e2e-shots/shots; do
+              [ -f "$d/summary.md" ] && { echo; cat "$d/summary.md"; }
+            done
+          } > bundle/TEST_REPORT.md
+          cat bundle/TEST_REPORT.md >> "$GITHUB_STEP_SUMMARY"
+          # Results without bulky logcats: keep JSON, instrument output, monkey, crash excerpts, app log lines.
+          for d in results/e2e-api*/api* results/e2e-shots/shots; do
+            [ -d "$d" ] || continue
+            n=$(basename "$d"); mkdir -p "bundle/$n"
+            cp "$d"/*.json "$d"/*.instrument.txt "$d"/summary.md "bundle/$n/" 2>/dev/null
+            cp "$d"/monkey.txt "$d"/monkey_problem.txt "$d"/crashes.txt "$d"/coldstart.txt "$d"/meminfo.txt "$d"/anr_main.txt "$d"/anr_trace.txt "$d"/monkey_rerun.txt "bundle/$n/" 2>/dev/null
+            for l in "$d"/*.logcat.txt; do
+              [ -f "$l" ] && grep -E "autovybz|AndroidRuntime|TestRunner|FATAL|StrictMode|ANR" "$l" | tail -4000 > "bundle/$n/$(basename "$l")"
+            done
+          done
+          if [ -d results/e2e-shots/shots/shots ]; then
+            python3 tools/e2e/make_contact_sheets.py results/e2e-shots/shots/shots bundle/matrix
+          fi
+          cp results/audits/audits.md results/audits/deps.txt bundle/ 2>/dev/null
+          cp results/audits/app/build/reports/lint-results-debug.xml bundle/ 2>/dev/null
+          tar czf bundle.tgz bundle
+          ls -la bundle.tgz
+          base64 -w0 bundle.tgz > bundle.b64
+          jq -n --rawfile c bundle.b64 '{content: $c, encoding: "base64"}' > body.json
+          SHA=$(gh api "repos/${GITHUB_REPOSITORY}/git/blobs" --input body.json --jq .sha)
+          [ -n "$SHA" ] || { echo "::error title=results-blob::upload failed ($(du -h bundle.tgz | cut -f1))"; exit 1; }
+          echo "::notice title=results-blob::$SHA"
+          echo "Results bundle: git blob \`$SHA\`" >> "$GITHUB_STEP_SUMMARY"

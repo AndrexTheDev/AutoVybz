@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Filter/band button colours of the engine screens (slate, see tools/branding/retheme_inherited.py).
+     The selected filter wears the brand accent: neon green with dark text. -->
+<resources>
+    <color name="filter_active">@color/avz_green</color>
+    <color name="filter_active_text">@color/avz_on_green</color>
+    <color name="filter_inactive_text">#FFBAC3CB</color>
+    <color name="filter_outline">#FF4C5A67</color>
+</resources>

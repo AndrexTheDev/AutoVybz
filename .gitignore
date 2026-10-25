@@ -1,0 +1,36 @@
+*.iml
+.gradle
+/local.properties
+/.idea
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+/app/build
+/app/release
+*.apk
+*.ap_
+*.aab
+CLAUDE.md
+ClaudeWebHelp/
+
+# Local working notes — not published (published docs are whitelisted explicitly)
+docs/*
+!docs/OUTDOOR.md
+!docs/MIC_PROFILES.md
+!docs/UPSTREAM_README.md
+!docs/upstream_changelogs/
+!docs/testing/
+
+# landing page build output / local screenshots
+site/_site/
+site/_shots/
+
+# Python bytecode
+__pycache__/
+*.pyc
+
+# temporary screenshot matrix for the end-user test (regenerated per build, never committed)
+tmp_screenshot_matrix/

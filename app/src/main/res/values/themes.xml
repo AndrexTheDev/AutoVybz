@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- AutoVybz "Vybz Slate" window theme of the engine screens (parametric EQ, compressor, limiter, settings).
+         AutoVybz is dark by design (logo + intro live on slate), so there is one palette for day and night:
+         EqApp always runs night mode and the theme picker offers Slate and Black (AMOLED) only.
+         Colours mirror ui/theme/AutoVybzPalette.kt (avz_*) and its SLATE_RAMP. -->
+    <style name="Theme.Equalizer314" parent="Theme.Material3.Dark.NoActionBar">
+        <!-- Primary: neon green with dark text (white on neon is unreadable) -->
+        <item name="colorPrimary">@color/avz_green</item>
+        <item name="colorOnPrimary">@color/avz_on_green</item>
+        <item name="colorPrimaryContainer">@color/avz_green_container</item>
+        <item name="colorOnPrimaryContainer">@color/avz_green_bright</item>
+
+        <!-- Secondary: gold -->
+        <item name="colorSecondary">@color/avz_gold</item>
+        <item name="colorOnSecondary">@color/avz_on_green</item>
+        <item name="colorSecondaryContainer">@color/avz_gold_container</item>
+        <item name="colorOnSecondaryContainer">#FFFFF1B3</item>
+
+        <!-- Tertiary -->
+        <item name="colorTertiary">@color/avz_green_bright</item>
+        <item name="colorOnTertiary">@color/avz_on_green</item>
+        <item name="colorTertiaryContainer">@color/avz_green_container</item>
+        <item name="colorOnTertiaryContainer">@color/avz_green_bright</item>
+
+        <!-- Surface / background (slate ramp) -->
+        <item name="android:colorBackground">@color/avz_background</item>
+        <item name="android:windowBackground">@color/avz_background</item>
+        <item name="colorSurface">@color/avz_background</item>
+        <item name="colorOnSurface">@color/avz_on_dark</item>
+        <item name="colorSurfaceVariant">#FF222B33</item>
+        <item name="colorOnSurfaceVariant">@color/avz_on_dark_muted</item>
+        <item name="colorSurfaceDim">@color/avz_background_deep</item>
+        <item name="colorSurfaceBright">#FF38444F</item>
+        <item name="colorSurfaceContainerLowest">@color/avz_background_deep</item>
+        <item name="colorSurfaceContainerLow">#FF222B33</item>
+        <item name="colorSurfaceContainer">@color/avz_surface</item>
+        <item name="colorSurfaceContainerHigh">#FF2B3540</item>
+        <item name="colorSurfaceContainerHighest">@color/avz_surface_high</item>
+
+        <!-- Outline -->
+        <item name="colorOutline">@color/avz_outline</item>
+        <item name="colorOutlineVariant">#FF38444F</item>
+        <item name="colorError">@color/avz_error</item>
+
+        <!-- Brand typeface -->
+        <item name="android:fontFamily">@font/outfit</item>
+        <item name="fontFamily">@font/outfit</item>
+
+        <!-- System bars -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+
+    <!-- Black (AMOLED) overlay: EqApp layers it on the dark theme when the Experimental toggle is on. -->
+    <style name="ThemeOverlay.Equalizer314.Amoled" parent="">
+        <item name="android:colorBackground">#FF000000</item>
+        <item name="android:windowBackground">#FF000000</item>
+        <item name="colorSurface">#FF000000</item>
+        <item name="colorSurfaceDim">#FF000000</item>
+        <item name="colorSurfaceBright">#FF1A2127</item>
+        <item name="colorSurfaceVariant">#FF0E1216</item>
+        <item name="colorSurfaceContainerLowest">#FF000000</item>
+        <item name="colorSurfaceContainerLow">#FF080A0C</item>
+        <item name="colorSurfaceContainer">#FF0E1216</item>
+        <item name="colorSurfaceContainerHigh">#FF12171C</item>
+        <item name="colorSurfaceContainerHighest">#FF1A2127</item>
+    </style>
+
+    <!-- Rounded dialog -->
+    <style name="Theme.Equalizer314.Dialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="android:windowBackground">@drawable/bg_dialog_rounded</item>
+        <item name="android:backgroundDimAmount">0.6</item>
+        <item name="android:textColorPrimary">@color/avz_on_dark</item>
+        <item name="android:textColorSecondary">#FFB6C0C8</item>
+        <item name="buttonBarPositiveButtonStyle">@style/Widget.Equalizer314.DialogButtonNegative</item>
+        <item name="buttonBarNegativeButtonStyle">@style/Widget.Equalizer314.DialogButtonReset</item>
+    </style>
+
+    <style name="Widget.Equalizer314.DialogButtonReset" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="android:textColor">@color/avz_error</item>
+        <item name="strokeColor">#FF4B5966</item>
+        <item name="strokeWidth">1dp</item>
+        <item name="cornerRadius">8dp</item>
+    </style>
+
+    <style name="Widget.Equalizer314.DialogButtonNegative" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="android:textColor">#FFD3DAE0</item>
+        <item name="strokeColor">#FF4B5966</item>
+        <item name="strokeWidth">1dp</item>
+        <item name="cornerRadius">8dp</item>
+    </style>
+
+    <!-- Suffix text matching input text -->
+    <style name="TextAppearance.Equalizer314.Suffix" parent="TextAppearance.Material3.BodySmall">
+        <item name="android:textSize">12sp</item>
+    </style>
+
+    <!-- Rounded FAB -->
+    <style name="ShapeAppearanceOverlay.Equalizer314.FAB" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">12dp</item>
+    </style>
+
+    <!-- Pill-shaped FAB (wider than tall) -->
+    <style name="ShapeAppearanceOverlay.Equalizer314.FAB.Pill" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">50%</item>
+    </style>
+
+    <!-- Spectrum button: all corners rounded, top-right extra to follow card curve -->
+    <style name="ShapeAppearance.SpectrumButton" parent="">
+        <item name="cornerSizeTopLeft">8dp</item>
+        <item name="cornerSizeTopRight">16dp</item>
+        <item name="cornerSizeBottomLeft">8dp</item>
+        <item name="cornerSizeBottomRight">8dp</item>
+    </style>
+
+    <!-- MBC EQ button: top-left rounded to follow card curve -->
+    <style name="ShapeAppearance.MbcEqButton" parent="">
+        <item name="cornerSizeTopLeft">16dp</item>
+        <item name="cornerSizeTopRight">8dp</item>
+        <item name="cornerSizeBottomLeft">8dp</item>
+        <item name="cornerSizeBottomRight">8dp</item>
+    </style>
+
+    <!-- MBC GR button: uniform rounding -->
+    <style name="ShapeAppearance.MbcGrButton" parent="">
+        <item name="cornerSize">8dp</item>
+    </style>
+
+    <!-- Reset button: no top-right rounding (sits left of spectrum button) -->
+    <style name="ShapeAppearance.ResetButton" parent="">
+        <item name="cornerSizeTopLeft">8dp</item>
+        <item name="cornerSizeTopRight">8dp</item>
+        <item name="cornerSizeBottomLeft">8dp</item>
+        <item name="cornerSizeBottomRight">8dp</item>
+    </style>
+</resources>

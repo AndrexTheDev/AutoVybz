@@ -1,0 +1,299 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- TV Mode (issues #35/#55): LAN-only remote control — plain sockets on
+         the local network plus mDNS (NSD) discovery. No internet traffic. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <!-- Virtual surround (Experimental, issue #128): records other apps' audio through
+         AudioPlaybackCapture, which only runs inside a mediaProjection foreground service. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <!-- BootCompletedReceiver listens for ACTION_BOOT_COMPLETED so the
+         global DP engine can be restored automatically when the user
+         had it on before the device powered off. Without this the
+         user has to open the app and tap Power after every reboot. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- App visibility for the Channel Input binding list (launchable + audio
+         apps) via <queries> — QUERY_ALL_PACKAGES is Play-restricted and was
+         swapped out for these intent filters. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:mimeType="audio/*" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.MEDIA_BUTTON" />
+        </intent>
+        <intent>
+            <action android:name="android.media.browse.MediaBrowserService" />
+        </intent>
+    </queries>
+    <!-- Used by AudioPolicyDumpParser to read audioserver's
+         AudioPlaybackConfiguration table via the reflected
+         ServiceManager.getService("audio").dumpAsync(...) call, which
+         is how Wavelet and Poweramp EQ recover session IDs for apps
+         that don't broadcast OPEN_AUDIO_EFFECT_CONTROL_SESSION
+         (YouTube, Netflix, Chrome, etc.). DUMP is signature-protected
+         and won't be granted to non-system apps on stock Android, but
+         the dumpAsync call typically still succeeds on OEM ROMs
+         because audioserver's per-binder dump permission check is
+         permissive. Failure is handled gracefully — the parser returns
+         an empty map and the listener falls back to the public-API
+         path (package name without session ID). -->
+    <uses-permission android:name="android.permission.DUMP"
+        tools:ignore="ProtectedPermissions" />
+
+    <application
+        android:name="com.bearinmind.equalizer314.EqApp"
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:localeConfig="@xml/locales_config"
+        android:roundIcon="@mipmap/ic_launcher"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Equalizer314"
+        tools:targetApi="31">
+
+        <!-- AutoVybz: Compose launcher (1-click calibration wizard, Pro area, help, about/donate). -->
+        <activity
+            android:name="com.andrexthedev.autovybz.ui.AutoVybzActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.AutoVybz"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Equalizer314 main screen = AutoVybz "Pro" 10-band PEQ (opened from the Pro tab). -->
+        <activity
+            android:name="com.bearinmind.equalizer314.MainActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.Equalizer314"
+            android:configChanges="orientation|keyboardHidden|screenSize">
+            <!-- Registers Equalizer314 as an audio-effect control panel,
+                 so it appears in the system / OEM "which app handles
+                 sound effects" chooser (Samsung "Sound quality and
+                 effects", the DISPLAY_AUDIO_EFFECT_CONTROL_PANEL
+                 picker) alongside Wavelet / Poweramp / JamesDSP / etc.
+                 Picking it here launches MainActivity. When chosen as
+                 the handler, music apps that respect the global effect
+                 session route OPEN/CLOSE_AUDIO_EFFECT_CONTROL_SESSION
+                 broadcasts to us — already handled by
+                 AudioSessionReceiver. Complementary to the dumpsys
+                 detection; does not affect global session-0 DP. -->
+            <intent-filter>
+                <action android:name="android.media.action.DISPLAY_AUDIO_EFFECT_CONTROL_PANEL" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <!-- Long-pressing the EQ314 Quick Settings tile opens the
+                 app instead of the system App-info page. Android routes
+                 a tile long-press to the activity that declares this
+                 action; without it the framework falls back to App info. -->
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name="com.bearinmind.equalizer314.MbcActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Equalizer314" />
+
+        <activity
+            android:name="com.bearinmind.equalizer314.AudioMiscSettingsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Equalizer314" />
+
+        <activity
+            android:name="com.bearinmind.equalizer314.UiEqModesActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Equalizer314" />
+
+        <activity
+            android:name="com.bearinmind.equalizer314.LimiterActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Equalizer314" />
+
+        <activity
+            android:name="com.bearinmind.equalizer314.AutoEqActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Equalizer314" />
+
+        <activity
+            android:name="com.bearinmind.equalizer314.TargetCurveActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Equalizer314" />
+
+        <activity
+            android:name="com.bearinmind.equalizer314.MeasurementSelectActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Equalizer314" />
+
+        <activity
+            android:name="com.bearinmind.equalizer314.TargetSelectActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Equalizer314" />
+
+        <activity
+            android:name="com.bearinmind.equalizer314.SpectrumControlActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Equalizer314" />
+        <activity
+            android:name="com.bearinmind.equalizer314.ExperimentalActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Equalizer314" />
+        <activity
+            android:name="com.bearinmind.equalizer314.CustomPresetsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Equalizer314" />
+        <activity
+            android:name="com.bearinmind.equalizer314.ChannelSideEqActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Equalizer314" />
+        <activity
+            android:name="com.bearinmind.equalizer314.ConvertToApoActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Equalizer314" />
+        <activity
+            android:name="com.bearinmind.equalizer314.PresetsConversionsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Equalizer314" />
+        <activity
+            android:name="com.bearinmind.equalizer314.AudioEffectsPipelineActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Equalizer314" />
+        <activity
+            android:name="com.bearinmind.equalizer314.AudioOutputActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Equalizer314" />
+        <activity
+            android:name="com.bearinmind.equalizer314.ChannelInputActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Equalizer314" />
+        <activity
+            android:name="com.bearinmind.equalizer314.EnvironmentalReverbActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Equalizer314" />
+
+        <service
+            android:name="com.bearinmind.equalizer314.audio.EqService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
+
+        <!-- Virtual surround (Experimental, issue #128): capture → HRIR convolution → playback. -->
+        <service
+            android:name="com.bearinmind.equalizer314.audio.VirtualSurroundService"
+            android:exported="false"
+            android:foregroundServiceType="mediaProjection" />
+
+        <!-- Quick Settings tile that toggles global DynamicsProcessing
+             on / off without opening MainActivity. Routes through
+             EqService.ACTION_START_FROM_TILE and ACTION_STOP. -->
+        <service
+            android:name="com.bearinmind.equalizer314.audio.Eq314TileService"
+            android:exported="true"
+            android:icon="@drawable/ic_nav_equalizer"
+            android:label="@string/qs_tile_label"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.service.quicksettings.ACTIVE_TILE"
+                android:value="false" />
+        </service>
+
+        <!-- Receives session-open / session-close broadcasts from
+             music apps that opt in to the standard Android audio-
+             effect control session pattern (Spotify, Poweramp, AIMP,
+             etc.). On OPEN we attach a per-session DynamicsProcessing
+             with the user's bound preset; on CLOSE we release it. -->
+        <receiver
+            android:name="com.bearinmind.equalizer314.audio.AudioSessionReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.media.action.OPEN_AUDIO_EFFECT_CONTROL_SESSION" />
+                <action android:name="android.media.action.CLOSE_AUDIO_EFFECT_CONTROL_SESSION" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Restores the global DP engine after a device reboot if
+             the user had it on. Reads EqPreferencesManager.getPowerState
+             and sends ACTION_AUTO_START to EqService when true. -->
+        <receiver
+            android:name="com.bearinmind.equalizer314.audio.BootCompletedReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- NotificationListenerService used purely as a privilege gate.
+             Binding to this service is the only way Android grants apps
+             MEDIA_CONTENT_CONTROL, which we need so that
+             MediaSessionManager.getActiveSessions(ourComponent) returns
+             sessions from other apps. We never read notifications:
+             onNotificationPosted/Removed are no-ops and we declare
+             disabled_filter_types covering every category, telling the
+             system to send us nothing. Same pattern Wavelet and
+             Poweramp EQ use. -->
+        <service
+            android:name="com.bearinmind.equalizer314.audio.PlaybackListenerService"
+            android:exported="false"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.service.notification.disabled_filter_types"
+                android:value="ongoing|silent|conversations|alerting" />
+            <meta-data
+                android:name="android.service.notification.default_filter_types"
+                android:value="" />
+        </service>
+
+        <activity
+            android:name=".LanguageActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Equalizer314" />
+
+        <service
+            android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"
+            android:enabled="false"
+            android:exported="false">
+            <meta-data
+                android:name="autoStoreLocales"
+                android:value="true" />
+        </service>
+
+        <!-- AutoVybz: shares the rendered result card (cache/share only). -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.avzfiles"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/autovybz_file_paths" />
+        </provider>
+
+    </application>
+
+</manifest>

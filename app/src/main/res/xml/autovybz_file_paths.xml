@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Only the rendered share card directory is exposed (read-only, per-share URI grant). -->
+<paths>
+    <cache-path name="share" path="share/" />
+</paths>

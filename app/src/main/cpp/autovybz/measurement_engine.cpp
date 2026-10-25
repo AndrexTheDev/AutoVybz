@@ -1,0 +1,210 @@
+#include "measurement_engine.h"
+
+#include <android/log.h>
+
+#include <algorithm>
+#include <cmath>
+#include <cstring>
+
+#define LOG_TAG "AutoVybzEngine"
+#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
+#define LOGW(...) __android_log_print(ANDROID_LOG_WARN, LOG_TAG, __VA_ARGS__)
+
+namespace avz {
+
+MeasurementEngine::~MeasurementEngine() { closeStreams(); }
+
+oboe::Result MeasurementEngine::openInput(const EngineConfig& cfg, oboe::InputPreset preset) {
+    oboe::AudioStreamBuilder b;
+    b.setDirection(oboe::Direction::Input)
+        ->setPerformanceMode(oboe::PerformanceMode::LowLatency)
+        ->setSharingMode(oboe::SharingMode::Shared)
+        ->setFormat(oboe::AudioFormat::Float)
+        ->setFormatConversionAllowed(true)
+        ->setChannelCount(oboe::ChannelCount::Mono)
+        ->setChannelConversionAllowed(true)
+        ->setSampleRate(cfg.sampleRate)
+        ->setSampleRateConversionQuality(oboe::SampleRateConversionQuality::Medium)
+        ->setInputPreset(preset)
+        ->setDataCallback(this)
+        ->setErrorCallback(this);
+    if (cfg.inputDeviceId > 0) b.setDeviceId(cfg.inputDeviceId);
+    return b.openStream(input_);
+}
+
+std::string MeasurementEngine::start(const float* stimulus, int32_t frames, const EngineConfig& cfg) {
+    closeStreams();
+    if (frames <= 0) return "empty stimulus";
+    stimulus_.assign(stimulus, stimulus + frames);
+    const auto recFrames = static_cast<int32_t>(frames + std::lround(cfg.extraRecordSeconds * cfg.sampleRate));
+    recording_.assign(static_cast<size_t>(recFrames), 0.0f);
+    playPos_ = 0;
+    recPos_ = 0;
+    inputPeak_ = 0.0f;
+    gain_ = cfg.outputGain;
+    {
+        std::lock_guard<std::mutex> lk(errMutex_);
+        error_.clear();
+    }
+
+    // --- input (preferred preset, then VoiceRecognition, then Generic) ---
+    const oboe::InputPreset chain[] = {static_cast<oboe::InputPreset>(cfg.inputPreset),
+                                       oboe::InputPreset::VoiceRecognition, oboe::InputPreset::Generic};
+    oboe::Result r = oboe::Result::ErrorInternal;
+    for (auto p : chain) {
+        r = openInput(cfg, p);
+        if (r == oboe::Result::OK) {
+            actualPreset_ = static_cast<int32_t>(p);
+            break;
+        }
+        LOGW("input preset %d failed: %s", static_cast<int>(p), oboe::convertToText(r));
+    }
+    if (r != oboe::Result::OK) return std::string("Cannot open microphone: ") + oboe::convertToText(r);
+    inChannels_ = input_->getChannelCount();
+    if (input_->getSampleRate() != cfg.sampleRate) {
+        closeStreams();
+        return "Microphone does not run at the requested sample rate";
+    }
+
+    // --- output ---
+    oboe::AudioStreamBuilder ob;
+    ob.setDirection(oboe::Direction::Output)
+        ->setPerformanceMode(oboe::PerformanceMode::LowLatency)
+        ->setSharingMode(oboe::SharingMode::Shared)
+        ->setFormat(oboe::AudioFormat::Float)
+        ->setFormatConversionAllowed(true)
+        ->setChannelCount(oboe::ChannelCount::Stereo)
+        ->setChannelConversionAllowed(true)
+        ->setSampleRate(cfg.sampleRate)
+        ->setSampleRateConversionQuality(oboe::SampleRateConversionQuality::Medium)
+        ->setUsage(oboe::Usage::Media)
+        ->setContentType(oboe::ContentType::Music)
+        ->setDataCallback(this)
+        ->setErrorCallback(this);
+    if (cfg.outputDeviceId > 0) ob.setDeviceId(cfg.outputDeviceId);
+    r = ob.openStream(output_);
+    if (r != oboe::Result::OK) {
+        closeStreams();
+        return std::string("Cannot open speaker output: ") + oboe::convertToText(r);
+    }
+    outChannels_ = output_->getChannelCount();
+    if (output_->getSampleRate() != cfg.sampleRate) {
+        closeStreams();
+        return "Speaker output does not run at the requested sample rate";
+    }
+
+    state_ = EngineState::Running;
+    // Capture first so the recording contains the leading silence + whole stimulus.
+    r = input_->requestStart();
+    if (r == oboe::Result::OK) r = output_->requestStart();
+    if (r != oboe::Result::OK) {
+        state_ = EngineState::Error;
+        closeStreams();
+        return std::string("Cannot start audio: ") + oboe::convertToText(r);
+    }
+    LOGI("started: preset=%d in=%s out=%s inBurst=%d outBurst=%d", actualPreset_,
+         oboe::convertToText(input_->getAudioApi()), oboe::convertToText(output_->getAudioApi()),
+         input_->getFramesPerBurst(), output_->getFramesPerBurst());
+    return {};
+}
+
+oboe::DataCallbackResult MeasurementEngine::onAudioReady(oboe::AudioStream* stream, void* audio, int32_t frames) {
+    if (stream->getDirection() == oboe::Direction::Output) {
+        auto* out = static_cast<float*>(audio);
+        const int32_t total = static_cast<int32_t>(stimulus_.size());
+        int32_t pos = playPos_.load(std::memory_order_relaxed);
+        for (int32_t i = 0; i < frames; ++i) {
+            const float s = pos < total ? stimulus_[pos] * gain_ : 0.0f;
+            for (int32_t c = 0; c < outChannels_; ++c) out[i * outChannels_ + c] = s;
+            if (pos < total) ++pos;
+        }
+        playPos_.store(pos, std::memory_order_relaxed);
+        return oboe::DataCallbackResult::Continue;
+    }
+
+    const auto* in = static_cast<const float*>(audio);
+    const int32_t cap = static_cast<int32_t>(recording_.size());
+    int32_t pos = recPos_.load(std::memory_order_relaxed);
+    float peak = inputPeak_.load(std::memory_order_relaxed);
+    for (int32_t i = 0; i < frames && pos < cap; ++i) {
+        float s = 0.0f;
+        for (int32_t c = 0; c < inChannels_; ++c) s += in[i * inChannels_ + c];
+        s /= static_cast<float>(inChannels_);
+        recording_[pos++] = s;
+        peak = std::max(peak, std::fabs(s));
+    }
+    inputPeak_.store(peak, std::memory_order_relaxed);
+    recPos_.store(pos, std::memory_order_release);
+    if (pos >= cap) {
+        EngineState expected = EngineState::Running;
+        state_.compare_exchange_strong(expected, EngineState::Finished);
+        return oboe::DataCallbackResult::Stop;
+    }
+    return oboe::DataCallbackResult::Continue;
+}
+
+void MeasurementEngine::onErrorAfterClose(oboe::AudioStream* stream, oboe::Result error) {
+    if (state_.load() == EngineState::Running) {
+        fail(std::string(stream->getDirection() == oboe::Direction::Input ? "Microphone" : "Speaker") +
+             " stream closed: " + oboe::convertToText(error));
+    }
+}
+
+void MeasurementEngine::fail(const std::string& msg) {
+    {
+        std::lock_guard<std::mutex> lk(errMutex_);
+        error_ = msg;
+    }
+    state_ = EngineState::Error;
+    LOGW("%s", msg.c_str());
+}
+
+void MeasurementEngine::stop() {
+    closeStreams();
+    EngineState expected = EngineState::Running;
+    state_.compare_exchange_strong(expected, EngineState::Idle);
+}
+
+void MeasurementEngine::closeStreams() {
+    if (output_) {
+        output_->stop();
+        output_->close();
+        output_.reset();
+    }
+    if (input_) {
+        input_->stop();
+        input_->close();
+        input_.reset();
+    }
+}
+
+float MeasurementEngine::progress() const {
+    if (recording_.empty()) return 0.0f;
+    return static_cast<float>(recPos_.load()) / static_cast<float>(recording_.size());
+}
+
+int32_t MeasurementEngine::xruns() const {
+    int32_t n = 0;
+    if (input_) {
+        auto x = input_->getXRunCount();
+        if (x) n += x.value();
+    }
+    if (output_) {
+        auto x = output_->getXRunCount();
+        if (x) n += x.value();
+    }
+    return n;
+}
+
+std::string MeasurementEngine::lastError() const {
+    std::lock_guard<std::mutex> lk(errMutex_);
+    return error_;
+}
+
+int32_t MeasurementEngine::copyRecording(float* dst, int32_t maxFrames) const {
+    const int32_t n = std::min(maxFrames, recPos_.load(std::memory_order_acquire));
+    if (n > 0) std::memcpy(dst, recording_.data(), static_cast<size_t>(n) * sizeof(float));
+    return n;
+}
+
+}  // namespace avz

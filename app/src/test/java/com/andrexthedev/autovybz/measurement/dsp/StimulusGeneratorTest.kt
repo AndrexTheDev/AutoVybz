@@ -1,0 +1,55 @@
+package com.andrexthedev.autovybz.measurement.dsp
+
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import kotlin.math.abs
+
+class StimulusGeneratorTest {
+
+    private val stimulus = StimulusGenerator.generate(48000)
+
+    @Test
+    fun totalDurationIsExactlyTenSeconds() {
+        assertEquals(10.0, StimulusGenerator.TOTAL_S, 1e-12)
+        assertEquals(480_000, stimulus.signal.size)
+        assertEquals(10.0, stimulus.plan.durationSeconds, 1e-9)
+    }
+
+    @Test
+    fun peakLevelLeavesHeadroom() {
+        val peak = stimulus.signal.maxOf { abs(it) }
+        assertTrue("peak $peak", peak <= StimulusGenerator.PEAK_LEVEL + 1e-6)
+        assertTrue("peak $peak", peak > 0.4f)
+    }
+
+    @Test
+    fun leadSilenceAndGapAreSilent() {
+        val p = stimulus.plan
+        for (i in 0 until p.pinkStart) assertEquals(0f, stimulus.signal[i], 0f)
+        for (i in p.pinkStart + p.pinkLength until p.sweepStart) assertEquals(0f, stimulus.signal[i], 0f)
+    }
+
+    @Test
+    fun pinkNoiseHasEqualEnergyPerOctave() {
+        // Pink noise: power per octave band is constant (-3 dB/oct per Hz).
+        val p = stimulus.plan
+        val binHz = p.sampleRate.toDouble() / p.pinkPeriod
+        fun octavePower(lo: Double) = stimulus.pinkPeriodPower.indices
+            .filter { it * binHz >= lo && it * binHz < 2 * lo }
+            .sumOf { stimulus.pinkPeriodPower[it] }
+        val ref = powerToDb(octavePower(500.0))
+        for (lo in listOf(50.0, 100.0, 200.0, 1000.0, 2000.0, 4000.0)) {
+            assertEquals("octave from $lo Hz", ref, powerToDb(octavePower(lo)), 0.6)
+        }
+    }
+
+    @Test
+    fun phasesAreOrdered() {
+        val p = stimulus.plan
+        assertEquals(StimulusPlan.Phase.NOISE_FLOOR, p.phaseAt(0))
+        assertEquals(StimulusPlan.Phase.PINK_NOISE, p.phaseAt(p.pinkStart + 10))
+        assertEquals(StimulusPlan.Phase.SWEEP, p.phaseAt(p.sweepStart + 10))
+        assertEquals(StimulusPlan.Phase.TAIL, p.phaseAt(p.totalLength - 1))
+    }
+}
