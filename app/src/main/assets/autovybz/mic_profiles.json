@@ -240,17 +240,243 @@
           [20000, -2.5]
         ]
       }
+    },
+    "mems-bottom-port-damped": {
+      "label": "MEMS port behind mesh / recessed channel (damped HF, rugged phones)",
+      "curves": {
+        "UNPROCESSED": [
+          [20, -5.0],
+          [25, -3.5],
+          [31.5, -2.4],
+          [40, -1.5],
+          [50, -0.9],
+          [63, -0.5],
+          [80, -0.3],
+          [100, -0.1],
+          [200, 0.0],
+          [1000, 0.0],
+          [2000, 0.0],
+          [3150, 0.0],
+          [4000, -0.2],
+          [5000, -0.5],
+          [6300, -0.9],
+          [8000, -1.6],
+          [10000, -2.8],
+          [12500, -4.5],
+          [16000, -7.0],
+          [20000, -10.0]
+        ],
+        "VOICE_RECOGNITION": [
+          [20, -14.0],
+          [25, -11.0],
+          [31.5, -8.5],
+          [40, -6.0],
+          [50, -4.2],
+          [63, -2.8],
+          [80, -1.6],
+          [100, -1.0],
+          [125, -0.5],
+          [160, -0.2],
+          [200, 0.0],
+          [1000, 0.0],
+          [2000, 0.0],
+          [3150, 0.0],
+          [4000, -0.2],
+          [5000, -0.5],
+          [6300, -0.9],
+          [8000, -1.6],
+          [10000, -2.8],
+          [12500, -4.5],
+          [16000, -7.0],
+          [20000, -10.0]
+        ],
+        "MIC": [
+          [20, -18.0],
+          [31.5, -12.0],
+          [50, -7.0],
+          [80, -3.5],
+          [100, -2.4],
+          [150, -1.0],
+          [200, -0.4],
+          [300, 0.0],
+          [1000, 0.0],
+          [2000, 0.0],
+          [3150, 0.0],
+          [4000, -0.2],
+          [5000, -0.5],
+          [6300, -0.9],
+          [8000, -1.6],
+          [10000, -2.8],
+          [12500, -4.5],
+          [16000, -7.0],
+          [20000, -10.0]
+        ]
+      }
+    },
+    "mems-early-resonance": {
+      "label": "MEMS microphone, long acoustic channel / tablet (resonance ~7-8 kHz)",
+      "curves": {
+        "UNPROCESSED": [
+          [20, -5.0],
+          [25, -3.5],
+          [31.5, -2.4],
+          [40, -1.5],
+          [50, -0.9],
+          [63, -0.5],
+          [80, -0.3],
+          [100, -0.1],
+          [200, 0.0],
+          [1000, 0.0],
+          [2000, 0.1],
+          [3150, 0.4],
+          [4000, 0.8],
+          [5000, 1.5],
+          [6300, 2.4],
+          [7500, 3.2],
+          [9000, 2.6],
+          [11000, 1.0],
+          [14000, -1.5],
+          [16000, -3.0],
+          [20000, -5.5]
+        ],
+        "VOICE_RECOGNITION": [
+          [20, -14.0],
+          [25, -11.0],
+          [31.5, -8.5],
+          [40, -6.0],
+          [50, -4.2],
+          [63, -2.8],
+          [80, -1.6],
+          [100, -1.0],
+          [125, -0.5],
+          [160, -0.2],
+          [200, 0.0],
+          [1000, 0.0],
+          [2000, 0.1],
+          [3150, 0.4],
+          [4000, 0.8],
+          [5000, 1.5],
+          [6300, 2.4],
+          [7500, 3.2],
+          [9000, 2.6],
+          [11000, 1.0],
+          [14000, -1.5],
+          [16000, -3.0],
+          [20000, -5.5]
+        ],
+        "MIC": [
+          [20, -18.0],
+          [31.5, -12.0],
+          [50, -7.0],
+          [80, -3.5],
+          [100, -2.4],
+          [150, -1.0],
+          [200, -0.4],
+          [300, 0.0],
+          [1000, 0.0],
+          [2000, 0.1],
+          [3150, 0.4],
+          [4000, 0.8],
+          [5000, 1.5],
+          [6300, 2.4],
+          [7500, 3.2],
+          [9000, 2.6],
+          [11000, 1.0],
+          [14000, -1.5],
+          [16000, -3.0],
+          [20000, -5.5]
+        ]
+      }
     }
   },
   "devices": [
     {
-      "id": "samsung-galaxy-s-2021plus",
+      "id": "samsung-galaxy-z-flip",
       "manufacturer": "samsung",
       "models": [
-        "SM-S9\\d\\d.*",
-        "SM-G99\\d.*"
+        "SM-F7\\d\\d.*"
       ],
-      "label": "Samsung Galaxy S21-S25 series",
+      "label": "Samsung Galaxy Z Flip series",
+      "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "samsung-galaxy-z-fold",
+      "manufacturer": "samsung",
+      "models": [
+        "SM-F9[0-9][0-9].*"
+      ],
+      "label": "Samsung Galaxy Z Fold series",
+      "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "samsung-galaxy-s-fe",
+      "manufacturer": "samsung",
+      "models": [
+        "SM-(G990|S7[12]\\d).*"
+      ],
+      "label": "Samsung Galaxy S FE series",
+      "curveRef": "mems-bottom-port",
+      "confidence": "estimated"
+    },
+    {
+      "id": "samsung-galaxy-s25",
+      "manufacturer": "samsung",
+      "models": [
+        "SM-S93\\d.*"
+      ],
+      "label": "Samsung Galaxy S25 series",
+      "curveRef": "mems-bottom-port-flat",
+      "confidence": "estimated"
+    },
+    {
+      "id": "samsung-galaxy-s24",
+      "manufacturer": "samsung",
+      "models": [
+        "SM-S92\\d.*"
+      ],
+      "label": "Samsung Galaxy S24 series",
+      "curveRef": "mems-bottom-port-flat",
+      "confidence": "estimated"
+    },
+    {
+      "id": "samsung-galaxy-s23",
+      "manufacturer": "samsung",
+      "models": [
+        "SM-S91\\d.*"
+      ],
+      "label": "Samsung Galaxy S23 series",
+      "curveRef": "mems-bottom-port-flat",
+      "confidence": "estimated"
+    },
+    {
+      "id": "samsung-galaxy-s22",
+      "manufacturer": "samsung",
+      "models": [
+        "SM-S90\\d.*"
+      ],
+      "label": "Samsung Galaxy S22 series",
+      "curveRef": "mems-bottom-port-flat",
+      "confidence": "estimated"
+    },
+    {
+      "id": "samsung-galaxy-s21",
+      "manufacturer": "samsung",
+      "models": [
+        "SM-G99[1-9].*"
+      ],
+      "label": "Samsung Galaxy S21 series",
+      "curveRef": "mems-bottom-port-flat",
+      "confidence": "estimated"
+    },
+    {
+      "id": "samsung-galaxy-s",
+      "manufacturer": "samsung",
+      "models": [
+        "SM-S9\\d\\d.*"
+      ],
+      "label": "Samsung Galaxy S series (2022+)",
       "curveRef": "mems-bottom-port-flat",
       "confidence": "estimated"
     },
@@ -265,13 +491,23 @@
       "confidence": "estimated"
     },
     {
-      "id": "samsung-galaxy-z",
+      "id": "samsung-galaxy-note",
       "manufacturer": "samsung",
       "models": [
-        "SM-F\\d{3}.*"
+        "SM-N9\\d\\d.*"
       ],
-      "label": "Samsung Galaxy Z Flip / Fold",
-      "curveRef": "mems-bottom-port-strong-resonance",
+      "label": "Samsung Galaxy Note series",
+      "curveRef": "mems-bottom-port",
+      "confidence": "estimated"
+    },
+    {
+      "id": "samsung-galaxy-a-upper",
+      "manufacturer": "samsung",
+      "models": [
+        "SM-A(51|52|53|54|55|56|71|72|73)\\d.*"
+      ],
+      "label": "Samsung Galaxy A5x/A7x series",
+      "curveRef": "mems-bottom-port-flat",
       "confidence": "estimated"
     },
     {
@@ -296,6 +532,36 @@
       "confidence": "estimated"
     },
     {
+      "id": "samsung-galaxy-xcover",
+      "manufacturer": "samsung",
+      "models": [
+        "SM-G(39\\d|525|556|715|736).*"
+      ],
+      "label": "Samsung Galaxy XCover (rugged)",
+      "curveRef": "mems-bottom-port-damped",
+      "confidence": "estimated"
+    },
+    {
+      "id": "samsung-galaxy-tab-s",
+      "manufacturer": "samsung",
+      "models": [
+        "SM-(T8|T9|X[789])\\d\\d.*"
+      ],
+      "label": "Samsung Galaxy Tab S series",
+      "curveRef": "mems-early-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "samsung-galaxy-tab-a",
+      "manufacturer": "samsung",
+      "models": [
+        "SM-(T[0-9]|X[12]|P6)\\d\\d.*"
+      ],
+      "label": "Samsung Galaxy Tab A / Lite series",
+      "curveRef": "mems-early-resonance",
+      "confidence": "estimated"
+    },
+    {
       "id": "samsung-generic",
       "manufacturer": "samsung",
       "models": [],
@@ -304,12 +570,112 @@
       "confidence": "estimated"
     },
     {
-      "id": "google-pixel-6plus",
+      "id": "google-pixel-fold",
       "manufacturer": "google",
       "models": [
-        "Pixel ([6-9]|1\\d).*"
+        "Pixel.*Fold.*"
       ],
-      "label": "Google Pixel 6 and newer",
+      "label": "Google Pixel Fold series",
+      "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "google-pixel-tablet",
+      "manufacturer": "google",
+      "models": [
+        "Pixel Tablet.*"
+      ],
+      "label": "Google Pixel Tablet",
+      "curveRef": "mems-early-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "google-pixel-9a",
+      "manufacturer": "google",
+      "models": [
+        "Pixel 9a.*"
+      ],
+      "label": "Google Pixel 9a",
+      "curveRef": "mems-bottom-port",
+      "confidence": "estimated"
+    },
+    {
+      "id": "google-pixel-9",
+      "manufacturer": "google",
+      "models": [
+        "Pixel 9.*"
+      ],
+      "label": "Google Pixel 9 series",
+      "curveRef": "mems-bottom-port-flat",
+      "confidence": "estimated"
+    },
+    {
+      "id": "google-pixel-8a",
+      "manufacturer": "google",
+      "models": [
+        "Pixel 8a.*"
+      ],
+      "label": "Google Pixel 8a",
+      "curveRef": "mems-bottom-port",
+      "confidence": "estimated"
+    },
+    {
+      "id": "google-pixel-8",
+      "manufacturer": "google",
+      "models": [
+        "Pixel 8.*"
+      ],
+      "label": "Google Pixel 8 series",
+      "curveRef": "mems-bottom-port-flat",
+      "confidence": "estimated"
+    },
+    {
+      "id": "google-pixel-7a",
+      "manufacturer": "google",
+      "models": [
+        "Pixel 7a.*"
+      ],
+      "label": "Google Pixel 7a",
+      "curveRef": "mems-bottom-port",
+      "confidence": "estimated"
+    },
+    {
+      "id": "google-pixel-7",
+      "manufacturer": "google",
+      "models": [
+        "Pixel 7.*"
+      ],
+      "label": "Google Pixel 7 series",
+      "curveRef": "mems-bottom-port-flat",
+      "confidence": "estimated"
+    },
+    {
+      "id": "google-pixel-6a",
+      "manufacturer": "google",
+      "models": [
+        "Pixel 6a.*"
+      ],
+      "label": "Google Pixel 6a",
+      "curveRef": "mems-bottom-port",
+      "confidence": "estimated"
+    },
+    {
+      "id": "google-pixel-6",
+      "manufacturer": "google",
+      "models": [
+        "Pixel 6.*"
+      ],
+      "label": "Google Pixel 6 series",
+      "curveRef": "mems-bottom-port-flat",
+      "confidence": "estimated"
+    },
+    {
+      "id": "google-pixel-10plus",
+      "manufacturer": "google",
+      "models": [
+        "Pixel 1\\d.*"
+      ],
+      "label": "Google Pixel 10 and newer",
       "curveRef": "mems-bottom-port-flat",
       "confidence": "estimated"
     },
@@ -318,9 +684,10 @@
       "manufacturer": "google",
       "models": [
         "Pixel [2-5].*",
-        "Pixel"
+        "Pixel",
+        "Pixel XL"
       ],
-      "label": "Google Pixel 2-5",
+      "label": "Google Pixel 1-5",
       "curveRef": "mems-bottom-port",
       "confidence": "estimated"
     },
@@ -333,23 +700,84 @@
       "confidence": "estimated"
     },
     {
+      "id": "xiaomi-mix-fold",
+      "manufacturer": "xiaomi",
+      "models": [
+        ".*mix fold.*"
+      ],
+      "label": "Xiaomi MIX Fold series",
+      "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "xiaomi-pad",
+      "manufacturer": "xiaomi",
+      "models": [
+        ".*pad.*"
+      ],
+      "label": "Xiaomi Pad / Redmi Pad",
+      "curveRef": "mems-early-resonance",
+      "confidence": "estimated"
+    },
+    {
       "id": "xiaomi-flagship",
       "manufacturer": "xiaomi",
       "models": [
-        "(?i)(xiaomi |mi )?1[0-5].*",
-        "(?i)2[0-9]{3}[0-9A-Z]{2,}[GCIY]"
+        "(xiaomi |mi )?1[0-7].*",
+        ".*(mix|civi).*",
+        "2[0-9]{3}[0-9a-z]{2,}[gciy]"
       ],
-      "label": "Xiaomi numbered / flagship series",
+      "label": "Xiaomi numbered / MIX / Civi flagship series",
       "curveRef": "mems-bottom-port",
+      "confidence": "estimated"
+    },
+    {
+      "id": "xiaomi-redmi-note",
+      "manufacturer": "xiaomi",
+      "models": [
+        ".*redmi note.*"
+      ],
+      "label": "Redmi Note series",
+      "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "xiaomi-poco-f",
+      "manufacturer": "xiaomi",
+      "models": [
+        ".*poco f.*"
+      ],
+      "label": "POCO F series",
+      "curveRef": "mems-bottom-port",
+      "confidence": "estimated"
+    },
+    {
+      "id": "xiaomi-poco-xmc",
+      "manufacturer": "xiaomi",
+      "models": [
+        ".*poco [xmc].*"
+      ],
+      "label": "POCO X / M / C series",
+      "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "xiaomi-redmi",
+      "manufacturer": "xiaomi",
+      "models": [
+        ".*redmi.*"
+      ],
+      "label": "Redmi series",
+      "curveRef": "mems-bottom-port-strong-resonance",
       "confidence": "estimated"
     },
     {
       "id": "xiaomi-redmi-poco",
       "manufacturer": "xiaomi",
       "models": [
-        "(?i).*(redmi|poco|M210|M200).*"
+        ".*(poco|M20|M21|M22).*"
       ],
-      "label": "Redmi / POCO",
+      "label": "Redmi / POCO (model codes)",
       "curveRef": "mems-bottom-port-strong-resonance",
       "confidence": "estimated"
     },
@@ -362,10 +790,133 @@
       "confidence": "estimated"
     },
     {
+      "id": "blackshark",
+      "manufacturer": "blackshark",
+      "models": [
+        ".*shark.*"
+      ],
+      "label": "Black Shark",
+      "curveRef": "mems-bottom-port",
+      "confidence": "estimated"
+    },
+    {
+      "id": "blackshark-generic",
+      "manufacturer": "blackshark",
+      "models": [],
+      "label": "Black Shark (other models)",
+      "curveRef": "mems-bottom-port",
+      "confidence": "estimated"
+    },
+    {
+      "id": "oneplus-nord",
+      "manufacturer": "oneplus",
+      "models": [
+        ".*nord.*",
+        "(AC|BE|DN|EB|GN|DE)2\\d{3}"
+      ],
+      "label": "OnePlus Nord series",
+      "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "oneplus-pad",
+      "manufacturer": "oneplus",
+      "models": [
+        ".*pad.*",
+        "OPD2\\d{3}"
+      ],
+      "label": "OnePlus Pad series",
+      "curveRef": "mems-early-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "oneplus-flagship",
+      "manufacturer": "oneplus",
+      "models": [
+        "oneplus (1[0-3]|[7-9]).*",
+        "(GM|HD|IN|KB|LE|NE|MT)2\\d{3}",
+        "ONEPLUS A[56]\\d{3}"
+      ],
+      "label": "OnePlus flagship series",
+      "curveRef": "mems-bottom-port-flat",
+      "confidence": "estimated"
+    },
+    {
+      "id": "oneplus-cph",
+      "manufacturer": "oneplus",
+      "models": [
+        "CPH2\\d{3}"
+      ],
+      "label": "OnePlus (2022+ model codes)",
+      "curveRef": "mems-bottom-port",
+      "confidence": "estimated"
+    },
+    {
       "id": "oneplus-generic",
       "manufacturer": "oneplus",
       "models": [],
-      "label": "OnePlus",
+      "label": "OnePlus (other models)",
+      "curveRef": "mems-bottom-port",
+      "confidence": "estimated"
+    },
+    {
+      "id": "oppo-find-n",
+      "manufacturer": "oppo",
+      "models": [
+        ".*find n.*"
+      ],
+      "label": "OPPO Find N foldables",
+      "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "oppo-find",
+      "manufacturer": "oppo",
+      "models": [
+        ".*find.*"
+      ],
+      "label": "OPPO Find X series",
+      "curveRef": "mems-bottom-port-flat",
+      "confidence": "estimated"
+    },
+    {
+      "id": "oppo-pad",
+      "manufacturer": "oppo",
+      "models": [
+        ".*pad.*",
+        "OPD2\\d{3}"
+      ],
+      "label": "OPPO Pad series",
+      "curveRef": "mems-early-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "oppo-reno",
+      "manufacturer": "oppo",
+      "models": [
+        ".*reno.*"
+      ],
+      "label": "OPPO Reno series",
+      "curveRef": "mems-bottom-port",
+      "confidence": "estimated"
+    },
+    {
+      "id": "oppo-a-k",
+      "manufacturer": "oppo",
+      "models": [
+        "oppo [ak]\\d.*"
+      ],
+      "label": "OPPO A / K series",
+      "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "oppo-cph",
+      "manufacturer": "oppo",
+      "models": [
+        "CPH2\\d{3}"
+      ],
+      "label": "OPPO (model codes)",
       "curveRef": "mems-bottom-port",
       "confidence": "estimated"
     },
@@ -373,34 +924,212 @@
       "id": "oppo-generic",
       "manufacturer": "oppo",
       "models": [],
-      "label": "OPPO",
+      "label": "OPPO (other models)",
       "curveRef": "mems-bottom-port",
+      "confidence": "estimated"
+    },
+    {
+      "id": "realme-gt",
+      "manufacturer": "realme",
+      "models": [
+        ".*realme gt.*"
+      ],
+      "label": "realme GT series",
+      "curveRef": "mems-bottom-port-flat",
+      "confidence": "estimated"
+    },
+    {
+      "id": "realme-narzo",
+      "manufacturer": "realme",
+      "models": [
+        ".*narzo.*"
+      ],
+      "label": "realme narzo series",
+      "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "realme-numbered",
+      "manufacturer": "realme",
+      "models": [
+        "realme 1[0-4].*"
+      ],
+      "label": "realme numbered series",
+      "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "realme-c",
+      "manufacturer": "realme",
+      "models": [
+        "realme c.*"
+      ],
+      "label": "realme C series",
+      "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "realme-pad",
+      "manufacturer": "realme",
+      "models": [
+        ".*pad.*"
+      ],
+      "label": "realme Pad series",
+      "curveRef": "mems-early-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "realme-rmx",
+      "manufacturer": "realme",
+      "models": [
+        "RMX\\d{4}"
+      ],
+      "label": "realme (model codes)",
+      "curveRef": "mems-bottom-port-strong-resonance",
       "confidence": "estimated"
     },
     {
       "id": "realme-generic",
       "manufacturer": "realme",
       "models": [],
-      "label": "realme",
+      "label": "realme (other models)",
       "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "iqoo-neo-z-vivo",
+      "manufacturer": "vivo",
+      "models": [
+        "iqoo (neo|z).*"
+      ],
+      "label": "iQOO Neo / Z series",
+      "curveRef": "mems-bottom-port",
+      "confidence": "estimated"
+    },
+    {
+      "id": "iqoo-flagship-vivo",
+      "manufacturer": "vivo",
+      "models": [
+        "iqoo.*"
+      ],
+      "label": "iQOO flagship series",
+      "curveRef": "mems-bottom-port-flat",
+      "confidence": "estimated"
+    },
+    {
+      "id": "vivo-pad",
+      "manufacturer": "vivo",
+      "models": [
+        ".*pad.*"
+      ],
+      "label": "vivo Pad series",
+      "curveRef": "mems-early-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "vivo-x",
+      "manufacturer": "vivo",
+      "models": [
+        "vivo x.*"
+      ],
+      "label": "vivo X flagship series",
+      "curveRef": "mems-bottom-port-flat",
+      "confidence": "estimated"
+    },
+    {
+      "id": "vivo-v",
+      "manufacturer": "vivo",
+      "models": [
+        "vivo v\\d.*"
+      ],
+      "label": "vivo V series",
+      "curveRef": "mems-bottom-port",
+      "confidence": "estimated"
+    },
+    {
+      "id": "vivo-y-t",
+      "manufacturer": "vivo",
+      "models": [
+        "vivo [yt]\\d.*"
+      ],
+      "label": "vivo Y / T series",
+      "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "vivo-code",
+      "manufacturer": "vivo",
+      "models": [
+        "V\\d{4}[A-Z]?"
+      ],
+      "label": "vivo (model codes)",
+      "curveRef": "mems-bottom-port",
       "confidence": "estimated"
     },
     {
       "id": "vivo-generic",
       "manufacturer": "vivo",
       "models": [],
-      "label": "vivo",
+      "label": "vivo (other models)",
       "curveRef": "mems-bottom-port",
+      "confidence": "estimated"
+    },
+    {
+      "id": "iqoo-neo-z",
+      "manufacturer": "iqoo",
+      "models": [
+        "iqoo (neo|z).*"
+      ],
+      "label": "iQOO Neo / Z series",
+      "curveRef": "mems-bottom-port",
+      "confidence": "estimated"
+    },
+    {
+      "id": "iqoo-flagship",
+      "manufacturer": "iqoo",
+      "models": [
+        "iqoo.*"
+      ],
+      "label": "iQOO flagship series",
+      "curveRef": "mems-bottom-port-flat",
+      "confidence": "estimated"
+    },
+    {
+      "id": "iqoo-generic",
+      "manufacturer": "iqoo",
+      "models": [],
+      "label": "iQOO (other models)",
+      "curveRef": "mems-bottom-port",
+      "confidence": "estimated"
+    },
+    {
+      "id": "motorola-razr",
+      "manufacturer": "motorola",
+      "models": [
+        ".*razr.*"
+      ],
+      "label": "Motorola Razr foldables",
+      "curveRef": "mems-bottom-port-strong-resonance",
       "confidence": "estimated"
     },
     {
       "id": "motorola-edge",
       "manufacturer": "motorola",
       "models": [
-        "(?i)motorola edge.*",
-        "(?i)moto(rola)? edge.*"
+        "motorola edge.*",
+        "moto(rola)? edge.*"
       ],
-      "label": "Motorola Edge",
+      "label": "Motorola Edge series",
+      "curveRef": "mems-bottom-port",
+      "confidence": "estimated"
+    },
+    {
+      "id": "motorola-thinkphone-one",
+      "manufacturer": "motorola",
+      "models": [
+        ".*(thinkphone|motorola one).*"
+      ],
+      "label": "ThinkPhone / Motorola One",
       "curveRef": "mems-bottom-port",
       "confidence": "estimated"
     },
@@ -408,10 +1137,30 @@
       "id": "motorola-moto-g",
       "manufacturer": "motorola",
       "models": [
-        "(?i)moto(rola)? g.*"
+        "moto(rola)? g.*"
       ],
-      "label": "Motorola Moto G",
+      "label": "Motorola Moto G series",
       "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "motorola-moto-e",
+      "manufacturer": "motorola",
+      "models": [
+        "moto(rola)? e\\d.*"
+      ],
+      "label": "Motorola Moto E series",
+      "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "motorola-xt",
+      "manufacturer": "motorola",
+      "models": [
+        "XT\\d{4}.*"
+      ],
+      "label": "Motorola (XT model codes)",
+      "curveRef": "mems-bottom-port",
       "confidence": "estimated"
     },
     {
@@ -428,10 +1177,21 @@
       "models": [
         "XQ-.*",
         "SO-.*",
-        "SOG.*"
+        "SOG.*",
+        "SOV.*"
       ],
-      "label": "Sony Xperia",
+      "label": "Sony Xperia (XQ series)",
       "curveRef": "mems-bottom-port-flat",
+      "confidence": "estimated"
+    },
+    {
+      "id": "sony-xperia-legacy",
+      "manufacturer": "sony",
+      "models": [
+        "[GHJ]\\d{4}"
+      ],
+      "label": "Sony Xperia XZ / 1 (legacy codes)",
+      "curveRef": "mems-bottom-port",
       "confidence": "estimated"
     },
     {
@@ -443,20 +1203,72 @@
       "confidence": "estimated"
     },
     {
-      "id": "nothing-generic",
-      "manufacturer": "nothing",
-      "models": [],
-      "label": "Nothing Phone",
+      "id": "huawei-matepad",
+      "manufacturer": "huawei",
+      "models": [
+        ".*matepad.*"
+      ],
+      "label": "Huawei MatePad series",
+      "curveRef": "mems-early-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "huawei-mate-x",
+      "manufacturer": "huawei",
+      "models": [
+        ".*mate (x|xs|xt).*"
+      ],
+      "label": "Huawei Mate X foldables",
+      "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "huawei-mate",
+      "manufacturer": "huawei",
+      "models": [
+        ".*mate \\d.*"
+      ],
+      "label": "Huawei Mate series",
+      "curveRef": "mems-bottom-port-flat",
+      "confidence": "estimated"
+    },
+    {
+      "id": "huawei-pura-p",
+      "manufacturer": "huawei",
+      "models": [
+        ".*(pura|huawei p\\d\\d).*"
+      ],
+      "label": "Huawei Pura / P series",
+      "curveRef": "mems-bottom-port-flat",
+      "confidence": "estimated"
+    },
+    {
+      "id": "huawei-nova",
+      "manufacturer": "huawei",
+      "models": [
+        ".*nova.*"
+      ],
+      "label": "Huawei nova series",
       "curveRef": "mems-bottom-port",
       "confidence": "estimated"
     },
     {
-      "id": "fairphone",
-      "manufacturer": "fairphone",
+      "id": "huawei-enjoy-y",
+      "manufacturer": "huawei",
       "models": [
-        "FP[3-6].*"
+        ".*(enjoy|huawei y\\d).*"
       ],
-      "label": "Fairphone 3-6",
+      "label": "Huawei Enjoy / Y series",
+      "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "huawei-code",
+      "manufacturer": "huawei",
+      "models": [
+        "[A-Z]{3}-[A-Z0-9]{3,4}"
+      ],
+      "label": "Huawei (model codes)",
       "curveRef": "mems-bottom-port",
       "confidence": "estimated"
     },
@@ -464,7 +1276,67 @@
       "id": "huawei-generic",
       "manufacturer": "huawei",
       "models": [],
-      "label": "Huawei",
+      "label": "Huawei (other models)",
+      "curveRef": "mems-bottom-port",
+      "confidence": "estimated"
+    },
+    {
+      "id": "honor-pad",
+      "manufacturer": "honor",
+      "models": [
+        ".*pad.*"
+      ],
+      "label": "HONOR Pad series",
+      "curveRef": "mems-early-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "honor-magic-v",
+      "manufacturer": "honor",
+      "models": [
+        ".*magic (v|vs|vflip).*"
+      ],
+      "label": "HONOR Magic V foldables",
+      "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "honor-magic",
+      "manufacturer": "honor",
+      "models": [
+        ".*magic.*"
+      ],
+      "label": "HONOR Magic flagship series",
+      "curveRef": "mems-bottom-port-flat",
+      "confidence": "estimated"
+    },
+    {
+      "id": "honor-numbered",
+      "manufacturer": "honor",
+      "models": [
+        "honor [1-9]\\d\\d?\\b.*"
+      ],
+      "label": "HONOR numbered series",
+      "curveRef": "mems-bottom-port",
+      "confidence": "estimated"
+    },
+    {
+      "id": "honor-x",
+      "manufacturer": "honor",
+      "models": [
+        "honor x.*"
+      ],
+      "label": "HONOR X series",
+      "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "honor-code",
+      "manufacturer": "honor",
+      "models": [
+        "[A-Z]{3}-[A-Z0-9]{3,4}"
+      ],
+      "label": "HONOR (model codes)",
       "curveRef": "mems-bottom-port",
       "confidence": "estimated"
     },
@@ -472,63 +1344,86 @@
       "id": "honor-generic",
       "manufacturer": "honor",
       "models": [],
-      "label": "HONOR",
+      "label": "HONOR (other models)",
       "curveRef": "mems-bottom-port",
+      "confidence": "estimated"
+    },
+    {
+      "id": "asus-rog",
+      "manufacturer": "asus",
+      "models": [
+        ".*rog.*"
+      ],
+      "label": "ASUS ROG Phone series",
+      "curveRef": "mems-bottom-port-flat",
+      "confidence": "estimated"
+    },
+    {
+      "id": "asus-zenfone",
+      "manufacturer": "asus",
+      "models": [
+        ".*zenfone.*"
+      ],
+      "label": "ASUS Zenfone series",
+      "curveRef": "mems-bottom-port",
+      "confidence": "estimated"
+    },
+    {
+      "id": "asus-code",
+      "manufacturer": "asus",
+      "models": [
+        "ASUS_(AI|I)\\d.*"
+      ],
+      "label": "ASUS (model codes)",
+      "curveRef": "mems-bottom-port-flat",
       "confidence": "estimated"
     },
     {
       "id": "asus-generic",
       "manufacturer": "asus",
       "models": [],
-      "label": "ASUS (Zenfone / ROG Phone)",
+      "label": "ASUS (other models)",
       "curveRef": "mems-bottom-port",
       "confidence": "estimated"
     },
     {
-      "id": "hmd-nokia",
-      "manufacturer": "hmd global",
-      "models": [],
-      "label": "Nokia / HMD",
-      "curveRef": "mems-bottom-port-strong-resonance",
-      "confidence": "estimated"
-    },
-    {
-      "id": "lenovo-generic",
-      "manufacturer": "lenovo",
-      "models": [],
-      "label": "Lenovo",
+      "id": "nothing-cmf",
+      "manufacturer": "nothing",
+      "models": [
+        ".*cmf.*",
+        "A015"
+      ],
+      "label": "CMF by Nothing",
       "curveRef": "mems-bottom-port",
       "confidence": "estimated"
     },
     {
-      "id": "zte-generic",
-      "manufacturer": "zte",
-      "models": [],
-      "label": "ZTE / nubia",
+      "id": "nothing-phone-2a",
+      "manufacturer": "nothing",
+      "models": [
+        "A14\\d.*",
+        "phone \\(2a.*"
+      ],
+      "label": "Nothing Phone (2a) series",
       "curveRef": "mems-bottom-port",
       "confidence": "estimated"
     },
     {
-      "id": "tecno-generic",
-      "manufacturer": "tecno",
-      "models": [],
-      "label": "TECNO",
-      "curveRef": "mems-bottom-port-strong-resonance",
+      "id": "nothing-phone-12",
+      "manufacturer": "nothing",
+      "models": [
+        "A06[35]",
+        "phone \\([12]\\).*"
+      ],
+      "label": "Nothing Phone (1) / (2)",
+      "curveRef": "mems-bottom-port",
       "confidence": "estimated"
     },
     {
-      "id": "infinix-generic",
-      "manufacturer": "infinix",
+      "id": "nothing-generic",
+      "manufacturer": "nothing",
       "models": [],
-      "label": "Infinix",
-      "curveRef": "mems-bottom-port-strong-resonance",
-      "confidence": "estimated"
-    },
-    {
-      "id": "tcl-generic",
-      "manufacturer": "tcl",
-      "models": [],
-      "label": "TCL",
+      "label": "Nothing Phone (other models)",
       "curveRef": "mems-bottom-port",
       "confidence": "estimated"
     },
@@ -538,6 +1433,796 @@
       "models": [],
       "label": "CMF by Nothing",
       "curveRef": "mems-bottom-port",
+      "confidence": "estimated"
+    },
+    {
+      "id": "fairphone",
+      "manufacturer": "fairphone",
+      "models": [
+        "FP[3-6].*",
+        "fairphone.*"
+      ],
+      "label": "Fairphone 3-6",
+      "curveRef": "mems-bottom-port",
+      "confidence": "estimated"
+    },
+    {
+      "id": "fairphone-generic",
+      "manufacturer": "fairphone",
+      "models": [],
+      "label": "Fairphone (other models)",
+      "curveRef": "mems-bottom-port",
+      "confidence": "estimated"
+    },
+    {
+      "id": "nokia-xr",
+      "manufacturer": "hmd global",
+      "models": [
+        "nokia xr.*"
+      ],
+      "label": "Nokia XR rugged series",
+      "curveRef": "mems-bottom-port-damped",
+      "confidence": "estimated"
+    },
+    {
+      "id": "nokia-tablet",
+      "manufacturer": "hmd global",
+      "models": [
+        "nokia t\\d.*"
+      ],
+      "label": "Nokia T tablets",
+      "curveRef": "mems-early-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "nokia-x",
+      "manufacturer": "hmd global",
+      "models": [
+        "nokia x.*"
+      ],
+      "label": "Nokia X series",
+      "curveRef": "mems-bottom-port",
+      "confidence": "estimated"
+    },
+    {
+      "id": "nokia-g-c",
+      "manufacturer": "hmd global",
+      "models": [
+        "nokia [gc]\\d.*"
+      ],
+      "label": "Nokia G / C series",
+      "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "hmd-pulse-skyline",
+      "manufacturer": "hmd global",
+      "models": [
+        "(hmd|pulse|skyline).*"
+      ],
+      "label": "HMD (Pulse / Skyline / ...)",
+      "curveRef": "mems-bottom-port",
+      "confidence": "estimated"
+    },
+    {
+      "id": "nokia-code",
+      "manufacturer": "hmd global",
+      "models": [
+        "TA-\\d{4}"
+      ],
+      "label": "Nokia (TA model codes)",
+      "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "hmd-nokia",
+      "manufacturer": "hmd global",
+      "models": [],
+      "label": "Nokia / HMD (other models)",
+      "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "lenovo-legion",
+      "manufacturer": "lenovo",
+      "models": [
+        ".*legion.*"
+      ],
+      "label": "Lenovo Legion phones",
+      "curveRef": "mems-bottom-port-flat",
+      "confidence": "estimated"
+    },
+    {
+      "id": "lenovo-tab",
+      "manufacturer": "lenovo",
+      "models": [
+        ".*tab.*",
+        "TB-?[A-Z0-9]{3,}.*"
+      ],
+      "label": "Lenovo Tab tablets",
+      "curveRef": "mems-early-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "lenovo-generic",
+      "manufacturer": "lenovo",
+      "models": [],
+      "label": "Lenovo (other models)",
+      "curveRef": "mems-bottom-port",
+      "confidence": "estimated"
+    },
+    {
+      "id": "zte-axon",
+      "manufacturer": "zte",
+      "models": [
+        ".*axon.*",
+        "ZTE A\\d{4}.*"
+      ],
+      "label": "ZTE Axon series",
+      "curveRef": "mems-bottom-port-flat",
+      "confidence": "estimated"
+    },
+    {
+      "id": "zte-blade",
+      "manufacturer": "zte",
+      "models": [
+        ".*blade.*"
+      ],
+      "label": "ZTE Blade series",
+      "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "zte-generic",
+      "manufacturer": "zte",
+      "models": [],
+      "label": "ZTE (other models)",
+      "curveRef": "mems-bottom-port",
+      "confidence": "estimated"
+    },
+    {
+      "id": "nubia-redmagic",
+      "manufacturer": "nubia",
+      "models": [
+        ".*red ?magic.*"
+      ],
+      "label": "nubia REDMAGIC gaming series",
+      "curveRef": "mems-bottom-port-flat",
+      "confidence": "estimated"
+    },
+    {
+      "id": "nubia-z",
+      "manufacturer": "nubia",
+      "models": [
+        ".*nubia z.*",
+        ".*nubia flip.*"
+      ],
+      "label": "nubia Z flagship series",
+      "curveRef": "mems-bottom-port-flat",
+      "confidence": "estimated"
+    },
+    {
+      "id": "nubia-code",
+      "manufacturer": "nubia",
+      "models": [
+        "NX\\d{3}[A-Z]"
+      ],
+      "label": "nubia (model codes)",
+      "curveRef": "mems-bottom-port",
+      "confidence": "estimated"
+    },
+    {
+      "id": "nubia-generic",
+      "manufacturer": "nubia",
+      "models": [],
+      "label": "nubia (other models)",
+      "curveRef": "mems-bottom-port",
+      "confidence": "estimated"
+    },
+    {
+      "id": "tecno-phantom",
+      "manufacturer": "tecno",
+      "models": [
+        ".*phantom.*"
+      ],
+      "label": "TECNO Phantom flagship series",
+      "curveRef": "mems-bottom-port-flat",
+      "confidence": "estimated"
+    },
+    {
+      "id": "tecno-camon",
+      "manufacturer": "tecno",
+      "models": [
+        ".*camon.*"
+      ],
+      "label": "TECNO Camon series",
+      "curveRef": "mems-bottom-port",
+      "confidence": "estimated"
+    },
+    {
+      "id": "tecno-pova",
+      "manufacturer": "tecno",
+      "models": [
+        ".*pova.*"
+      ],
+      "label": "TECNO Pova series",
+      "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "tecno-spark-pop",
+      "manufacturer": "tecno",
+      "models": [
+        ".*(spark|pop).*"
+      ],
+      "label": "TECNO Spark / Pop series",
+      "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "tecno-code",
+      "manufacturer": "tecno",
+      "models": [
+        "TECNO [A-Z]{2}\\d.*"
+      ],
+      "label": "TECNO (model codes)",
+      "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "tecno-generic",
+      "manufacturer": "tecno",
+      "models": [],
+      "label": "TECNO (other models)",
+      "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "infinix-gt-zero",
+      "manufacturer": "infinix",
+      "models": [
+        ".*(infinix gt|zero).*"
+      ],
+      "label": "Infinix GT / ZERO series",
+      "curveRef": "mems-bottom-port",
+      "confidence": "estimated"
+    },
+    {
+      "id": "infinix-note",
+      "manufacturer": "infinix",
+      "models": [
+        ".*note.*"
+      ],
+      "label": "Infinix NOTE series",
+      "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "infinix-hot-smart",
+      "manufacturer": "infinix",
+      "models": [
+        ".*(hot|smart).*"
+      ],
+      "label": "Infinix HOT / SMART series",
+      "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "infinix-code",
+      "manufacturer": "infinix",
+      "models": [
+        "Infinix X\\d{3,}.*"
+      ],
+      "label": "Infinix (model codes)",
+      "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "infinix-generic",
+      "manufacturer": "infinix",
+      "models": [],
+      "label": "Infinix (other models)",
+      "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "itel-series",
+      "manufacturer": "itel",
+      "models": [
+        "itel [aps]\\d.*"
+      ],
+      "label": "itel A / P / S series",
+      "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "itel-generic",
+      "manufacturer": "itel",
+      "models": [],
+      "label": "itel (other models)",
+      "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "tcl-tab",
+      "manufacturer": "tcl",
+      "models": [
+        ".*tab.*",
+        ".*nxtpaper 1\\d.*"
+      ],
+      "label": "TCL Tab / NXTPAPER tablets",
+      "curveRef": "mems-early-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "tcl-50",
+      "manufacturer": "tcl",
+      "models": [
+        ".*tcl 5\\d.*"
+      ],
+      "label": "TCL 50 series",
+      "curveRef": "mems-bottom-port",
+      "confidence": "estimated"
+    },
+    {
+      "id": "tcl-40-30",
+      "manufacturer": "tcl",
+      "models": [
+        ".*tcl [34]\\d.*"
+      ],
+      "label": "TCL 40 / 30 series",
+      "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "tcl-alcatel",
+      "manufacturer": "tcl",
+      "models": [
+        ".*alcatel.*"
+      ],
+      "label": "Alcatel (TCL)",
+      "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "tcl-code",
+      "manufacturer": "tcl",
+      "models": [
+        "T\\d{3}[A-Z].*"
+      ],
+      "label": "TCL (model codes)",
+      "curveRef": "mems-bottom-port",
+      "confidence": "estimated"
+    },
+    {
+      "id": "tcl-generic",
+      "manufacturer": "tcl",
+      "models": [],
+      "label": "TCL (other models)",
+      "curveRef": "mems-bottom-port",
+      "confidence": "estimated"
+    },
+    {
+      "id": "alcatel-generic",
+      "manufacturer": "alcatel",
+      "models": [],
+      "label": "Alcatel (other models)",
+      "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "sharp-aquos",
+      "manufacturer": "sharp",
+      "models": [
+        "SH-\\d.*",
+        "SHG.*",
+        ".*aquos.*"
+      ],
+      "label": "Sharp AQUOS series",
+      "curveRef": "mems-bottom-port",
+      "confidence": "estimated"
+    },
+    {
+      "id": "sharp-generic",
+      "manufacturer": "sharp",
+      "models": [],
+      "label": "Sharp (other models)",
+      "curveRef": "mems-bottom-port",
+      "confidence": "estimated"
+    },
+    {
+      "id": "fcnt-arrows",
+      "manufacturer": "fcnt",
+      "models": [
+        "F-\\d\\d[A-Z].*",
+        ".*arrows.*"
+      ],
+      "label": "FCNT arrows series",
+      "curveRef": "mems-bottom-port",
+      "confidence": "estimated"
+    },
+    {
+      "id": "fcnt-generic",
+      "manufacturer": "fcnt",
+      "models": [],
+      "label": "FCNT (other models)",
+      "curveRef": "mems-bottom-port",
+      "confidence": "estimated"
+    },
+    {
+      "id": "kyocera-rugged",
+      "manufacturer": "kyocera",
+      "models": [
+        ".*(torque|dura).*",
+        "KY.*",
+        "E6[89]\\d\\d"
+      ],
+      "label": "Kyocera Torque / DuraForce (rugged)",
+      "curveRef": "mems-bottom-port-damped",
+      "confidence": "estimated"
+    },
+    {
+      "id": "kyocera-generic",
+      "manufacturer": "kyocera",
+      "models": [],
+      "label": "Kyocera (other models)",
+      "curveRef": "mems-bottom-port",
+      "confidence": "estimated"
+    },
+    {
+      "id": "cat-phones",
+      "manufacturer": "cat",
+      "models": [
+        ".*cat s\\d.*"
+      ],
+      "label": "CAT phones (rugged)",
+      "curveRef": "mems-bottom-port-damped",
+      "confidence": "estimated"
+    },
+    {
+      "id": "cat-generic",
+      "manufacturer": "cat",
+      "models": [],
+      "label": "CAT (rugged, other models)",
+      "curveRef": "mems-bottom-port-damped",
+      "confidence": "estimated"
+    },
+    {
+      "id": "doogee-tablet",
+      "manufacturer": "doogee",
+      "models": [
+        ".*(doogee )?t\\d\\d .*",
+        ".*tab.*"
+      ],
+      "label": "DOOGEE tablets",
+      "curveRef": "mems-early-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "doogee-rugged",
+      "manufacturer": "doogee",
+      "models": [
+        ".*(doogee )?[sv]\\d.*"
+      ],
+      "label": "DOOGEE S / V rugged series",
+      "curveRef": "mems-bottom-port-damped",
+      "confidence": "estimated"
+    },
+    {
+      "id": "doogee-generic",
+      "manufacturer": "doogee",
+      "models": [],
+      "label": "DOOGEE (other models)",
+      "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "ulefone-armor",
+      "manufacturer": "ulefone",
+      "models": [
+        ".*armor.*"
+      ],
+      "label": "Ulefone Armor rugged series",
+      "curveRef": "mems-bottom-port-damped",
+      "confidence": "estimated"
+    },
+    {
+      "id": "ulefone-note",
+      "manufacturer": "ulefone",
+      "models": [
+        ".*note.*"
+      ],
+      "label": "Ulefone Note series",
+      "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "ulefone-generic",
+      "manufacturer": "ulefone",
+      "models": [],
+      "label": "Ulefone (other models)",
+      "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "oukitel-wp",
+      "manufacturer": "oukitel",
+      "models": [
+        ".*(wp|rt)\\d.*"
+      ],
+      "label": "OUKITEL WP / RT rugged series",
+      "curveRef": "mems-bottom-port-damped",
+      "confidence": "estimated"
+    },
+    {
+      "id": "oukitel-generic",
+      "manufacturer": "oukitel",
+      "models": [],
+      "label": "OUKITEL (other models)",
+      "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "blackview-tablet",
+      "manufacturer": "blackview",
+      "models": [
+        ".*tab.*"
+      ],
+      "label": "Blackview Tab tablets",
+      "curveRef": "mems-early-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "blackview-bv",
+      "manufacturer": "blackview",
+      "models": [
+        ".*bv\\d.*"
+      ],
+      "label": "Blackview BV rugged series",
+      "curveRef": "mems-bottom-port-damped",
+      "confidence": "estimated"
+    },
+    {
+      "id": "blackview-generic",
+      "manufacturer": "blackview",
+      "models": [],
+      "label": "Blackview (other models)",
+      "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "oscal-pad",
+      "manufacturer": "oscal",
+      "models": [
+        ".*pad.*"
+      ],
+      "label": "OSCAL Pad tablets",
+      "curveRef": "mems-early-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "oscal-generic",
+      "manufacturer": "oscal",
+      "models": [],
+      "label": "OSCAL (other models)",
+      "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "agm-generic",
+      "manufacturer": "agm",
+      "models": [],
+      "label": "AGM rugged phones",
+      "curveRef": "mems-bottom-port-damped",
+      "confidence": "estimated"
+    },
+    {
+      "id": "umidigi-bison",
+      "manufacturer": "umidigi",
+      "models": [
+        ".*bison.*"
+      ],
+      "label": "UMIDIGI Bison rugged series",
+      "curveRef": "mems-bottom-port-damped",
+      "confidence": "estimated"
+    },
+    {
+      "id": "umidigi-generic",
+      "manufacturer": "umidigi",
+      "models": [],
+      "label": "UMIDIGI (other models)",
+      "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "cubot-kingkong",
+      "manufacturer": "cubot",
+      "models": [
+        ".*king ?kong.*"
+      ],
+      "label": "CUBOT KingKong rugged series",
+      "curveRef": "mems-bottom-port-damped",
+      "confidence": "estimated"
+    },
+    {
+      "id": "cubot-generic",
+      "manufacturer": "cubot",
+      "models": [],
+      "label": "CUBOT (other models)",
+      "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "fossibot-generic",
+      "manufacturer": "fossibot",
+      "models": [],
+      "label": "FOSSiBOT rugged phones",
+      "curveRef": "mems-bottom-port-damped",
+      "confidence": "estimated"
+    },
+    {
+      "id": "iiif150-generic",
+      "manufacturer": "iiif150",
+      "models": [],
+      "label": "IIIF150 rugged phones",
+      "curveRef": "mems-bottom-port-damped",
+      "confidence": "estimated"
+    },
+    {
+      "id": "crosscall-generic",
+      "manufacturer": "crosscall",
+      "models": [],
+      "label": "CROSSCALL rugged phones",
+      "curveRef": "mems-bottom-port-damped",
+      "confidence": "estimated"
+    },
+    {
+      "id": "unihertz-jelly",
+      "manufacturer": "unihertz",
+      "models": [
+        ".*jelly.*",
+        ".*atom.*"
+      ],
+      "label": "Unihertz Jelly / Atom (compact)",
+      "curveRef": "mems-bottom-port",
+      "confidence": "estimated"
+    },
+    {
+      "id": "unihertz-generic",
+      "manufacturer": "unihertz",
+      "models": [],
+      "label": "Unihertz (Tank rugged etc.)",
+      "curveRef": "mems-bottom-port-damped",
+      "confidence": "estimated"
+    },
+    {
+      "id": "hotwav-generic",
+      "manufacturer": "hotwav",
+      "models": [],
+      "label": "HOTWAV rugged phones",
+      "curveRef": "mems-bottom-port-damped",
+      "confidence": "estimated"
+    },
+    {
+      "id": "gigaset-gx",
+      "manufacturer": "gigaset",
+      "models": [
+        ".*gx\\d.*"
+      ],
+      "label": "Gigaset GX (rugged)",
+      "curveRef": "mems-bottom-port-damped",
+      "confidence": "estimated"
+    },
+    {
+      "id": "gigaset-generic",
+      "manufacturer": "gigaset",
+      "models": [],
+      "label": "Gigaset (other models)",
+      "curveRef": "mems-bottom-port",
+      "confidence": "estimated"
+    },
+    {
+      "id": "shift-generic",
+      "manufacturer": "shift",
+      "models": [],
+      "label": "SHIFTphone",
+      "curveRef": "mems-bottom-port",
+      "confidence": "estimated"
+    },
+    {
+      "id": "amazon-fire",
+      "manufacturer": "amazon",
+      "models": [
+        "KF[A-Z]{2,}",
+        ".*fire.*"
+      ],
+      "label": "Amazon Fire tablets",
+      "curveRef": "mems-early-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "amazon-generic",
+      "manufacturer": "amazon",
+      "models": [],
+      "label": "Amazon (other devices)",
+      "curveRef": "mems-early-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "meizu",
+      "manufacturer": "meizu",
+      "models": [
+        ".*meizu.*",
+        "M\\d{3,4}[A-Z]?"
+      ],
+      "label": "Meizu",
+      "curveRef": "mems-bottom-port",
+      "confidence": "estimated"
+    },
+    {
+      "id": "meizu-generic",
+      "manufacturer": "meizu",
+      "models": [],
+      "label": "Meizu (other models)",
+      "curveRef": "mems-bottom-port",
+      "confidence": "estimated"
+    },
+    {
+      "id": "wiko",
+      "manufacturer": "wiko",
+      "models": [
+        ".*wiko.*"
+      ],
+      "label": "Wiko",
+      "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "wiko-generic",
+      "manufacturer": "wiko",
+      "models": [],
+      "label": "Wiko (other models)",
+      "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "blu-generic",
+      "manufacturer": "blu",
+      "models": [],
+      "label": "BLU",
+      "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "lava-generic",
+      "manufacturer": "lava",
+      "models": [],
+      "label": "Lava",
+      "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "micromax-generic",
+      "manufacturer": "micromax",
+      "models": [],
+      "label": "Micromax",
+      "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "symphony-generic",
+      "manufacturer": "symphony",
+      "models": [],
+      "label": "Symphony",
+      "curveRef": "mems-bottom-port-strong-resonance",
+      "confidence": "estimated"
+    },
+    {
+      "id": "walton-generic",
+      "manufacturer": "walton",
+      "models": [],
+      "label": "Walton",
+      "curveRef": "mems-bottom-port-strong-resonance",
       "confidence": "estimated"
     }
   ]

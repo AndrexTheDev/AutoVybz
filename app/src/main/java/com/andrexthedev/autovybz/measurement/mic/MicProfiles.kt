@@ -76,13 +76,27 @@ object MicProfileMatcher {
         ) ?: default
     }
 
-    /** "samsung", "Samsung Electronics" -> "samsung"; Redmi/POCO devices report "Xiaomi". */
+    /**
+     * Normalises Build.MANUFACTURER to the manufacturer keys used in mic_profiles.json:
+     * "Samsung Electronics" -> "samsung", "POCO" -> "xiaomi", "TECNO MOBILE LIMITED" ->
+     * "tecno", "Bullitt Group Limited" -> "cat", ... Mirror of normalise() in
+     * tools/micdb/generate_mic_profiles.py - keep the two in sync (both are tested
+     * against the same routing corpus).
+     */
     fun normaliseManufacturer(m: String): String {
         val s = m.trim().lowercase()
         return when {
             s.startsWith("samsung") -> "samsung"
             s == "redmi" || s == "poco" -> "xiaomi"
             s.startsWith("hmd") -> "hmd global"
+            s.startsWith("tecno") -> "tecno"
+            s.startsWith("infinix") -> "infinix"
+            s.startsWith("itel") -> "itel"
+            s.startsWith("black shark") || s.startsWith("blackshark") -> "blackshark"
+            s.startsWith("bullitt") -> "cat"
+            s.startsWith("amazon") -> "amazon"
+            s.startsWith("tcl") -> "tcl"
+            s.startsWith("gigaset") -> "gigaset"
             else -> s
         }
     }

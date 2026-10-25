@@ -390,7 +390,17 @@ private fun MicSettings(settings: AutoVybzSettings) {
                 text = { Text(stringResource(R.string.avz_pro_mic_auto, auto?.label ?: "-")) },
                 onClick = { overrideId = null; settings.micProfileOverrideId = null; menu = false },
             )
-            val options = (listOfNotNull(db?.default) + (db?.profiles ?: emptyList())).distinctBy { it.id }
+            // Auto-detected profile first, then the rest of this device's manufacturer,
+            // then everything else (stable sort keeps database order inside each group).
+            val options = (listOfNotNull(db?.default) + (db?.profiles ?: emptyList()))
+                .distinctBy { it.id }
+                .sortedBy { p ->
+                    when {
+                        p.id == auto?.id -> 0
+                        p.manufacturer != null && p.manufacturer == auto?.manufacturer -> 1
+                        else -> 2
+                    }
+                }
             for (p in options) {
                 DropdownMenuItem(
                     text = { Text("${p.label} (${p.confidence.name.lowercase()})") },
