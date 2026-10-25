@@ -154,6 +154,12 @@ object StimulusGenerator {
      * One period of band-limited (20 Hz - 20 kHz) pink noise synthesised in the
      * frequency domain: |X(f)|^2 ~ 1/f with random phases, so the period is
      * perfectly periodic (no spectral leakage when analysed period-synchronously).
+     *
+     * Random phases give a ~12 dB crest factor, i.e. little average power for the
+     * allowed peak. [reduceCrestFactor] re-shapes the phases (magnitudes - and
+     * thus the exact 1/f spectrum - unchanged) down to ~5.5 dB crest, roughly
+     * doubling the RMS level at the same peak: ~7 dB more SNR on the pink-noise
+     * analysis path for free.
      */
     fun periodicPinkNoise(period: Int, sampleRate: Int, seed: Int): FloatArray {
         require(isPowerOfTwo(period))
@@ -171,12 +177,49 @@ object StimulusGenerator {
             re[period - k] = re[k]
             im[period - k] = -im[k]
         }
+        val magnitudes = DoubleArray(period) { sqrt(re[it] * re[it] + im[it] * im[it]) }
         KotlinFft.transform(re, im, inverse = true)
+        reduceCrestFactor(re, im, magnitudes)
         var peak = 0.0
         for (v in re) peak = maxOf(peak, abs(v))
         val scale = if (peak > 0) PEAK_LEVEL / peak else 0.0
         return FloatArray(period) { (re[it] * scale).toFloat() }
     }
+
+    /**
+     * Iterative crest-factor reduction on the time signal in [re] ([im] is scratch):
+     * clip to [CREST_CLIP_RATIO] of the initial peak, then restore the exact target
+     * magnitude spectrum [magnitudes], repeat. Only the phases change, so the
+     * 1/f power spectrum is preserved bit-for-bit and out-of-band bins stay zero.
+     * Deterministic for a fixed input.
+     */
+    private fun reduceCrestFactor(re: DoubleArray, im: DoubleArray, magnitudes: DoubleArray) {
+        var initialPeak = 0.0
+        for (v in re) initialPeak = maxOf(initialPeak, abs(v))
+        if (initialPeak <= 0.0) return
+        val clip = initialPeak * CREST_CLIP_RATIO
+        repeat(CREST_ITERATIONS) {
+            for (i in re.indices) re[i] = re[i].coerceIn(-clip, clip)
+            im.fill(0.0)
+            KotlinFft.transform(re, im, inverse = false)
+            for (k in re.indices) {
+                val mag = magnitudes[k]
+                val cur = sqrt(re[k] * re[k] + im[k] * im[k])
+                if (cur > 0.0) {
+                    val s = mag / cur
+                    re[k] *= s
+                    im[k] *= s
+                } else {
+                    re[k] = mag // phase is arbitrary where the bin had no energy; keep it real-axis
+                    im[k] = 0.0
+                }
+            }
+            KotlinFft.transform(re, im, inverse = true)
+        }
+    }
+
+    private const val CREST_CLIP_RATIO = 0.45
+    private const val CREST_ITERATIONS = 20
 
     /** 0 -> 0, 1 -> 1 with a half-cosine shape. */
     private fun raisedCosine(x: Double): Double = 0.5 - 0.5 * cos(PI * x.coerceIn(0.0, 1.0))

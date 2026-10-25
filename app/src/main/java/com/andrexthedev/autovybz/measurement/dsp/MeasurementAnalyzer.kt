@@ -113,14 +113,8 @@ class MeasurementAnalyzer(private val fft: FftEngine = KotlinFft) {
         // ---- 1. Sweep: regularised spectral division -> impulse response ----
         val ir = deconvolveSweep(recording, stimulus)
         val maxLag = (config.maxLatencySeconds * fs).roundToInt().coerceAtMost(ir.size - 1)
-        var peakIdx = 0
-        var peakVal = 0.0
-        for (i in 0..maxLag) {
-            val a = abs(ir[i])
-            if (a > peakVal) { peakVal = a; peakIdx = i }
-        }
-        val latency = peakIdx
-        val sweepPower = windowedIrPower(ir, peakIdx, fs, config)
+        val latency = locateIrPeak(ir, maxLag, fs)
+        val sweepPower = windowedIrPower(ir, latency, fs, config)
         val sweepBinHz = fs.toDouble() / ((sweepPower.size - 1) * 2)
 
         // ---- 2. Pink noise: period-synchronous power average vs. noise floor ----
@@ -260,6 +254,44 @@ class MeasurementAnalyzer(private val fft: FftEngine = KotlinFft) {
         }
         fft.transform(yr, yi, true)
         return yr
+    }
+
+    /**
+     * Locates the direct arrival in the impulse response. The search runs on a
+     * 1 ms short-time energy envelope instead of the raw samples: the direct
+     * sound (plus the speaker's ringing and earliest reflections) concentrates
+     * its energy in the first millisecond, while deconvolved wind/traffic
+     * noise is spiky sample-to-sample - a plain argmax(|ir|) can latch onto
+     * an isolated noise spike in bad conditions and misplace the IR window
+     * (and with it the reported latency). The envelope maximum is then
+     * refined to the exact sample peak within +/- 1 ms.
+     */
+    internal fun locateIrPeak(ir: DoubleArray, maxLag: Int, fs: Int): Int {
+        if (ir.isEmpty()) return 0
+        val win = max(1, (0.001 * fs).roundToInt())
+        val hi = minOf(maxLag, ir.size - 1)
+        val limit = minOf(ir.size, hi + win + 1)
+        val prefix = DoubleArray(limit + 1)
+        for (i in 0 until limit) prefix[i + 1] = prefix[i] + ir[i] * ir[i]
+        var bestStart = 0
+        var bestEnergy = -1.0
+        for (s in 0..hi) {
+            val e = prefix[minOf(s + win, limit)] - prefix[s]
+            if (e > bestEnergy) {
+                bestEnergy = e
+                bestStart = s
+            }
+        }
+        var peakIdx = bestStart
+        var peakVal = -1.0
+        for (i in max(0, bestStart - win)..minOf(ir.size - 1, bestStart + win)) {
+            val a = abs(ir[i])
+            if (a > peakVal) {
+                peakVal = a
+                peakIdx = i
+            }
+        }
+        return peakIdx
     }
 
     /** Asymmetric window around the IR peak, then |H(f)|^2 on a 2^k grid. */
