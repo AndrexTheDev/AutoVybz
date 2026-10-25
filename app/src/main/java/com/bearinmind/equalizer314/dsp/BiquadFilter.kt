@@ -294,40 +294,35 @@ class BiquadFilter(
         x1R = 0.0; x2R = 0.0; y1R = 0.0; y2R = 0.0
     }
 
+    // Primitive-double evaluation of H(z) — same operations in the same order as the
+    // old Complex-object version (including the *-0.0 terms, so NaN/Inf propagation is
+    // unchanged), but zero allocation: this runs bands × sample-points per converter
+    // push and per graph frame.
     fun getFrequencyResponse(freq: Float): Float {
         val omega = 2.0 * PI * freq / sampleRate
-        val z = Complex(cos(omega), sin(omega))
-        val zInv = z.inverse()
-        val zInv2 = zInv.times(zInv)
+        val zRe = cos(omega)
+        val zIm = sin(omega)
+        // zInv = z.inverse()
+        val invDenom = zRe * zRe + zIm * zIm
+        val ziRe = zRe / invDenom
+        val ziIm = -zIm / invDenom
+        // zInv2 = zInv * zInv
+        val zi2Re = ziRe * ziRe - ziIm * ziIm
+        val zi2Im = ziRe * ziIm + ziIm * ziRe
 
-        val numerator = Complex(b0, 0.0)
-            .plus(Complex(b1, 0.0).times(zInv))
-            .plus(Complex(b2, 0.0).times(zInv2))
+        // numerator = b0 + b1·z⁻¹ + b2·z⁻²  (Complex(b, 0)×(re, im) = (b·re − 0·im, b·im + 0·re))
+        val numRe = b0 + (b1 * ziRe - 0.0 * ziIm) + (b2 * zi2Re - 0.0 * zi2Im)
+        val numIm = 0.0 + (b1 * ziIm + 0.0 * ziRe) + (b2 * zi2Im + 0.0 * zi2Re)
+        // denominator = 1 + a1·z⁻¹ + a2·z⁻²
+        val denRe = 1.0 + (a1 * ziRe - 0.0 * ziIm) + (a2 * zi2Re - 0.0 * zi2Im)
+        val denIm = 0.0 + (a1 * ziIm + 0.0 * ziRe) + (a2 * zi2Im + 0.0 * zi2Re)
 
-        val denominator = Complex(1.0, 0.0)
-            .plus(Complex(a1, 0.0).times(zInv))
-            .plus(Complex(a2, 0.0).times(zInv2))
-
-        val response = numerator.div(denominator)
-        val mag = response.magnitude().toFloat()
+        // response = numerator / denominator; mag = |response|
+        val divDenom = denRe * denRe + denIm * denIm
+        val respRe = (numRe * denRe + numIm * denIm) / divDenom
+        val respIm = (numIm * denRe - numRe * denIm) / divDenom
+        val mag = sqrt(respRe * respRe + respIm * respIm).toFloat()
 
         return if (mag.isNaN() || mag.isInfinite()) 1f else mag
-    }
-
-    private data class Complex(val real: Double, val imag: Double) {
-        fun plus(other: Complex) = Complex(real + other.real, imag + other.imag)
-        fun times(other: Complex) = Complex(
-            real * other.real - imag * other.imag,
-            real * other.imag + imag * other.real
-        )
-        fun div(other: Complex): Complex {
-            val denominator = other.real * other.real + other.imag * other.imag
-            return Complex(
-                (real * other.real + imag * other.imag) / denominator,
-                (imag * other.real - real * other.imag) / denominator
-            )
-        }
-        fun inverse() = Complex(real / (real * real + imag * imag), -imag / (real * real + imag * imag))
-        fun magnitude() = sqrt(real * real + imag * imag)
     }
 }

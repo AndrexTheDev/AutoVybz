@@ -73,6 +73,43 @@ class SpectrumAnalyzerRenderer(
     // Reusable drawing objects — output spectrum
     private val outputFillPath = Path()
     private val outputStrokePath = Path()
+    private val commonFillPath = Path()
+
+    // Per-draw scratch buffers, reallocated only when the size changes (draw() is UI-thread only).
+    private var scratchDb: FloatArray? = null
+    private var scratchX: FloatArray? = null
+    private var scratchInputY: FloatArray? = null
+    private var scratchOutputY: FloatArray? = null
+    private var scratchCommonY: FloatArray? = null
+
+    // Fill gradients depend only on (top, bottom, spectrum color) — cache instead of rebuilding per frame.
+    private var dimGradient: LinearGradient? = null
+    private var brightGradient: LinearGradient? = null
+    private var gradientTop = Float.NaN
+    private var gradientBottom = Float.NaN
+    private var gradientR = -1
+    private var gradientG = -1
+    private var gradientB = -1
+
+    private fun fillGradient(top: Float, bottom: Float, dim: Boolean): LinearGradient {
+        if (dimGradient == null || gradientTop != top || gradientBottom != bottom ||
+            gradientR != spectrumR || gradientG != spectrumG || gradientB != spectrumB
+        ) {
+            dimGradient = LinearGradient(
+                0f, top, 0f, bottom,
+                intArrayOf(Color.argb(5, spectrumR, spectrumG, spectrumB), Color.argb(2, spectrumR / 2, spectrumG / 2, spectrumB / 2)),
+                null, Shader.TileMode.CLAMP
+            )
+            brightGradient = LinearGradient(
+                0f, top, 0f, bottom,
+                intArrayOf(Color.argb(80, spectrumR, spectrumG, spectrumB), Color.argb(15, spectrumR / 2, spectrumG / 2, spectrumB / 2)),
+                null, Shader.TileMode.CLAMP
+            )
+            gradientTop = top; gradientBottom = bottom
+            gradientR = spectrumR; gradientG = spectrumG; gradientB = spectrumB
+        }
+        return if (dim) dimGradient!! else brightGradient!!
+    }
 
     private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
@@ -99,18 +136,16 @@ class SpectrumAnalyzerRenderer(
         val dbValues = fftProcessor.process(waveform)
         val n = dbValues.size
 
-        val currentLinear = FloatArray(n) { i ->
-            10f.pow(dbValues[i] / 20f)
-        }
-
         var prev = smoothedLinear
         if (prev == null || prev.size != n) {
             prev = FloatArray(n)
         }
+        // dB→linear fused into the ballistics loop (was a separate pass + array).
         val result = FloatArray(n)
         for (i in 0 until n) {
-            val alpha = if (currentLinear[i] > prev[i]) attackAlpha else releaseAlpha
-            result[i] = alpha * currentLinear[i] + (1f - alpha) * prev[i]
+            val current = 10f.pow(dbValues[i] / 20f)
+            val alpha = if (current > prev[i]) attackAlpha else releaseAlpha
+            result[i] = alpha * current + (1f - alpha) * prev[i]
         }
         smoothedLinear = result
 
@@ -197,10 +232,11 @@ class SpectrumAnalyzerRenderer(
         if (precomputed != null && precomputed.size == n) {
             db = precomputed
         } else {
-            db = FloatArray(n) { i ->
-                if (linear[i] > 1e-10f) (20f * log10(linear[i])).coerceAtLeast(-96f)
-                else -96f
+            val arr = scratchDb?.takeIf { it.size == n } ?: FloatArray(n).also { scratchDb = it }
+            for (i in 0 until n) {
+                arr[i] = if (linear[i] > 1e-10f) (20f * log10(linear[i])).coerceAtLeast(-96f) else -96f
             }
+            db = arr
         }
 
         // Compute MBC band gains from the ACTUAL spectrum levels this frame
@@ -217,9 +253,11 @@ class SpectrumAnalyzerRenderer(
 
         // Collect display points — one per pixel column
         val displayWidth = graphWidth.toInt().coerceAtLeast(1)
-        val xArr = FloatArray(displayWidth)
-        val inputY = FloatArray(displayWidth)
-        val outputY = if (eqResponseDb != null || mbcComputer != null) FloatArray(displayWidth) else null
+        val xArr = scratchX?.takeIf { it.size == displayWidth } ?: FloatArray(displayWidth).also { scratchX = it }
+        val inputY = scratchInputY?.takeIf { it.size == displayWidth } ?: FloatArray(displayWidth).also { scratchInputY = it }
+        val outputY = if (eqResponseDb != null || mbcComputer != null) {
+            scratchOutputY?.takeIf { it.size == displayWidth } ?: FloatArray(displayWidth).also { scratchOutputY = it }
+        } else null
 
         for (x in 0 until displayWidth) {
             val logFreqLow = logMin + logRange * x / displayWidth
@@ -313,16 +351,14 @@ class SpectrumAnalyzerRenderer(
         if (outputY != null) {
             // Dual mode: common overlap area = 80 alpha (main spectrum), difference areas
             // (boost/cut leftover) = 5 alpha. commonY uses LOWER of input/output (lower dB = higher Y).
-            val commonY = FloatArray(displayWidth) { x ->
-                maxOf(inputY[x], outputY[x])  // max Y = lower on screen = lower dB
+            val commonY = scratchCommonY?.takeIf { it.size == displayWidth }
+                ?: FloatArray(displayWidth).also { scratchCommonY = it }
+            for (x in 0 until displayWidth) {
+                commonY[x] = maxOf(inputY[x], outputY[x])  // max Y = lower on screen = lower dB
             }
 
             // Draw input fill at 5 alpha (covers cut leftover areas)
-            fillPaint.shader = LinearGradient(
-                0f, top, 0f, bottom,
-                intArrayOf(Color.argb(5, spectrumR, spectrumG, spectrumB), Color.argb(2, spectrumR / 2, spectrumG / 2, spectrumB / 2)),
-                null, Shader.TileMode.CLAMP
-            )
+            fillPaint.shader = fillGradient(top, bottom, dim = true)
             canvas.drawPath(inputFillPath, fillPaint)
 
             // Draw output fill at 5 alpha (covers boost areas above input)
@@ -347,7 +383,7 @@ class SpectrumAnalyzerRenderer(
             canvas.drawPath(outputFillPath, fillPaint)
 
             // Draw common area at 80 alpha (the bright main spectrum)
-            val commonFillPath = Path()
+            commonFillPath.reset()
             commonFillPath.moveTo(xArr[0], bottom)
             commonFillPath.lineTo(xArr[0], commonY[0])
             i = step
@@ -360,11 +396,7 @@ class SpectrumAnalyzerRenderer(
             commonFillPath.lineTo(xArr[lastIdx], bottom)
             commonFillPath.close()
 
-            fillPaint.shader = LinearGradient(
-                0f, top, 0f, bottom,
-                intArrayOf(Color.argb(80, spectrumR, spectrumG, spectrumB), Color.argb(15, spectrumR / 2, spectrumG / 2, spectrumB / 2)),
-                null, Shader.TileMode.CLAMP
-            )
+            fillPaint.shader = fillGradient(top, bottom, dim = false)
             canvas.drawPath(commonFillPath, fillPaint)
 
             // Draw outlines
@@ -372,11 +404,7 @@ class SpectrumAnalyzerRenderer(
             canvas.drawPath(outputStrokePath, outputStrokePaint)
         } else {
             // Single spectrum mode — normal brightness
-            fillPaint.shader = LinearGradient(
-                0f, top, 0f, bottom,
-                intArrayOf(Color.argb(80, spectrumR, spectrumG, spectrumB), Color.argb(15, spectrumR / 2, spectrumG / 2, spectrumB / 2)),
-                null, Shader.TileMode.CLAMP
-            )
+            fillPaint.shader = fillGradient(top, bottom, dim = false)
             canvas.drawPath(inputFillPath, fillPaint)
             canvas.drawPath(inputStrokePath, inputStrokePaint)
         }

@@ -36,6 +36,11 @@ class LimiterWaveformView @JvmOverloads constructor(
     private val dbMin = -40f
     private val dbRange = dbMax - dbMin
 
+    private val lufsPath = Path()
+    private val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = 0xFFFF6666.toInt(); alpha = 40; style = Paint.Style.FILL
+    }
+    private val dbMarkers = floatArrayOf(0f, -10f, -20f, -30f)
     private val inputFillPath = Path()
     private val inputStrokePath = Path()
     private val grLinePath = Path()
@@ -127,7 +132,7 @@ class LimiterWaveformView @JvmOverloads constructor(
 
         canvas.drawRect(0f, 0f, w, h, bgPaint)
 
-        for (db in listOf(0f, -10f, -20f, -30f)) {
+        for (db in dbMarkers) {
             val y = dbToY(db, h)
             canvas.drawLine(0f, y, w, y, gridPaint)
             val label = if (db == 0f) "0" else "${db.toInt()}"
@@ -165,7 +170,7 @@ class LimiterWaveformView @JvmOverloads constructor(
         canvas.drawPath(grLinePath, grTracePaint)
 
         // ── LUFS LOUDNESS (line only, no fill) ──
-        val lufsPath = Path()
+        lufsPath.reset()
         for (s in 0 until bufferSize) {
             val idx = ringIdx(s)
             val x = s * pxPerSample
@@ -176,9 +181,6 @@ class LimiterWaveformView @JvmOverloads constructor(
 
         // Dragging glow
         if (draggingCeiling) {
-            val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = 0xFFFF6666.toInt(); alpha = 40; style = Paint.Style.FILL
-            }
             val ceilGlowY = dbToY(ceilingDb, h)
             canvas.drawRoundRect(0f, ceilGlowY - 24f, w, ceilGlowY + 24f, 10f, 10f, glowPaint)
         }

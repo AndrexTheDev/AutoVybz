@@ -106,6 +106,23 @@ class GrTraceView @JvmOverloads constructor(
         style = Paint.Style.STROKE; strokeWidth = 2f
         pathEffect = DashPathEffect(floatArrayOf(10f, 6f), 0f)
     }
+    private val axisTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = 0xFF8E9AA5.toInt(); textSize = 24f
+    }
+    private val threshTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = 0xFFA9B4BE.toInt(); textSize = 20f; textAlign = Paint.Align.CENTER
+    }
+    // Reused per draw (30 fps metering): one scratch paint reconfigured before each
+    // drawPath, and the six trace paths reset instead of reallocated.
+    private val scratchPaint = Paint()
+    private val levelFillPath = Path()
+    private val levelStrokePath = Path()
+    private val gateFillPath = Path()
+    private val gateStrokePath = Path()
+    private val grLinePath = Path()
+    private val grFillPath = Path()
+    private val dbMarkers = floatArrayOf(0f, -10f, -20f, -30f, -40f, -50f, -60f, -70f)
+    private val freqMarkers = floatArrayOf(100f, 1000f, 10000f)
 
     fun pushFrame(bandGrValues: FloatArray, bandLevels: FloatArray, bandGateGr: FloatArray = FloatArray(0)) {
         val idx = writeIdx % bufferSize
@@ -129,17 +146,15 @@ class GrTraceView @JvmOverloads constructor(
         canvas.drawRect(0f, 0f, w, h, bgPaint)
 
         // Horizontal grid
-        for (db in listOf(0f, -10f, -20f, -30f, -40f, -50f, -60f, -70f)) {
+        for (db in dbMarkers) {
             val y = dbToY(db, h)
             canvas.drawLine(0f, y, w, y, gridPaint)
         }
 
         // Hz grid (matching EqGraphView: color 0xFF8E9AA5, textSize 24f, centered, 30px below graph)
         val gBottom = h - vPad
-        val hzTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = 0xFF8E9AA5.toInt(); textSize = 24f
-        }
-        for (freq in listOf(100f, 1000f, 10000f)) {
+        val hzTextPaint = axisTextPaint
+        for (freq in freqMarkers) {
             val x = freqToX(freq, w)
             canvas.drawLine(x, 0f, x, h, gridPaint)
             val label = if (freq >= 1000) "${(freq / 1000).toInt()}k" else "${freq.toInt()}"
@@ -148,10 +163,8 @@ class GrTraceView @JvmOverloads constructor(
         }
 
         // dB labels — draw before crossover check so they always show
-        val dbTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = 0xFF8E9AA5.toInt(); textSize = 24f
-        }
-        for (db in listOf(0f, -10f, -20f, -30f, -40f, -50f, -60f, -70f)) {
+        val dbTextPaint = axisTextPaint
+        for (db in dbMarkers) {
             val y = dbToY(db, h)
             val label = if (db > 0) "+${db.toInt()}" else "${db.toInt()}"
             canvas.drawText(label, 10f, y + 8f, dbTextPaint)
@@ -178,16 +191,8 @@ class GrTraceView @JvmOverloads constructor(
             canvas.clipRect(leftX, 0f, rightX, h)
 
             // ── INPUT LEVEL (raw input, fill from bottom) ──
-            val levelFillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                this.color = color; style = Paint.Style.FILL
-                alpha = if (isSelected) 20 else 10
-            }
-            val levelStrokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                this.color = color; style = Paint.Style.STROKE
-                strokeWidth = 1f; alpha = if (isSelected) 50 else 25
-            }
-            val levelFillPath = Path()
-            val levelStrokePath = Path()
+            levelFillPath.reset()
+            levelStrokePath.reset()
             var started = false
             for (s in 0 until samplesVisible) {
                 val bufIdx = ringIdx(s, samplesVisible)
@@ -204,21 +209,21 @@ class GrTraceView @JvmOverloads constructor(
             }
             if (started) {
                 levelFillPath.lineTo(rightX, h); levelFillPath.close()
-                canvas.drawPath(levelFillPath, levelFillPaint)
-                canvas.drawPath(levelStrokePath, levelStrokePaint)
+                canvas.drawPath(levelFillPath, scratchPaint.apply {
+                    reset(); isAntiAlias = true
+                    this.color = color; style = Paint.Style.FILL
+                    alpha = if (isSelected) 20 else 10
+                })
+                canvas.drawPath(levelStrokePath, scratchPaint.apply {
+                    reset(); isAntiAlias = true
+                    this.color = color; style = Paint.Style.STROKE
+                    strokeWidth = 1f; alpha = if (isSelected) 50 else 25
+                })
             }
 
             // ── GATED LEVEL (input + gate GR, darker outline, fill from bottom) ──
-            val gateFillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                this.color = color; style = Paint.Style.FILL
-                alpha = if (isSelected) 12 else 6
-            }
-            val gateStrokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                this.color = color; style = Paint.Style.STROKE
-                strokeWidth = 1f; alpha = if (isSelected) 30 else 15
-            }
-            val gateFillPath = Path()
-            val gateStrokePath = Path()
+            gateFillPath.reset()
+            gateStrokePath.reset()
             var gateStarted = false
             var hasGateActivity = false
             for (s in 0 until samplesVisible) {
@@ -238,25 +243,23 @@ class GrTraceView @JvmOverloads constructor(
             }
             if (gateStarted && hasGateActivity) {
                 gateFillPath.lineTo(rightX, h); gateFillPath.close()
-                canvas.drawPath(gateFillPath, gateFillPaint)
-                canvas.drawPath(gateStrokePath, gateStrokePaint)
+                canvas.drawPath(gateFillPath, scratchPaint.apply {
+                    reset(); isAntiAlias = true
+                    this.color = color; style = Paint.Style.FILL
+                    alpha = if (isSelected) 12 else 6
+                })
+                canvas.drawPath(gateStrokePath, scratchPaint.apply {
+                    reset(); isAntiAlias = true
+                    this.color = color; style = Paint.Style.STROKE
+                    strokeWidth = 1f; alpha = if (isSelected) 30 else 15
+                })
             }
 
             // ── GR TRACE (from top, unified dB scale) ──
             // Trace sits at 0 dB and dips by |GR| when input > threshold;
             // never goes below the threshold line.
-            val grTracePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                this.color = color
-                strokeWidth = if (isSelected) 3f else 2f
-                style = Paint.Style.STROKE
-                alpha = if (isSelected) 230 else 150
-            }
-            val grFillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                this.color = color; style = Paint.Style.FILL
-                alpha = if (isSelected) 35 else 15
-            }
-            val grLinePath = Path()
-            val grFillPath = Path()
+            grLinePath.reset()
+            grFillPath.reset()
             var grStarted = false
             for (s in 0 until samplesVisible) {
                 val bufIdx = ringIdx(s, samplesVisible)
@@ -274,17 +277,24 @@ class GrTraceView @JvmOverloads constructor(
             }
             if (grStarted) {
                 grFillPath.lineTo(rightX, 0f); grFillPath.close()
-                canvas.drawPath(grFillPath, grFillPaint)
-                canvas.drawPath(grLinePath, grTracePaint)
+                canvas.drawPath(grFillPath, scratchPaint.apply {
+                    reset(); isAntiAlias = true
+                    this.color = color; style = Paint.Style.FILL
+                    alpha = if (isSelected) 35 else 15
+                })
+                canvas.drawPath(grLinePath, scratchPaint.apply {
+                    reset(); isAntiAlias = true
+                    this.color = color
+                    strokeWidth = if (isSelected) 3f else 2f
+                    style = Paint.Style.STROKE
+                    alpha = if (isSelected) 230 else 150
+                })
             }
 
             canvas.restore()
         }
 
         // Threshold lines with centered dB label (line breaks around text)
-        val threshTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = 0xFFA9B4BE.toInt(); textSize = 20f; textAlign = Paint.Align.CENTER
-        }
         for (b in 0 until numBands.coerceAtMost(xovers.size + 1)) {
             val leftFreq = if (b == 0) freqMin else xovers[b - 1]
             val rightFreq = if (b >= xovers.size) freqMax else xovers[b]

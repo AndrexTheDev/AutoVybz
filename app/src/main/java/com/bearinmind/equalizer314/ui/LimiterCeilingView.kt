@@ -98,6 +98,20 @@ class LimiterCeilingView @JvmOverloads constructor(
         android.content.res.Configuration.UI_MODE_NIGHT_MASK) !=
         android.content.res.Configuration.UI_MODE_NIGHT_YES
 
+    // Reused per draw (30 fps metering) instead of reallocating.
+    private val triPath = Path()
+    private val clipScratchPath = Path()
+    private val triCornerEffect = CornerPathEffect(5f)
+    private val triBgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = if (isLightTheme) 0xFFE7EBEF.toInt() else 0xFF2D3742.toInt(); style = Paint.Style.FILL
+        pathEffect = triCornerEffect
+    }
+    private val triOutlinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = if (isLightTheme) 0xFF616F7C.toInt() else 0xFFBAC3CB.toInt(); style = Paint.Style.STROKE; strokeWidth = 2f
+        pathEffect = triCornerEffect
+    }
+    private val dbMarkers = floatArrayOf(0f, -10f, -20f, -30f)
+
     // Light-theme overrides — this view overlays the (now light) waveform,
     // so its dark columns/halo and light-grey traces flip.
     init {
@@ -169,7 +183,7 @@ class LimiterCeilingView @JvmOverloads constructor(
         canvas.drawRoundRect(grLeft, mt, grRight, mb, cornerR, cornerR, columnBgPaint)
 
         // Grid lines on both columns + dB labels BETWEEN columns (centered in gap)
-        for (db in listOf(0f, -10f, -20f, -30f)) {
+        for (db in dbMarkers) {
             val y = dbToY(db, h)
             canvas.drawLine(ceilingLeft, y, ceilingRight, y, gridPaint)
             canvas.drawLine(grLeft, y, grRight, y, gridPaint)
@@ -203,22 +217,12 @@ class LimiterCeilingView @JvmOverloads constructor(
 
         // Triangle handle to the left of ceiling column (▼ pointing right)
         val triR = 16f
-        val triCorner = 5f
         val triX = ceilingLeft - 4f  // just left of column
-        val triPath = Path()
+        triPath.reset()
         triPath.moveTo(triX, ceilingY)                          // tip pointing right at the line
         triPath.lineTo(triX - triR * 1.5f, ceilingY - triR)    // top-left
         triPath.lineTo(triX - triR * 1.5f, ceilingY + triR)    // bottom-left
         triPath.close()
-
-        val triBgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = if (isLightTheme) 0xFFE7EBEF.toInt() else 0xFF2D3742.toInt(); style = Paint.Style.FILL
-            pathEffect = CornerPathEffect(triCorner)
-        }
-        val triOutlinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = if (isLightTheme) 0xFF616F7C.toInt() else 0xFFBAC3CB.toInt(); style = Paint.Style.STROKE; strokeWidth = 2f
-            pathEffect = CornerPathEffect(triCorner)
-        }
         // Triangle halo when dragging
         if (dragging) {
             val triCenterX = triX - triR * 0.75f
@@ -292,8 +296,9 @@ class LimiterCeilingView @JvmOverloads constructor(
     }
 
     private fun Canvas.clipRoundRect(l: Float, t: Float, r: Float, b: Float, rx: Float, ry: Float) {
-        val path = Path().apply { addRoundRect(l, t, r, b, rx, ry, Path.Direction.CW) }
-        clipPath(path)
+        clipScratchPath.reset()
+        clipScratchPath.addRoundRect(l, t, r, b, rx, ry, Path.Direction.CW)
+        clipPath(clipScratchPath)
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {

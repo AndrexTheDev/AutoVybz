@@ -257,6 +257,39 @@ class EqGraphView @JvmOverloads constructor(
     private val spectrumPath = Path()
     private val spectrumFillPath = Path()
 
+    // Scratch drawing objects reused across draws: onDraw runs at display rate while
+    // dragging / while the spectrum animates, so per-draw Paint/Path/array churn is
+    // pure GC pressure. Every use below fully reconfigures its scratch object first.
+    private val curvePath = Path()
+    private val curveSatPath = Path()
+    private val bandCurvePath = Path()
+    private val fillScratchPath = Path()
+    private val ghostPath = Path()
+    private val graphicConnectPath = Path()
+    private val mbcResponsePath = Path()
+    private val mbcTriPath = Path()
+    private val scratchPaint = Paint()
+    private val heatScratchPaint = Paint()
+    private val curveFillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = 0x30A9B4BE.toInt()  // translucent grey fill
+        style = Paint.Style.FILL
+    }
+    private val gridLabelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = 0xFF8E9AA5.toInt()
+        textSize = 24f
+    }
+    private val textBoundsRect = Rect()
+    private val scratchRectF = RectF()
+    private val ghostDashEffect = DashPathEffect(floatArrayOf(8f, 6f), 0f)
+    private val mbcDottedDashEffect = DashPathEffect(floatArrayOf(10f, 8f), 0f)
+    private val triCornerEffect = CornerPathEffect(8f)
+    private val freqMarkers = floatArrayOf(100f, 1000f, 10000f)
+    private val responseDbScratch = FloatArray(2)
+    private var eqResponseScratch: FloatArray? = null
+    private var spectrumGradient: LinearGradient? = null
+    private var spectrumGradientTop = Float.NaN
+    private var spectrumGradientBottom = Float.NaN
+
     private val graphMinFreq = 10f
     private val graphMaxFreq = 20000f
 
@@ -347,11 +380,12 @@ class EqGraphView @JvmOverloads constructor(
 
     fun updateBandLevels() {
         parametricEq?.let { eq ->
-            val bands = eq.getAllBands()
+            val bandCount = eq.getBandCount()
             for (i in bandPoints.indices) {
-                if (i < bands.size) {
-                    bandPoints[i].frequency = bands[i].frequency
-                    bandPoints[i].gain = bands[i].gain
+                if (i < bandCount) {
+                    val band = eq.getBand(i) ?: continue
+                    bandPoints[i].frequency = band.frequency
+                    bandPoints[i].gain = band.gain
                 }
             }
             invalidate()
@@ -423,13 +457,14 @@ class EqGraphView @JvmOverloads constructor(
         }
 
         parametricEq?.let { eq ->
-            val bands = eq.getAllBands()
+            val bandCount = eq.getBandCount()
             for (i in bandPoints.indices) {
-                if (i < bands.size) {
+                if (i < bandCount) {
                     // Don't overwrite the point being actively dragged
                     if (isDragging && i == activeBandIndex) continue
-                    bandPoints[i].frequency = bands[i].frequency
-                    bandPoints[i].gain = bands[i].gain
+                    val band = eq.getBand(i) ?: continue
+                    bandPoints[i].frequency = band.frequency
+                    bandPoints[i].gain = band.gain
                 }
             }
         }
@@ -463,7 +498,6 @@ class EqGraphView @JvmOverloads constructor(
             canvas.drawLine(lineStartX, y, width.toFloat(), y, gridPaint)
         }
 
-        val freqMarkers = listOf(100f, 1000f, 10000f)
         for (freq in freqMarkers) {
             if (freq >= graphMinFreq && freq <= graphMaxFreq) {
                 val x = freqToX(freq, graphWidth)
@@ -481,10 +515,7 @@ class EqGraphView @JvmOverloads constructor(
     }
 
     private fun drawGridLabels(canvas: Canvas, vPad: Float, graphWidth: Float, graphHeight: Float) {
-        val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = 0xFF8E9AA5.toInt()
-            textSize = 24f
-        }
+        val labelPaint = gridLabelPaint
 
         val dbSteps = 4
         for (i in 0..dbSteps) {
@@ -492,14 +523,12 @@ class EqGraphView @JvmOverloads constructor(
             val db = maxGain - (maxGain - minGain) * i / dbSteps
             val dbLabel = if (db > 0) "+${db.toInt()}" else "${db.toInt()}"
             val textY = if (i == 0) {
-                val bounds = android.graphics.Rect()
-                labelPaint.getTextBounds(dbLabel, 0, dbLabel.length, bounds)
-                y - bounds.top.toFloat() - 3f
+                labelPaint.getTextBounds(dbLabel, 0, dbLabel.length, textBoundsRect)
+                y - textBoundsRect.top.toFloat() - 3f
             } else y + 8f
             canvas.drawText(dbLabel, 10f, textY, labelPaint)
         }
 
-        val freqMarkers = listOf(100f, 1000f, 10000f)
         for (freq in freqMarkers) {
             if (freq >= graphMinFreq && freq <= graphMaxFreq) {
                 val x = freqToX(freq, graphWidth)
@@ -531,7 +560,9 @@ class EqGraphView @JvmOverloads constructor(
             val gains = mbcBandGains
 
             val eqResponse: FloatArray? = if ((eq != null && eq.getBandCount() > 0) || (crossovers != null && gains != null)) {
-                FloatArray(displayWidth) { x ->
+                val arr = eqResponseScratch?.takeIf { it.size == displayWidth }
+                    ?: FloatArray(displayWidth).also { eqResponseScratch = it }
+                for (x in 0 until displayWidth) {
                     val logFreqMid = logMin + logRange * (x + 0.5f) / displayWidth
                     val freq = 10f.toDouble().pow((logFreqMid).toDouble()).toFloat()
                     var db = 0f
@@ -540,8 +571,9 @@ class EqGraphView @JvmOverloads constructor(
                         db += eq.getFrequencyResponse(freq)
                     }
                     // MBC pre-gain does NOT affect output spectrum — it only affects compressor sidechain
-                    db
+                    arr[x] = db
                 }
+                arr
             } else null
             renderer.draw(canvas, 0f, 0f, graphWidth, height.toFloat(),
                 dbMin = -60f, dbMax = 0f, eqResponseDb = eqResponse)
@@ -659,13 +691,17 @@ class EqGraphView @JvmOverloads constructor(
             spectrumFillPath.lineTo(lastX, bottomY)
             spectrumFillPath.close()
 
-            val gradient = LinearGradient(
-                0f, vPad, 0f, bottomY,
-                intArrayOf(0x808E9AA5.toInt(), 0x404C5A67.toInt()),
-                null,
-                Shader.TileMode.CLAMP
-            )
-            spectrumFillPaint.shader = gradient
+            if (spectrumGradient == null || spectrumGradientTop != vPad || spectrumGradientBottom != bottomY) {
+                spectrumGradient = LinearGradient(
+                    0f, vPad, 0f, bottomY,
+                    intArrayOf(0x808E9AA5.toInt(), 0x404C5A67.toInt()),
+                    null,
+                    Shader.TileMode.CLAMP
+                )
+                spectrumGradientTop = vPad
+                spectrumGradientBottom = bottomY
+            }
+            spectrumFillPaint.shader = spectrumGradient
             canvas.drawPath(spectrumFillPath, spectrumFillPaint)
             canvas.drawPath(spectrumPath, spectrumLinePaint)
         }
@@ -699,7 +735,7 @@ class EqGraphView @JvmOverloads constructor(
         val numSamples = 220
         val logMin = log10(graphMinFreq)
         val logMax = log10(graphMaxFreq)
-        val path = Path()
+        val path = ghostPath.apply { reset() }
         var started = false
         for (i in 0 until numSamples) {
             val x = graphWidth * i / (numSamples - 1)
@@ -711,8 +747,9 @@ class EqGraphView @JvmOverloads constructor(
             if (!started) { path.moveTo(x, y); started = true } else path.lineTo(x, y)
         }
         if (!started) return
-        val paint = Paint(curvePaint).apply {
-            pathEffect = android.graphics.DashPathEffect(floatArrayOf(8f, 6f), 0f)
+        val paint = scratchPaint.apply {
+            set(curvePaint)
+            pathEffect = ghostDashEffect
             alpha = 110
             strokeWidth = curvePaint.strokeWidth * 0.8f
         }
@@ -738,7 +775,10 @@ class EqGraphView @JvmOverloads constructor(
             )
             heatShaderKey = key
         }
-        return Paint(base).apply { shader = heatShader }
+        // Reused scratch copy of the base paint (consumed by an immediate drawPath).
+        heatScratchPaint.set(base)
+        heatScratchPaint.shader = heatShader
+        return heatScratchPaint
     }
 
     private fun drawCurve(canvas: Canvas, vPad: Float, graphWidth: Float, graphHeight: Float) {
@@ -748,8 +788,8 @@ class EqGraphView @JvmOverloads constructor(
         // Ghost curve of the other channel (CSE) first, so the active curve sits on top (issue #53).
         drawGhostCurve(canvas, vPad, graphWidth, graphHeight)
 
-        val path = Path()
-        val saturatedPath = Path()
+        val path = curvePath.apply { reset() }
+        val saturatedPath = curveSatPath.apply { reset() }
         val numSamples = 220
         var pathStarted = false
         var showSaturated = false
@@ -765,8 +805,10 @@ class EqGraphView @JvmOverloads constructor(
 
             val ov = overlayEq
             val overlayDb = if (ov != null && ov !== eq) ov.getFrequencyResponse(freq) else 0f
-            val responsedB = eq.getFrequencyResponse(freq) + overlayDb
-            val saturatedDb = eq.getFrequencyResponseWithSaturation(freq) + overlayDb
+            // One magnitude-product pass serves both curves (was two full passes).
+            eq.getFrequencyResponsesDb(freq, responseDbScratch)
+            val responsedB = responseDbScratch[0] + overlayDb
+            val saturatedDb = responseDbScratch[1] + overlayDb
 
             if (responsedB.isNaN() || responsedB.isInfinite()) continue
 
@@ -795,7 +837,7 @@ class EqGraphView @JvmOverloads constructor(
             val density = resources.displayMetrics.density
             for (b in 0 until eq.getBandCount()) {
                 if (eq.getBand(b)?.enabled != true) continue
-                val bandPath = Path()
+                val bandPath = bandCurvePath.apply { reset() }
                 var started = false
                 var maxAbsDb = 0f
                 for (i in 0 until numSamples) {
@@ -812,16 +854,19 @@ class EqGraphView @JvmOverloads constructor(
                 }
                 if (!started || maxAbsDb < 0.1f) continue
                 val baseColor = getBandColor(b) ?: 0xFF8E9AA5.toInt()
-                val fillPath = Path(bandPath).apply {
+                val fillPath = fillScratchPath.apply {
+                    set(bandPath)
                     lineTo(graphWidth, zeroY)
                     lineTo(0f, zeroY)
                     close()
                 }
-                canvas.drawPath(fillPath, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                canvas.drawPath(fillPath, scratchPaint.apply {
+                    reset(); isAntiAlias = true
                     color = (baseColor and 0x00FFFFFF) or 0x26000000
                     style = Paint.Style.FILL
                 })
-                canvas.drawPath(bandPath, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                canvas.drawPath(bandPath, scratchPaint.apply {
+                    reset(); isAntiAlias = true
                     // Dim outline — the fill carries the color so the line doesn't compete with the sum curve.
                     color = (baseColor and 0x00FFFFFF) or 0x55000000
                     style = Paint.Style.STROKE
@@ -829,7 +874,8 @@ class EqGraphView @JvmOverloads constructor(
                 })
             }
             // Re-draw the 0 dB reference over the band fills, slightly brighter than the grid.
-            canvas.drawLine(0f, zeroY, graphWidth, zeroY, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            canvas.drawLine(0f, zeroY, graphWidth, zeroY, scratchPaint.apply {
+                reset(); isAntiAlias = true
                 color = if (isLightTheme()) 0xFFACB7C0.toInt() else 0xFF5E6C79.toInt()
                 strokeWidth = 1f * density
                 style = Paint.Style.STROKE
@@ -839,23 +885,21 @@ class EqGraphView @JvmOverloads constructor(
         // Fill between curve and 0dB line
         if (showCurveFill && pathStarted) {
             val zeroY = vPad + graphHeight * (1f - (0f - minGain) / (maxGain - minGain))
-            val fillPath = Path(path)
+            val fillPath = fillScratchPath.apply { set(path) }
             fillPath.lineTo(graphWidth, zeroY)
             fillPath.lineTo(0f, zeroY)
             fillPath.close()
             val fillPaint = if (showGainHeat) heatPaint(curvePaint, vPad, graphHeight).apply {
                 style = Paint.Style.FILL; alpha = 64
-            } else Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = 0x30A9B4BE.toInt()  // translucent grey fill
-                style = Paint.Style.FILL
-            }
+            } else curveFillPaint
             canvas.drawPath(fillPath, fillPaint)
         }
 
         // In MBC mode, draw EQ curve as dotted + dimmer
         if (mbcCrossovers != null) {
-            val dottedPaint = Paint(curvePaint).apply {
-                pathEffect = android.graphics.DashPathEffect(floatArrayOf(10f, 8f), 0f)
+            val dottedPaint = scratchPaint.apply {
+                set(curvePaint)
+                pathEffect = mbcDottedDashEffect
                 alpha = 50
             }
             canvas.drawPath(path, dottedPaint)
@@ -876,7 +920,7 @@ class EqGraphView @JvmOverloads constructor(
         val zeroDbY = vPad + graphHeight * (1f - zeroDbNorm)
 
         // Draw vertical bars from 0dB to each dot, and a connecting line
-        val connectPath = Path()
+        val connectPath = graphicConnectPath.apply { reset() }
         val sortedPoints = bandPoints.sortedBy { it.frequency }
 
         for ((idx, point) in sortedPoints.withIndex()) {
@@ -992,7 +1036,7 @@ class EqGraphView @JvmOverloads constructor(
         // --- Draw MBC frequency response curve using LR4 crossover math ---
         val numSamples = (graphWidth / 2f).toInt().coerceAtLeast(100)
 
-        val curvePath = Path()
+        val curvePath = mbcResponsePath.apply { reset() }
         for (s in 0..numSamples) {
             val x = graphWidth * s.toFloat() / numSamples
             val freq = xToFreq(x, graphWidth)
@@ -1011,19 +1055,20 @@ class EqGraphView @JvmOverloads constructor(
 
             // Ripple glow when dragging this crossover (full height of graph)
             if (i == draggingCrossover) {
-                val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                val glowPaint = scratchPaint.apply {
+                    reset(); isAntiAlias = true
                     color = if (isLightTheme()) 0xFF4F5D6A.toInt() else 0xFFBAC3CB.toInt()
                     alpha = 40; style = Paint.Style.FILL
                 }
                 val glowPad = 24f
                 val cornerR = 10f
-                val glowRect = android.graphics.RectF(x - glowPad, vPad, x + glowPad, vPad + graphHeight)
+                val glowRect = scratchRectF.apply { set(x - glowPad, vPad, x + glowPad, vPad + graphHeight) }
                 canvas.drawRoundRect(glowRect, cornerR, cornerR, glowPaint)
             }
         }
 
         // Draggable triangles at band centers: ▼ = postGain (output level), ▲ = range (max gain reduction).
-        val triPath = Path()
+        val triPath = mbcTriPath
 
         for (i in 0 until bandCount) {
             val leftFreq = if (i == 0) graphMinFreq else crossovers[i - 1]
@@ -1035,8 +1080,7 @@ class EqGraphView @JvmOverloads constructor(
             val isSelected = (i == mbcSelectedBand)
             val isDraggingGain = (draggingMbcBand == i)
             // RANGE FEATURE COMMENTED OUT — parked code (in git history).
-            val r = 28f // triangle radius
-            val cornerRadius = 8f
+            val r = 28f // triangle radius (corner rounding: triCornerEffect, 8f)
 
             // Check for band color
             val bandColors = mbcBandColors
@@ -1050,7 +1094,7 @@ class EqGraphView @JvmOverloads constructor(
             triPath.close()
 
             // Rounded corners
-            val roundedBgPaint = Paint(pointBgPaint).apply { pathEffect = CornerPathEffect(cornerRadius) }
+            val roundedBgPaint = scratchPaint.apply { set(pointBgPaint); pathEffect = triCornerEffect }
             canvas.drawPath(triPath, roundedBgPaint)
 
             val showGainHalo = isDraggingGain || (mbcHaloAlpha > 0f && mbcHaloType == 1 && mbcHaloBand == i && draggingMbcBand < 0)
@@ -1064,25 +1108,27 @@ class EqGraphView @JvmOverloads constructor(
             if (bandColor != null) {
                 if (isSelected) {
                     // Selected: fill + ring
-                    val colorFillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    val colorFillPaint = scratchPaint.apply {
+                        reset(); isAntiAlias = true
                         color = bandColor; style = Paint.Style.FILL; alpha = 200
-                        pathEffect = CornerPathEffect(cornerRadius)
+                        pathEffect = triCornerEffect
                     }
                     canvas.drawPath(triPath, colorFillPaint)
                 }
                 // Always draw color outline
-                val colorRingPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                val colorRingPaint = scratchPaint.apply {
+                    reset(); isAntiAlias = true
                     color = bandColor; style = Paint.Style.STROKE; strokeWidth = if (isSelected) 3f else 2f
-                    pathEffect = CornerPathEffect(cornerRadius)
+                    pathEffect = triCornerEffect
                 }
                 canvas.drawPath(triPath, colorRingPaint)
             } else if (isSelected) {
-                val fillPaint = Paint(activePointFillPaint).apply { pathEffect = CornerPathEffect(cornerRadius) }
-                val ringPaint = Paint(activePointRingPaint).apply { pathEffect = CornerPathEffect(cornerRadius) }
+                val fillPaint = scratchPaint.apply { set(activePointFillPaint); pathEffect = triCornerEffect }
                 canvas.drawPath(triPath, fillPaint)
+                val ringPaint = scratchPaint.apply { set(activePointRingPaint); pathEffect = triCornerEffect }
                 canvas.drawPath(triPath, ringPaint)
             } else {
-                val ringPaint = Paint(pointRingPaint).apply { pathEffect = CornerPathEffect(cornerRadius) }
+                val ringPaint = scratchPaint.apply { set(pointRingPaint); pathEffect = triCornerEffect }
                 canvas.drawPath(triPath, ringPaint)
             }
 
@@ -1094,7 +1140,8 @@ class EqGraphView @JvmOverloads constructor(
         // Read-only mode: small dots only, no labels, no interaction
         if (readOnlyPoints) {
             val smallRadius = 6f
-            val dotPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            val dotPaint = scratchPaint.apply {
+                reset(); isAntiAlias = true
                 color = if (isLightTheme()) 0xFF3F4C58.toInt() else 0xFFCCD3DA.toInt()
                 style = Paint.Style.FILL
             }
@@ -1221,10 +1268,9 @@ class EqGraphView @JvmOverloads constructor(
         // Card sits near the graph top (rect.top = 6f); the device/preset chip's layout_marginTop in activity_main.xml tracks rect.bottom (38f).
         val labelY = 30f
 
-        val rect = android.graphics.RectF(
-            labelX - padH, labelY - 24f,
-            labelX + labelWidth + padH, labelY + padV
-        )
+        val rect = scratchRectF.apply {
+            set(labelX - padH, labelY - 24f, labelX + labelWidth + padH, labelY + padV)
+        }
         canvas.drawRoundRect(rect, cornerRadius, cornerRadius, labelBgPaint)
         canvas.drawRoundRect(rect, cornerRadius, cornerRadius, labelStrokePaint)
         canvas.drawText(label, labelX, labelY, labelPaint)

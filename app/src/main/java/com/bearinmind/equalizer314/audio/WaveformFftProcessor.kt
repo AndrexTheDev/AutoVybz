@@ -23,6 +23,9 @@ class WaveformFftProcessor(
     // Reusable FFT buffers (avoid allocation per frame)
     private val fftReal = FloatArray(fftSize)
     private val fftImag = FloatArray(fftSize)
+    // Reused output buffer — contents are only valid until the next process() call;
+    // the sole caller (SpectrumAnalyzerRenderer) consumes it synchronously.
+    private val dbOut = FloatArray(fftSize / 2)
 
     // Output: magnitude in dB for each bin (fftSize/2 bins)
     val binCount: Int get() = fftSize / 2
@@ -69,7 +72,6 @@ class WaveformFftProcessor(
         // ÷captureSize (FFT norm — NOT fftSize, only captureSize real samples). Full-scale sine → 0 dB.
         val normFactor = 4f / captureSize
 
-        val dbOut = FloatArray(binCount)
         for (k in 0 until binCount) {
             val mag = sqrt(fftReal[k] * fftReal[k] + fftImag[k] * fftImag[k]) * normFactor
             dbOut[k] = if (mag > 1e-10f) {
