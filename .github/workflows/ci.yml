@@ -47,6 +47,11 @@ jobs:
           python3 tools/micdb/generate_mic_profiles.py
           git diff --exit-code app/src/main/assets/autovybz/mic_profiles.json
 
+      - name: AutoEq pack is up to date
+        run: |
+          python3 tools/autoeq/pack_autoeq.py
+          git diff --exit-code app/src/main/assets/autoeq/autoeq.bin
+
       - name: Native host checks (FFT vs. DFT, Oboe/JNI syntax)
         if: always()
         run: |

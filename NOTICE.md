@@ -36,7 +36,7 @@ Code layout:
 | PipeWire convolver, PFFFT | MIT / BSD-like | bundled by upstream in `app/src/main/cpp/pipewire` (see file headers) |
 | AndroidX, Jetpack Compose, Material Components | Apache-2.0 | Google |
 | Kotlin, kotlinx.coroutines | Apache-2.0 | JetBrains |
-| AutoEq profiles / targets (upstream `assets/autoeq`, `assets/targets`) | MIT | Jaakko Pasanen (AutoEq) and the respective target authors — see docs/UPSTREAM_README.md |
+| AutoEq profiles (in `tools/autoeq/data`, packed into `assets/autoeq/autoeq.bin` by `tools/autoeq/pack_autoeq.py`) / targets (`assets/targets`) | MIT | Jaakko Pasanen (AutoEq) and the respective target authors — see docs/UPSTREAM_README.md |
 
 ## Data notes
 
