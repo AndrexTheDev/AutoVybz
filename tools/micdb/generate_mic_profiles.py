@@ -42,29 +42,95 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "app" / "src" / "main" / "assets" / "autovybz" / "mic_profiles.json"
 
-HF_TYPICAL = [[2000, 0.1], [3150, 0.3], [4000, 0.5], [5000, 0.8], [6300, 1.3], [8000, 2.0],
-              [10000, 2.8], [12500, 3.2], [14000, 2.6], [16000, 1.2], [18000, -1.0], [20000, -3.5]]
-HF_STRONG = [[2000, 0.2], [3150, 0.5], [4000, 0.8], [5000, 1.3], [6300, 2.0], [8000, 3.0],
-             [10000, 4.2], [11500, 4.6], [13000, 3.6], [16000, 1.0], [18000, -2.0], [20000, -5.0]]
-HF_MILD = [[2000, 0.0], [3150, 0.1], [4000, 0.2], [5000, 0.4], [6300, 0.7], [8000, 1.1],
-           [10000, 1.6], [12500, 1.8], [14000, 1.4], [16000, 0.5], [18000, -1.0], [20000, -2.5]]
-# Mesh-covered / deeply recessed port (rugged phones): the screen over the port eats the
-# resonance and rolls the top end off instead.
-HF_DAMPED = [[2000, 0.0], [3150, 0.0], [4000, -0.2], [5000, -0.5], [6300, -0.9], [8000, -1.6],
-             [10000, -2.8], [12500, -4.5], [16000, -7.0], [20000, -10.0]]
-# Long acoustic channel (tablets, thick slabs): the Helmholtz peak moves down to ~7-8 kHz.
-HF_EARLY = [[2000, 0.1], [3150, 0.4], [4000, 0.8], [5000, 1.5], [6300, 2.4], [7500, 3.2],
-            [9000, 2.6], [11000, 1.0], [14000, -1.5], [16000, -3.0], [20000, -5.5]]
+# ---------------------------------------------------------------------------
+# Archetype curves: computed from a small physical model instead of hand-drawn
+# points, so the shapes are smooth resonator/filter curves rather than
+# piecewise-linear zigzags. A phone microphone path is, to first order:
+#
+#   response(f) = HPF1(f; fc)            capsule vent hole + ASIC high-pass
+#               + PEAK(f; fp, Q, gain)   Helmholtz resonance of the acoustic
+#                                        port (neck = housing hole + gasket +
+#                                        PCB, cavity = front volume)
+#               + LP2(f; fc)             post-resonance / terminal HF roll-off
+#               [+ HPF1(f; fc_src)]      extra HAL high-pass on the processed
+#                                        input sources (VOICE_RECOGNITION/MIC)
+#
+# Parameter anchors from published data:
+#   * Resonance frequency vs. channel: STMicroelectronics AN4427 (gasket/port
+#     simulations on a real MEMS mic): tube length 0.5/1/2/3/4 mm ->
+#     39.9/29.6/20.6/16.2/13.4 kHz; a 4 mm channel with a widened cavity ->
+#     7.5-11.6 kHz. Phone ports (housing wall + gasket + PCB) are ~1.5-4 mm
+#     effective, so fp = 15-16 kHz (short/wide, well-tuned flagships),
+#     ~12.5 kHz (typical), ~10.5 kHz (narrow/long, foldables, budget),
+#     ~7.5 kHz (tablets / long channels / big cavities).
+#   * Peak height: designed ports keep it small (Infineon AN557: short, wide,
+#     uniform channel); measured phone populations sit within about +/-3 dB
+#     of flat between 100 Hz and 10 kHz, with HF peaks of roughly +2..+5 dB
+#     (population studies of smartphone microphones; worst-case bad port
+#     designs reach +6..12 dB but do not ship in phones).
+#   * LF: roll-off sets in below ~100 Hz on most phones, considerable at
+#     <= 50 Hz; good digital MEMS parts hold LF much better (flagship class).
+#     Modelled as a 1st-order corner: 30 Hz typical, 16 Hz flagship.
+#   * HF end: Android phones measured "sufficiently flat up to 21.2 kHz"
+#     (14-phone study, 2022) - so the terminal roll-off is gentle for the
+#     well-designed classes and mainly the shadow of the port resonance.
+#   * VOICE_RECOGNITION forbids AGC/NS (Android CDD) but HALs keep a voice
+#     high-pass; MIC may add a stronger one -> cascaded 1st-order corners
+#     at 52 Hz / 82 Hz on top of the capsule corner.
+#
+# The curves are evaluated on the ISO 266 third-octave grid, normalised to
+# 0 dB at 1 kHz and rounded to 0.1 dB. The app interpolates log-linearly.
+# ---------------------------------------------------------------------------
+import math
 
-LF_UNPROCESSED = [[20, -5.0], [25, -3.5], [31.5, -2.4], [40, -1.5], [50, -0.9], [63, -0.5],
-                  [80, -0.3], [100, -0.1], [200, 0.0], [1000, 0.0]]
-LF_UNPROCESSED_FLAT = [[20, -2.5], [25, -1.8], [31.5, -1.2], [40, -0.7], [50, -0.4], [63, -0.2],
-                       [80, -0.1], [100, 0.0], [200, 0.0], [1000, 0.0]]
-# VOICE_RECOGNITION: Android CDD forbids AGC/NS here, but most HALs keep a voice high-pass.
-LF_VOICE = [[20, -14.0], [25, -11.0], [31.5, -8.5], [40, -6.0], [50, -4.2], [63, -2.8],
-            [80, -1.6], [100, -1.0], [125, -0.5], [160, -0.2], [200, 0.0], [1000, 0.0]]
-LF_MIC = [[20, -18.0], [31.5, -12.0], [50, -7.0], [80, -3.5], [100, -2.4], [150, -1.0],
-          [200, -0.4], [300, 0.0], [1000, 0.0]]
+GRID = [20, 25, 31.5, 40, 50, 63, 80, 100, 125, 160, 200, 250, 315, 400, 500,
+        630, 800, 1000, 1250, 1600, 2000, 2500, 3150, 4000, 5000, 6300, 8000,
+        10000, 12500, 16000, 20000]
+
+
+def _hp1_db(f: float, fc: float) -> float:
+    return -10.0 * math.log10(1.0 + (fc / f) ** 2)
+
+
+def _lp2_db(f: float, fc: float) -> float:
+    return -10.0 * math.log10(1.0 + (f / fc) ** 4)
+
+
+def _peak_db(f: float, fp: float, q: float, gain_db: float) -> float:
+    """Analog peaking-resonator magnitude (peak of exactly gain_db at fp)."""
+    if gain_db == 0.0:
+        return 0.0
+    a = 10.0 ** (gain_db / 40.0)
+    x = f / fp
+    num = (1.0 - x * x) ** 2 + (a * x / q) ** 2
+    den = (1.0 - x * x) ** 2 + (x / (a * q)) ** 2
+    return 10.0 * math.log10(num / den)
+
+
+# Extra HAL high-pass corners (Hz) cascaded for the processed input sources.
+SOURCE_HP = {"VOICE_RECOGNITION": 52.0, "MIC": 82.0}
+
+# id -> (label, hp_fc Hz, peak fp Hz, peak Q, peak gain dB, lp2 fc Hz)
+ARCHETYPE_PARAMS = {
+    "mems-bottom-port": (
+        "Generic MEMS bottom-port microphone",
+        30.0, 12500.0, 1.0, 3.6, 18500.0),
+    "mems-bottom-port-strong-resonance": (
+        "MEMS bottom port, narrow acoustic channel (stronger HF resonance)",
+        30.0, 10500.0, 1.5, 5.6, 16500.0),
+    "mems-bottom-port-flat": (
+        "MEMS bottom port, wide channel / well-tuned (mild HF resonance)",
+        16.0, 15000.0, 0.9, 2.0, 20500.0),
+    # Mesh-covered / deeply recessed port (rugged phones): the screen over the
+    # port absorbs the resonance and rolls the top end off instead.
+    "mems-bottom-port-damped": (
+        "MEMS port behind mesh / recessed channel (damped HF, rugged phones)",
+        30.0, 0.0, 1.0, 0.0, 11500.0),
+    # Long acoustic channel (tablets, thick slabs): Helmholtz peak ~7.5 kHz.
+    "mems-early-resonance": (
+        "MEMS microphone, long acoustic channel / tablet (resonance ~7-8 kHz)",
+        30.0, 7500.0, 1.2, 3.4, 16500.0),
+}
 
 TYPICAL = "mems-bottom-port"
 STRONG = "mems-bottom-port-strong-resonance"
@@ -73,35 +139,29 @@ DAMPED = "mems-bottom-port-damped"
 EARLY = "mems-early-resonance"
 
 
-def curves(hf, lf_raw=LF_UNPROCESSED):
-    return {
-        "UNPROCESSED": lf_raw + hf,
-        "VOICE_RECOGNITION": LF_VOICE + hf,
-        "MIC": LF_MIC + hf,
-    }
+def _archetype_curves(params) -> dict:
+    _, hp_fc, fp, q, gain, lp_fc = params
+
+    def raw(f: float, source: str) -> float:
+        v = _hp1_db(f, hp_fc) + _peak_db(f, fp, q, gain) + _lp2_db(f, lp_fc)
+        if source in SOURCE_HP:
+            v += _hp1_db(f, SOURCE_HP[source])
+        return v
+
+    out = {}
+    for source in ("UNPROCESSED", "VOICE_RECOGNITION", "MIC"):
+        ref = raw(1000.0, source)
+        pts = [[f, round(raw(f, source) - ref, 1) + 0.0] for f in GRID]  # +0.0: no "-0.0" in JSON
+        # Sanity: finite, 0 dB at 1 kHz, plausible correction window.
+        assert all(math.isfinite(db) and -30.0 <= db <= 10.0 for _, db in pts)
+        assert dict((f, db) for f, db in pts)[1000] == 0.0
+        out[source] = pts
+    return out
 
 
 ARCHETYPES = {
-    TYPICAL: {
-        "label": "Generic MEMS bottom-port microphone",
-        "curves": curves(HF_TYPICAL),
-    },
-    STRONG: {
-        "label": "MEMS bottom port, narrow acoustic channel (stronger HF resonance)",
-        "curves": curves(HF_STRONG),
-    },
-    FLAT: {
-        "label": "MEMS bottom port, wide channel / well-tuned (mild HF resonance)",
-        "curves": curves(HF_MILD, LF_UNPROCESSED_FLAT),
-    },
-    DAMPED: {
-        "label": "MEMS port behind mesh / recessed channel (damped HF, rugged phones)",
-        "curves": curves(HF_DAMPED),
-    },
-    EARLY: {
-        "label": "MEMS microphone, long acoustic channel / tablet (resonance ~7-8 kHz)",
-        "curves": curves(HF_EARLY),
-    },
+    arch_id: {"label": params[0], "curves": _archetype_curves(params)}
+    for arch_id, params in ARCHETYPE_PARAMS.items()
 }
 
 

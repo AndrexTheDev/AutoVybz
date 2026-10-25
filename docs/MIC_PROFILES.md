@@ -36,15 +36,24 @@ lives in [`app/src/main/assets/autovybz/mic_profiles.json`](../app/src/main/asse
 }
 ```
 
-Archetypes shipped (the acoustic design classes the device entries map to):
+Archetypes shipped (the acoustic design classes the device entries map to). The curves are not
+hand-drawn: the generator computes them from a small physical model of the microphone path —
+capsule/ASIC high-pass + Helmholtz resonance of the acoustic port (housing hole + gasket + PCB
+neck over the front cavity) + post-resonance HF roll-off — evaluated on the ISO third-octave
+grid. Resonance frequencies follow the port-geometry simulations in STMicroelectronics AN4427
+(channel length 0.5–4 mm → ≈ 40–13 kHz, widened cavities down to ≈ 7.5 kHz); peak heights and
+the low/high-frequency behaviour are centred on published smartphone-microphone population
+measurements (≈ ±3 dB from 100 Hz–10 kHz, LF roll-off below ~100 Hz, largely flat to ~20 kHz
+when the port is well designed). Processed input sources add the typical HAL voice high-pass
+(cascaded 52 Hz / 82 Hz corners for `VOICE_RECOGNITION` / `MIC`).
 
-| archetype | design class |
-| --- | --- |
-| `mems-bottom-port` | typical MEMS bottom port (the default for unknown devices) |
-| `mems-bottom-port-strong-resonance` | narrow acoustic channel, stronger ~10–13 kHz port resonance (many budget phones, foldables) |
-| `mems-bottom-port-flat` | wide/short channel, well-tuned (most flagships) |
-| `mems-bottom-port-damped` | port behind mesh / deeply recessed — no resonance peak, HF roll-off instead (rugged phones) |
-| `mems-early-resonance` | long acoustic channel — resonance down at ~7–8 kHz (tablets, thick slabs) |
+| archetype | design class | port resonance | LF corner |
+| --- | --- | --- | --- |
+| `mems-bottom-port` | typical MEMS bottom port (the default for unknown devices) | ≈ +2.8 dB @ 12.5 kHz | 30 Hz |
+| `mems-bottom-port-strong-resonance` | narrow/long acoustic channel (many budget phones, foldables) | ≈ +4.9 dB @ 10.5 kHz | 30 Hz |
+| `mems-bottom-port-flat` | short/wide channel, well-tuned (most flagships) | ≈ +1.2 dB @ 15 kHz | 16 Hz |
+| `mems-bottom-port-damped` | port behind mesh / deeply recessed — no peak, HF roll-off (rugged phones) | — (−10 dB @ 20 kHz) | 30 Hz |
+| `mems-early-resonance` | long acoustic channel / big cavity (tablets, thick slabs) | ≈ +3.0 dB @ 7.5 kHz | 30 Hz |
 
 Levels are interpolated logarithmically between the points and normalised to 0 dB at 1 kHz. The curve for
 the input source actually obtained (`UNPROCESSED`, otherwise `VOICE_RECOGNITION`, otherwise `MIC`) is used.
