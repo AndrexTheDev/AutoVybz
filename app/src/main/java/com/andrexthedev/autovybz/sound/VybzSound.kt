@@ -19,6 +19,9 @@ object VybzSound {
 
     /** Engine-update coalescing, see [reapply]. */
     private const val COALESCE_MS = 150L
+    /** Minimum gap between two engine writes (each is a DSP rebuild + binder calls on the service's main thread). */
+    private const val MIN_SPACING_MS = 700L
+    @Volatile private var lastApplyAt = 0L
     private val generation = java.util.concurrent.atomic.AtomicLong()
     private val applyLock = Any()
 
@@ -82,7 +85,7 @@ object VybzSound {
      * Bursts are coalesced: every engine update makes the sound service rebuild its DSP chain on the main thread, so
      * ten quick taps on styles must not become ten rebuilds (a monkey run turned that into an ANR). Each call waits
      * [COALESCE_MS]; only the newest request of a burst writes the engine - it reads the preferences, so it already
-     * contains every earlier change.
+     * contains every earlier change. Writes are also spaced by [MIN_SPACING_MS] (the last state always lands).
      */
     fun reapply(context: Context) {
         val mine = generation.incrementAndGet()
@@ -90,6 +93,12 @@ object VybzSound {
         if (generation.get() != mine) return // a newer request will apply the same (newer) state
         synchronized(applyLock) {
             if (generation.get() != mine) return
+            val wait = lastApplyAt + MIN_SPACING_MS - android.os.SystemClock.uptimeMillis()
+            if (wait > 0) {
+                Thread.sleep(wait)
+                if (generation.get() != mine) return
+            }
+            lastApplyAt = android.os.SystemClock.uptimeMillis()
             val preset = activeCalibrationName(context)?.let { AutoVybzPresetStore.loadFull(context, it) }
             applyBase(context, preset)
         }

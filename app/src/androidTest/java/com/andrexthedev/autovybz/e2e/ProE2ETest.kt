@@ -73,6 +73,7 @@ class ProE2ETest : E2eTest() {
             // Either the engine follows the switch, or the switch falls back to the engine's real state.
             compose.waitUntil(20_000) { isOn() == EqService.isDpRunning && (isOn() != wasOn || !EqService.isDpRunning) }
             if (EqService.isDpRunning) {
+                Thread.sleep(1_300) // the switch ignores rapid-fire toggles (1.2 s) - each one starts/stops the service
                 compose.tap("avz:pro:eq")
                 compose.waitUntil(20_000) { !isOn() && !EqService.isDpRunning }
             }

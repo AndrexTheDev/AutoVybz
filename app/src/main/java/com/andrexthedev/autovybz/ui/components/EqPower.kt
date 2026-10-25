@@ -21,7 +21,7 @@ import com.bearinmind.equalizer314.audio.EqService
 
 /** Live on/off state of the system-wide sound engine plus the calibration that is audible. */
 @Stable
-private const val MIN_TOGGLE_INTERVAL_MS = 600L
+private const val MIN_TOGGLE_INTERVAL_MS = 1_200L
 
 class EqPowerState internal constructor(private val context: Context) {
     var on by mutableStateOf(EqService.isDpRunning)
