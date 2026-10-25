@@ -5,7 +5,6 @@ import com.andrexthedev.autovybz.measurement.eq.PeqBand
 import com.andrexthedev.autovybz.measurement.eq.PeqType
 import com.andrexthedev.autovybz.measurement.eq.TargetType
 import com.andrexthedev.autovybz.preset.model.AutoVybzPreset
-import kotlin.math.ceil
 import kotlin.math.floor
 
 /** What the user picked on the Sound / Studio screens. */
@@ -61,11 +60,12 @@ object SoundComposer {
         // is recomputed for the new peak, the calibration's own offset to it (loudness make-up, or the
         // extra safety margin of an imported/legacy preset) is carried over unchanged.
         val offset = preampOffsetDb(base)
-        val peak = AntiClipping.maxBoostDb(bands)
-        val clippingSafe = if (peak > 0.0) -ceil((peak + HEADROOM_DB) * 10.0) / 10.0 else 0.0
+        val peak = if (bands.isEmpty()) 0.0 else AntiClipping.maxBoostDb(bands)
+        // One rounding step only: the clipping-safe part covers the new peak, the offset rides on top.
+        val target = if (peak > 0.0) -(peak + HEADROOM_DB) + offset else offset
         return base.copy(
             bands = bands,
-            preampDb = floor((clippingSafe + offset) * 10.0 + 1e-9) / 10.0,
+            preampDb = floor(target * 10.0 + 1e-9) / 10.0,
             bandCount = bands.size,
         )
     }
