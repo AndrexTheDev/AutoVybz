@@ -178,18 +178,29 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
+     * The target the user had for normal external speakers, remembered while a rescue / device
+     * class pre-selects its own - switching back must not silently replace their preference.
+     */
+    private var standardTargetBackup: TargetType? = null
+
+    /**
      * Speaker type picked. Rescue / device speakers pre-select their forgiving target (the chip
-     * stays changeable); device mode pre-fills the profile name.
+     * stays changeable, and the external-speaker target is restored afterwards); device mode
+     * pre-fills the profile name.
      */
     fun onSpeakerClassChanged(speakerClass: SpeakerClass) {
-        if (speakerClass == _state.value.speakerClass) return
+        val current = _state.value
+        if (speakerClass == current.speakerClass) return
         settings.speakerClass = speakerClass
-        val suggested = SpeakerClassTuning.of(speakerClass).suggestedTarget
-        if (suggested != null) settings.target = suggested
+        if (current.speakerClass == SpeakerClass.STANDARD) standardTargetBackup = current.target
+        val restored = if (speakerClass == SpeakerClass.STANDARD) standardTargetBackup else null
+        val nextTarget = restored ?: SpeakerClassTuning.of(speakerClass).suggestedTarget ?: current.target
+        if (nextTarget != current.target) settings.target = nextTarget
+        if (speakerClass == SpeakerClass.STANDARD) standardTargetBackup = null
         _state.update { s ->
             s.copy(
                 speakerClass = speakerClass,
-                target = suggested ?: s.target,
+                target = nextTarget,
                 speakerName = if (speakerClass == SpeakerClass.DEVICE && s.speakerName.isBlank()) {
                     getApplication<Application>().getString(R.string.avz_device_speaker_name)
                 } else s.speakerName,
@@ -208,9 +219,7 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
             if (!decision.builtinSpeakerActive) {
                 return setStep(WizardStep.RouteBlocked(decision.verdict, routeName, deviceMode = true))
             }
-            val fraction = SpeakerClassTuning.of(SpeakerClass.DEVICE).measurementVolumeFraction
-                ?: VolumeMath.MEASUREMENT_FRACTION
-            volume.setFraction(fraction)
+            volume.setFraction(deviceVolumeFraction)
             return setStep(
                 WizardStep.ConfirmSafety(
                     routeName = routeName,
@@ -249,6 +258,14 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
     private val partial = mutableListOf<MeasurementOutcome>()
     private var activeRequest: MeasurementRequest? = null
     private var activeTotal = 1
+
+    /**
+     * Start volume for device-speaker measurements in this wizard session. Steps down
+     * automatically when the built-in mic clipped (loud phones can clip it even at 50 %,
+     * and re-trying at the same volume would only clip again).
+     */
+    private var deviceVolumeFraction: Float =
+        SpeakerClassTuning.of(SpeakerClass.DEVICE).measurementVolumeFraction ?: VolumeMath.DEVICE_MEASUREMENT_FRACTION
 
     /** Step 2: user confirmed the safety warning -> first 10 s measurement. */
     fun onConfirmStart() {
@@ -319,6 +336,11 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
                     setStepFromProgress(next)
                 }
                 partial += outcome
+                if (request.speakerClass == SpeakerClass.DEVICE &&
+                    MeasurementWarning.CLIPPING in outcome.result.warnings
+                ) {
+                    deviceVolumeFraction = VolumeMath.reduceAfterClipping(deviceVolumeFraction)
+                }
                 // A disturbed last position (gust, dropout, ...) gets the chance to be repeated before averaging.
                 val disturbed = isDisturbed(outcome.result.warnings)
                 if (partial.size < total || (total > 1 && disturbed)) {

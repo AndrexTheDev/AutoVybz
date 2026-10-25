@@ -115,6 +115,13 @@ object VolumeMath {
      */
     const val DEVICE_MEASUREMENT_FRACTION = 0.50f
 
+    /** Quieter start volume after a clipped device-speaker measurement (floor: still plenty at cm distance). */
+    const val DEVICE_MIN_FRACTION = 0.20f
+
+    /** Next start volume after the device mic clipped: −30 % steps down to [DEVICE_MIN_FRACTION]. */
+    fun reduceAfterClipping(fraction: Float): Float =
+        (fraction * 0.7f).coerceAtLeast(DEVICE_MIN_FRACTION)
+
     fun indexFor(fraction: Float, min: Int, max: Int): Int {
         require(max >= min)
         val f = fraction.coerceIn(0f, 1f)
