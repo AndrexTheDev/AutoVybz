@@ -16,20 +16,30 @@ MeasurementEngine::~MeasurementEngine() { closeStreams(); }
 
 oboe::Result MeasurementEngine::openInput(const EngineConfig& cfg, oboe::InputPreset preset) {
     oboe::AudioStreamBuilder b;
+    // No PerformanceMode::LowLatency: the stimulus/response alignment is
+    // recovered from the impulse-response peak, so latency does not matter -
+    // but the small low-latency buffers make an 11 s full-duplex capture
+    // needlessly xrun-prone (glitches = gaps in stimulus or recording).
     b.setDirection(oboe::Direction::Input)
-        ->setPerformanceMode(oboe::PerformanceMode::LowLatency)
+        ->setPerformanceMode(oboe::PerformanceMode::None)
         ->setSharingMode(oboe::SharingMode::Shared)
         ->setFormat(oboe::AudioFormat::Float)
         ->setFormatConversionAllowed(true)
         ->setChannelCount(oboe::ChannelCount::Mono)
         ->setChannelConversionAllowed(true)
         ->setSampleRate(cfg.sampleRate)
-        ->setSampleRateConversionQuality(oboe::SampleRateConversionQuality::Medium)
+        ->setSampleRateConversionQuality(oboe::SampleRateConversionQuality::High)
         ->setInputPreset(preset)
         ->setDataCallback(this)
         ->setErrorCallback(this);
     if (cfg.inputDeviceId > 0) b.setDeviceId(cfg.inputDeviceId);
-    return b.openStream(input_);
+    const oboe::Result r = b.openStream(input_);
+    if (r == oboe::Result::OK) {
+        // Use the whole ring buffer - with the large default frames-per-burst of
+        // the non-low-latency path this absorbs seconds of scheduling jitter.
+        input_->setBufferSizeInFrames(input_->getBufferCapacityInFrames());
+    }
+    return r;
 }
 
 std::string MeasurementEngine::start(const float* stimulus, int32_t frames, const EngineConfig& cfg) {
@@ -69,14 +79,14 @@ std::string MeasurementEngine::start(const float* stimulus, int32_t frames, cons
     // --- output ---
     oboe::AudioStreamBuilder ob;
     ob.setDirection(oboe::Direction::Output)
-        ->setPerformanceMode(oboe::PerformanceMode::LowLatency)
+        ->setPerformanceMode(oboe::PerformanceMode::None)
         ->setSharingMode(oboe::SharingMode::Shared)
         ->setFormat(oboe::AudioFormat::Float)
         ->setFormatConversionAllowed(true)
         ->setChannelCount(oboe::ChannelCount::Stereo)
         ->setChannelConversionAllowed(true)
         ->setSampleRate(cfg.sampleRate)
-        ->setSampleRateConversionQuality(oboe::SampleRateConversionQuality::Medium)
+        ->setSampleRateConversionQuality(oboe::SampleRateConversionQuality::High)
         ->setUsage(oboe::Usage::Media)
         ->setContentType(oboe::ContentType::Music)
         ->setDataCallback(this)
@@ -87,6 +97,7 @@ std::string MeasurementEngine::start(const float* stimulus, int32_t frames, cons
         closeStreams();
         return std::string("Cannot open speaker output: ") + oboe::convertToText(r);
     }
+    output_->setBufferSizeInFrames(output_->getBufferCapacityInFrames());
     outChannels_ = output_->getChannelCount();
     if (output_->getSampleRate() != cfg.sampleRate) {
         closeStreams();
@@ -127,9 +138,12 @@ oboe::DataCallbackResult MeasurementEngine::onAudioReady(oboe::AudioStream* stre
     int32_t pos = recPos_.load(std::memory_order_relaxed);
     float peak = inputPeak_.load(std::memory_order_relaxed);
     for (int32_t i = 0; i < frames && pos < cap; ++i) {
-        float s = 0.0f;
-        for (int32_t c = 0; c < inChannels_; ++c) s += in[i * inChannels_ + c];
-        s /= static_cast<float>(inChannels_);
+        // Channel 0 only, never an average: if a device returns more than the
+        // requested mono channel (e.g. bottom + top mics of an UNPROCESSED
+        // stereo stream), averaging two spaced microphones would comb-filter
+        // the measurement. Channel 0 is the primary (bottom) microphone -
+        // the one the compensation profiles describe.
+        const float s = in[i * inChannels_];
         recording_[pos++] = s;
         peak = std::max(peak, std::fabs(s));
     }

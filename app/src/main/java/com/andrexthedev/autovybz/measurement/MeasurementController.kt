@@ -102,6 +102,10 @@ class MeasurementController(
         val plan = stimulus.plan
         val usbMic = if (request.useUsbMic) InputSourceResolver.findUsbMic(app) else null
         val source = InputSourceResolver.preferred(app, usbMic)
+        // Without a USB mic, pin the built-in primary microphone: that is the device the
+        // compensation profiles describe, and the system default could otherwise hand the
+        // capture to an attached accessory mic (processed, wrong response).
+        val inputDevice = usbMic ?: InputSourceResolver.findBuiltInMic(app)
 
         val eqWasRunning = EqBypass.pauseIfRunning(app)
         val guard = CaptureGuard(app)
@@ -112,7 +116,7 @@ class MeasurementController(
             guardedCapture(guard) {
                 engine.capture(
                     stimulus.signal,
-                    CaptureConfig(plan.sampleRate, source, usbMic, extraRecordSeconds = 1.0),
+                    CaptureConfig(plan.sampleRate, source, inputDevice, extraRecordSeconds = 1.0),
                 ) { fraction, peak ->
                     val sample = (fraction * (plan.totalLength + plan.sampleRate)).toInt()
                     val phase = when {

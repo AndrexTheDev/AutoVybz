@@ -56,6 +56,38 @@ object InputSourceResolver {
             it.type == AudioDeviceInfo.TYPE_USB_DEVICE || it.type == AudioDeviceInfo.TYPE_USB_HEADSET
         }
     }
+
+    /**
+     * The phone's primary built-in microphone, pinned explicitly so the capture really uses the
+     * microphone the compensation profiles describe - with the system default route an attached
+     * accessory (headset/USB dongle with a mic) could silently take over the input. Returns null
+     * when no unambiguous built-in mic is listed (system default is then kept).
+     */
+    fun findBuiltInMic(context: Context): AudioDeviceInfo? {
+        val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        val candidates = am.getDevices(AudioManager.GET_DEVICES_INPUTS)
+            .filter { it.type == AudioDeviceInfo.TYPE_BUILTIN_MIC }
+        val index = builtInMicIndex(candidates.map { it.address ?: "" }) ?: return null
+        return candidates[index]
+    }
+
+    /**
+     * Picks the primary built-in mic among [addresses] (AudioDeviceInfo.getAddress of every
+     * TYPE_BUILTIN_MIC input): a single entry wins; with several (multi-mic phones list e.g.
+     * "bottom"/"back"), the bottom/main one wins; anything ambiguous returns null (no pinning).
+     * Pure for unit tests.
+     */
+    internal fun builtInMicIndex(addresses: List<String>): Int? {
+        if (addresses.isEmpty()) return null
+        if (addresses.size == 1) return 0
+        val bottom = addresses.indexOfFirst { a ->
+            val s = a.lowercase()
+            "bottom" in s || "main" in s || "primary" in s
+        }
+        if (bottom >= 0) return bottom
+        val unlabelled = addresses.indexOfFirst { it.isBlank() }
+        return if (unlabelled >= 0) unlabelled else null
+    }
 }
 
 /**
