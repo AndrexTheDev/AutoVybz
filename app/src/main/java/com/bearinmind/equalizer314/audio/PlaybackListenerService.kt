@@ -118,23 +118,33 @@ class PlaybackListenerService : NotificationListenerService() {
      *  per-row speaker-pulse animation. Apps without a MediaSession (some games, custom players) are
      *  absent even if outputting — acceptable since nearly every EQ-relevant app uses MediaSession. */
     private fun collectActivelyPlayingPackages(controllers: List<MediaController>): Set<String> {
-        val own = packageName
-        return controllers.asSequence()
-            .filter { it.playbackState?.state == PlaybackState.STATE_PLAYING }
-            .mapNotNull { it.packageName }
-            .filter { it != own && it.isNotBlank() }
-            .toSet()
+        return try {
+            val own = packageName
+            controllers.asSequence()
+                .filter { it.playbackState?.state == PlaybackState.STATE_PLAYING }
+                .mapNotNull { it.packageName }
+                .filter { it != own && it.isNotBlank() }
+                .toSet()
+        } catch (t: Throwable) {
+            Log.w(TAG, "playbackState lookup failed", t)
+            emptySet()
+        }
     }
 
     /** Public-API fallback when audioserver's `dumpAsync` is denied. Returns packages owning an
      *  active media session — no session IDs (`AudioSessionId` is gated by `@SystemApi`). User sees
      *  "YouTube is playing" but can't per-session EQ it on this device. */
     private fun collectActiveSessionPackages(controllers: List<MediaController>): Set<String> {
-        val own = packageName
-        return controllers.asSequence()
-            .mapNotNull { it.packageName }
-            .filter { it != own && it.isNotBlank() }
-            .toSet()
+        return try {
+            val own = packageName
+            controllers.asSequence()
+                .mapNotNull { it.packageName }
+                .filter { it != own && it.isNotBlank() }
+                .toSet()
+        } catch (t: Throwable) {
+            Log.w(TAG, "getActiveSessions fallback failed", t)
+            emptySet()
+        }
     }
 
     // Idle-skip state (detector thread only): after an all-empty snapshot, heartbeats
