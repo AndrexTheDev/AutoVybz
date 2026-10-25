@@ -1,5 +1,6 @@
 package com.andrexthedev.autovybz.measurement.eq
 
+import com.andrexthedev.autovybz.measurement.CorrectionPlanner
 import com.andrexthedev.autovybz.measurement.EnvironmentTuning
 import com.andrexthedev.autovybz.measurement.ListeningEnvironment
 import com.andrexthedev.autovybz.measurement.SpeakerClass
