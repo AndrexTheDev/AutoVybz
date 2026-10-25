@@ -1,10 +1,15 @@
 package com.andrexthedev.autovybz.measurement.eq
 
+import com.andrexthedev.autovybz.measurement.EnvironmentTuning
+import com.andrexthedev.autovybz.measurement.ListeningEnvironment
+import com.andrexthedev.autovybz.measurement.SpeakerClass
+import com.andrexthedev.autovybz.measurement.SpeakerClassTuning
 import com.andrexthedev.autovybz.measurement.dsp.FrequencyGrid
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.math.abs
+import kotlin.math.min
 import kotlin.math.sqrt
 
 class AutoEqRendererTest {
@@ -282,5 +287,57 @@ class AutoEqRendererTest {
         // a 1/8-octave notch does not move a 1-octave median at all
         val notch = DoubleArray(grid.size) { if (grid[it] in 950.0..1050.0) -12.0 else 0.0 }
         assertEquals(0.0, AutoEqRenderer.medianLog(grid, notch, 1.0)[grid.indexOfFirst { it >= 1000.0 }], 1e-12)
+    }
+
+    /**
+     * The user-visible regression this guards: a device-speaker calibration used to make the phone
+     * *quieter* instead of better. The near-field presence excess is corrected by cutting exactly the
+     * band the ear is most sensitive to, and the old pre-gain only ever lowered the level further - the
+     * perceived result was 3-5 dB quieter, which also reads as "less detail".
+     */
+    @Test
+    fun deviceCalibrationKeepsThePerceivedLevelInsteadOfGettingQuieter() {
+        val phone = curveOf(
+            PeqBand(PeqType.HIGH_PASS, 700.0, 0.0, 0.707),
+            PeqBand(PeqType.PEAK, 1800.0, 5.0, 1.1),   // typical near-field presence excess
+            PeqBand(PeqType.PEAK, 3200.0, -3.0, 1.6),
+            PeqBand(PeqType.HIGH_SHELF, 6000.0, -5.0, 0.7),
+        )
+        val settings = CorrectionPlanner.autoEqSettings(
+            10, EnvironmentTuning.of(ListeningEnvironment.INDOOR), SpeakerClassTuning.of(SpeakerClass.DEVICE),
+        )
+        // The device preset arms the limiter, which is what allows the make-up to use headroom at all.
+        assertTrue("device preset must arm the limiter", settings.preampHeadroomAllowanceDb > 0.0)
+        val r = AutoEqRenderer.render(grid, phone, TargetCurve(TargetType.HARMAN), settings)
+        val legacy = AutoEqRenderer.render(
+            grid, phone, TargetCurve(TargetType.HARMAN),
+            settings.copy(loudnessMakeUp = false, preampHeadroomAllowanceDb = 0.0),
+        )
+        // The correction alone costs perceived level: the presence cut sits where the ear is most sensitive.
+        assertTrue("correction costs ${r.loudnessDeltaDb} dB", r.loudnessDeltaDb < -0.5)
+        // The make-up gives exactly that back (capped at MAX_MAKE_UP_DB) - not more, not less.
+        assertEquals(
+            "make-up vs loudness delta",
+            min(PreampPlanner.MAX_MAKE_UP_DB, -r.loudnessDeltaDb),
+            r.makeUpDb,
+            0.11,
+        )
+        // Same correction, old policy: the volume drops. New policy: it does not.
+        assertTrue("preamp ${r.preampDb} vs legacy ${legacy.preampDb}", r.preampDb > legacy.preampDb)
+        assertEquals("make-up = preamp - clipping-safe", r.makeUpDb, r.preampDb - r.clippingSafeDb, 0.11)
+        // Whatever is left above the clipping-safe value is bounded by the allowance the limiter absorbs.
+        assertTrue(
+            "static overshoot ${r.maxFilterBoostDb + r.preampDb} dB",
+            r.maxFilterBoostDb + r.preampDb <= settings.preampHeadroomAllowanceDb + 0.1,
+        )
+        // The classic external-speaker path indoors has no limiter, so it keeps the clipping-safe pre-gain.
+        val indoor = AutoEqRenderer.render(
+            grid, phone, TargetCurve(TargetType.HARMAN),
+            CorrectionPlanner.autoEqSettings(
+                10, EnvironmentTuning.of(ListeningEnvironment.INDOOR), SpeakerClassTuning.of(SpeakerClass.STANDARD),
+            ),
+        )
+        assertTrue("preamp without a limiter ${indoor.preampDb}", indoor.preampDb <= 0.0)
+        assertEquals(0.0, indoor.makeUpDb, 0.0)
     }
 }

@@ -12,6 +12,13 @@ data class AutoEqSettings(
     /** Largest allowed boost of the combined correction. Small speakers can't do much more. */
     val maxBoostDb: Double = 6.0,
     val maxCutDb: Double = 12.0,
+    /**
+     * Fraction of a measured excess that is actually cut (0.1-1.0, default 1.0 = full correction).
+     * Near-field self-measurements (a phone measuring its own speakers at centimetres) overstate peaks -
+     * and every dB cut in the 1-4 kHz presence band costs several dB of perceived loudness. 0.75 keeps
+     * the tonal correction while the sound stays as loud as before (see [PreampPlanner]).
+     */
+    val cutTrust: Double = 1.0,
     /** Upper correction limit: phone mics are unreliable above ~16 kHz. */
     val highLimitHz: Double = 16000.0,
     /** Detect the speaker's bass roll-off and never boost below it. */
@@ -19,6 +26,20 @@ data class AutoEqSettings(
     val manualLowLimitHz: Double = 40.0,
     /** Extra safety margin on top of the max filter boost for the pre-gain. */
     val headroomDb: Double = 0.5,
+    /**
+     * Compensate the *perceived* level loss of a correction that (mostly) cuts, so a calibration makes the
+     * speaker better, not quieter. Never lowers the pre-gain: a correction that gets louder is left alone.
+     * See [PreampPlanner]. On by default; harmless with [preampHeadroomAllowanceDb] = 0 (legacy values).
+     */
+    val loudnessMakeUp: Boolean = true,
+    /** Upper bound of the loudness make-up (dB). */
+    val maxMakeUpDb: Double = PreampPlanner.MAX_MAKE_UP_DB,
+    /**
+     * Static overshoot the pre-gain may leave when the engine limiter is armed (0 = never above the
+     * clipping-safe value). Only [com.andrexthedev.autovybz.measurement.CorrectionPlanner] sets this, and
+     * only for calibrations whose preset forces the limiter on.
+     */
+    val preampHeadroomAllowanceDb: Double = 0.0,
     val sampleRate: Double = BiquadMath.DEFAULT_SAMPLE_RATE,
     /**
      * SNR gating (only when an SNR curve is passed to [AutoEqRenderer.render]): below [minSnrDb] the
@@ -77,6 +98,12 @@ class AutoEqResult(
     val noiseGatedRanges: List<Pair<Double, Double>> = emptyList(),
     /** Corner frequency of the protective high pass in [bands], if one was added. */
     val highPassHz: Double? = null,
+    /** Part of [preampDb] that compensates the perceived level loss of the correction (>= 0 dB). */
+    val makeUpDb: Double = 0.0,
+    /** Estimated perceived level change of the correction alone (dB, negative = quieter). */
+    val loudnessDeltaDb: Double = 0.0,
+    /** The classic anti-clipping pre-gain for this correction (<= 0); [preampDb] - [clippingSafeDb] = [makeUpDb]. */
+    val clippingSafeDb: Double = 0.0,
 )
 
 /**
@@ -90,7 +117,10 @@ class AutoEqResult(
  *    (boost ramps in over the first octave above the roll-off - excursion
  *    guard) and faded to 0 dB over half an octave outside the range.
  * 3. Fit [AutoEqSettings.bandCount] biquads ([PeqFitter]).
- * 4. Anti-clipping: pre-gain = -(max combined boost + headroom).
+ * 4. Gain staging ([PreampPlanner]): the clipping-safe pre-gain is `-(max combined boost + headroom)`,
+ *    plus a loudness make-up that undoes the *perceived* level loss of a correction that only cuts (a
+ *    device-speaker calibration must sound better, not quieter). Bounded by [AutoEqSettings.maxMakeUpDb]
+ *    and, only while the engine limiter is armed, by [AutoEqSettings.preampHeadroomAllowanceDb].
  *
  * With [AutoEqSettings.protectiveHighPass] one of the fitted bands is replaced by a
  * high pass at the measured -6 dB roll-off point, so weak drivers stop wasting their
@@ -144,11 +174,14 @@ object AutoEqRenderer {
             snrDb?.let { reliability(it[i], settings.minSnrDb, settings.fullSnrDb) } ?: 1.0
         }
         val broad = settings.broadBoostOctaves?.let { medianLog(frequencies, measuredDb, it) }
+        // [cutTrust] only scales cuts: boosts are already limited by the excursion guard and the broad-only
+        // rule, and a missing treble is usually real (a phone speaker really does roll off up there).
+        val cutLimit = settings.maxCutDb * settings.cutTrust.coerceIn(0.1, 1.0)
         val desired = DoubleArray(frequencies.size) { i ->
             val boostCap = settings.maxBoostDb * excursionGuard(frequencies[i], lowLimit, settings.excursionGuardOctaves)
             var raw = targetDb[i] - measuredDb[i]
             if (broad != null && raw > 0) raw = minOf(raw, maxOf(0.0, targetDb[i] - broad[i]))
-            raw.coerceIn(-settings.maxCutDb, boostCap) * inRange[i] * reliable[i]
+            raw.coerceIn(-cutLimit, boostCap) * inRange[i] * reliable[i]
         }
         // Outside the range (and where noise hides the speaker) we still ask for "0 dB" - keeps filters
         // from acting there - just with less weight.
@@ -188,11 +221,24 @@ object AutoEqRenderer {
         val predicted = DoubleArray(frequencies.size) { measuredDb[it] + response[it] }
 
         val maxBoost = AntiClipping.maxBoostDb(bands, settings.sampleRate)
-        val preamp = AntiClipping.preampFor(maxBoost, settings.headroomDb)
+        // Clipping-safe pre-gain + loudness compensation (see PreampPlanner): a calibration that mostly
+        // cuts must not make the speaker quieter instead of better.
+        val preampPlan = PreampPlanner.plan(
+            frequencies = frequencies,
+            measuredDb = measuredDb,
+            correctionDb = response,
+            headroomDb = settings.headroomDb,
+            maxMakeUpDb = settings.maxMakeUpDb,
+            headroomAllowanceDb = settings.preampHeadroomAllowanceDb,
+            loudnessMakeUp = settings.loudnessMakeUp,
+            // The analytic maximum of the filter chain (24 points/octave), not just the render grid:
+            // the clipping-safe value must cover the whole 20 Hz-20 kHz range.
+            peakDb = maxBoost,
+        )
 
         return AutoEqResult(
             bands = bands,
-            preampDb = preamp,
+            preampDb = preampPlan.preampDb,
             lowLimitHz = lowLimit,
             highLimitHz = highLimit,
             frequencies = frequencies,
@@ -206,6 +252,9 @@ object AutoEqRenderer {
             maxFilterBoostDb = maxBoost,
             noiseGatedRanges = gatedRanges(frequencies, reliable, lowLimit, highLimit),
             highPassHz = highPassHz,
+            makeUpDb = preampPlan.makeUpDb,
+            loudnessDeltaDb = preampPlan.loudnessDeltaDb,
+            clippingSafeDb = preampPlan.clippingSafeDb,
         )
     }
 

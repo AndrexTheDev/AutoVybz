@@ -123,25 +123,31 @@ class AutoVybzActivity : ComponentActivity() {
                     }
                 }
                 var intro by remember { mutableStateOf(playIntro) }
-                AutoVybzApp(
-                    startTab = startTab,
-                    entitlement = entitlement,
-                    onStartTrial = premium::startTrial,
-                    onActivateCrypto = premium::activateCryptoAlpha,
-                    onResetPremium = premium::resetAlpha,
-                    wizardContent = { openHelp, openSound, openPremium ->
-                        WizardScreen(
-                            vm = wizard,
-                            state = state,
-                            entitlement = entitlement,
-                            onOpenHelp = openHelp,
-                            onOpenSound = openSound,
-                            onOpenPremium = openPremium,
-                            onOpenProEq = { startActivity(Intent(this, MainActivity::class.java)) },
-                        )
-                    },
-                )
-                if (intro) IntroOverlay(onFinished = { intro = false })
+                // While the intro plays, the app screen is NOT composed: laying out the wizard on top of
+                // a 1080p60 decoder on cold start made the animation stutter on mid-range phones. The
+                // overlay fades into the app's own background, so the hand-over stays seamless.
+                if (intro) {
+                    IntroOverlay(onFinished = { intro = false })
+                } else {
+                    AutoVybzApp(
+                        startTab = startTab,
+                        entitlement = entitlement,
+                        onStartTrial = premium::startTrial,
+                        onActivateCrypto = premium::activateCryptoAlpha,
+                        onResetPremium = premium::resetAlpha,
+                        wizardContent = { openHelp, openSound, openPremium ->
+                            WizardScreen(
+                                vm = wizard,
+                                state = state,
+                                entitlement = entitlement,
+                                onOpenHelp = openHelp,
+                                onOpenSound = openSound,
+                                onOpenPremium = openPremium,
+                                onOpenProEq = { startActivity(Intent(this, MainActivity::class.java)) },
+                            )
+                        },
+                    )
+                }
             }
         }
     }

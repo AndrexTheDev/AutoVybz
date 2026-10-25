@@ -295,7 +295,7 @@ private fun CalibrationList(externalExportsEnabled: Boolean = true, onOpenPremiu
             Text(p.name, style = MaterialTheme.typography.titleMedium)
             Text(
                 "${df.format(Date(p.createdAtMillis))} · ${stringResource(targetLabel(p.target))} · ${p.bands.size} PEQ · " +
-                    String.format(Locale.US, "%.1f dB", p.preampDb) +
+                    String.format(Locale.US, "%+.1f dB", p.preampDb) +
                     (if (p.measurement?.environment == ListeningEnvironment.OUTDOOR.name) " · " + stringResource(R.string.avz_env_outdoor_short) else "") +
                     (if (p.measurement?.speakerClass == SpeakerClass.DEVICE.name) " · " + stringResource(R.string.avz_device_speaker_name) else ""),
                 style = MaterialTheme.typography.bodySmall,

@@ -83,6 +83,20 @@ data class SmoothingProfile(
         val FINE = SmoothingProfile(bassOctaves = 0.5, detailOctaves = 1.0 / 6.0)
         /** Heavy variant for very boomy rooms (1.5 -> 1/2 octave). */
         val STRONG = SmoothingProfile(bassOctaves = 1.5, detailOctaves = 0.5)
+
+        /**
+         * Near-field self-measurement (a phone or tablet measuring its own speakers with its own
+         * microphone at centimetres). The opposite trade-off of a room measurement:
+         *
+         * * **Bass is unreliable** - the microphone sits inside the radiator's pressure zone and picks up
+         *   structure-borne chassis vibration, so below ~400 Hz one octave is smoothed (no over-correction
+         *   of a measurement artefact).
+         * * **Above ~700 Hz the direct sound is *more* trustworthy than any room measurement** - no room, no
+         *   reflections, just the driver a few centimetres away. 1/3 octave (instead of the heavy 1/2
+         *   octave used for boomy rooms) keeps the narrow midrange/treble features that carry detail, so
+         *   the correction can actually restore them instead of averaging them away.
+         */
+        val DEVICE = SmoothingProfile(bassOctaves = 1.0, bassCornerHz = 400.0, detailOctaves = 1.0 / 3.0, detailStartHz = 700.0)
         /** Fixed 1/3 octave - used for roll-off detection and quality metrics. */
         val THIRD_OCTAVE = SmoothingProfile(bassOctaves = 1.0 / 3, bassCornerHz = 20.0, detailOctaves = 1.0 / 3, detailStartHz = 21.0)
         /** Effectively unsmoothed display resolution (1/48 octave everywhere). */

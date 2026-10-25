@@ -3,6 +3,7 @@ package com.andrexthedev.autovybz.measurement
 import com.andrexthedev.autovybz.measurement.audio.VolumeMath
 import com.andrexthedev.autovybz.measurement.dsp.SmoothingProfile
 import com.andrexthedev.autovybz.measurement.eq.AutoEqSettings
+import com.andrexthedev.autovybz.measurement.eq.PreampPlanner
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -26,6 +27,10 @@ class SpeakerClassTuningTest {
                     maxBoostDb = tuning.maxBoostDb,
                     broadBoostOctaves = tuning.broadBoostOctaves,
                     excursionGuardOctaves = tuning.excursionGuardOctaves,
+                    // Outdoors the preset arms the limiter, so the loudness make-up gets its allowance;
+                    // indoors the clipping-safe pre-gain stays untouched (allowance 0).
+                    preampHeadroomAllowanceDb =
+                        if (tuning.forceLimiter) PreampPlanner.LIMITER_HEADROOM_ALLOWANCE_DB else 0.0,
                 ),
                 CorrectionPlanner.autoEqSettings(10, tuning, standard),
             )
@@ -45,6 +50,10 @@ class SpeakerClassTuningTest {
         assertEquals(400.0, s.lowLimitScanHz, 0.0)
         assertEquals(350.0, s.lowLimitMaxHz, 0.0)
         assertTrue(s.protectiveHighPass)
+        // Full correction of the resonance peaks, but the limiter is armed -> the make-up may use
+        // the limiter's headroom so the rescue does not end up quieter than the broken speaker.
+        assertEquals(1.0, s.cutTrust, 0.0)
+        assertEquals(PreampPlanner.LIMITER_HEADROOM_ALLOWANCE_DB, s.preampHeadroomAllowanceDb, 0.0)
         assertTrue(CorrectionPlanner.forceLimiter(indoor, rescue))
         assertEquals(SmoothingProfile.STRONG, CorrectionPlanner.smoothing(SmoothingProfile.DYNAMIC, indoor, rescue))
         // An explicit Pro smoothing choice is respected (same rule as outdoors).
@@ -64,9 +73,21 @@ class SpeakerClassTuningTest {
         assertEquals(900.0, s.lowLimitMaxHz, 0.0)
         assertTrue(s.protectiveHighPass)
         assertTrue(CorrectionPlanner.forceLimiter(indoor, device))
+        // Gain staging: the near-field excesses are corrected to 75 % and the perceived level loss of
+        // those cuts is made up - a self-calibration must not make the phone quieter.
+        assertEquals(0.75, s.cutTrust, 0.0)
+        assertTrue(s.loudnessMakeUp)
+        assertEquals(PreampPlanner.MAX_MAKE_UP_DB, s.maxMakeUpDb, 0.0)
+        assertEquals(PreampPlanner.LIMITER_HEADROOM_ALLOWANCE_DB, s.preampHeadroomAllowanceDb, 0.0)
+        // Near field: bass smoothed hard (pressure zone), midrange/treble finer than a room measurement.
+        assertEquals(SmoothingProfile.DEVICE, CorrectionPlanner.smoothing(SmoothingProfile.DYNAMIC, indoor, device))
         assertTrue(device.singlePosition)
         assertTrue(device.forcePhoneMic)
-        assertEquals(VolumeMath.DEVICE_MEASUREMENT_FRACTION, device.measurementVolumeFraction)
+        assertEquals(
+            VolumeMath.DEVICE_MEASUREMENT_FRACTION.toDouble(),
+            device.measurementVolumeFraction?.toDouble() ?: -1.0,
+            0.0,
+        )
     }
 
     @Test

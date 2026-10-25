@@ -644,6 +644,10 @@ class EqService : Service() {
                 if (dynamicsManager.isActive) {
                     loadPersistedParametricEq()?.let { eq ->
                         val p = EqPreferencesManager(this)
+                        // Gain authority (AutoVybz: the calibration owns pre-gain and limiter, and the
+                        // engine's own auto-gain is switched off for its presets). Set before the band
+                        // write below - that is where auto-gain shifts the whole curve.
+                        dynamicsManager.autoGainEnabled = p.getAutoGainEnabled()
                         // "bands" holds the selected channel — never push it to both while CSE is on.
                         val cse = loadChannelSideEqs(p)
                         if (cse != null) {
@@ -656,6 +660,17 @@ class EqService : Service() {
                             dynamicsManager.preampGainDb = p.getPreampGain()
                             dynamicsManager.updateFromEqualizer(eq)
                         }
+                        // The rest of the gain staging belongs to the preset as well: device / rescue /
+                        // outdoor calibrations arm the limiter. Without this read-back a live apply kept
+                        // whatever the running chain happened to have, so a preset that promises a limiter
+                        // stayed unprotected until the next full restart.
+                        dynamicsManager.limiterEnabled = p.getLimiterEnabled()
+                        dynamicsManager.limiterThresholdDb = p.getLimiterThreshold()
+                        dynamicsManager.limiterRatio = p.getLimiterRatio()
+                        dynamicsManager.limiterAttackMs = p.getLimiterAttack()
+                        dynamicsManager.limiterReleaseMs = p.getLimiterRelease()
+                        dynamicsManager.limiterPostGainDb = p.getLimiterPostGain()
+                        if (dynamicsManager.isActive) dynamicsManager.pushLimiterUpdate()
                     }
                 }
                 return START_STICKY

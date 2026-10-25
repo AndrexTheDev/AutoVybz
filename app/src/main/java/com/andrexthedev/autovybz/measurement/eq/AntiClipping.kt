@@ -22,7 +22,11 @@ object AntiClipping {
         return r.maxOrNull() ?: 0.0
     }
 
-    /** Pre-gain in dB (<= 0), rounded *down* to 0.1 dB. */
+    /**
+     * Clipping-safe pre-gain in dB (<= 0), rounded *down* to 0.1 dB. Use [PreampPlanner.plan] for a
+     * finished correction: it starts from this value and adds the loudness make-up (a cut-only
+     * correction otherwise makes the speaker noticeably quieter).
+     */
     fun preampFor(maxBoostDb: Double, headroomDb: Double = 0.5): Double {
         if (maxBoostDb <= 0.0) return 0.0
         return -ceil((maxBoostDb + headroomDb) * 10.0) / 10.0

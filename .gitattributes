@@ -29,3 +29,8 @@
 *.apk           binary
 *.jks           binary
 *.keystore      binary
+*.mp4           binary
+*.webm          binary
+*.mov           binary
+*.ogg           binary
+*.opus          binary

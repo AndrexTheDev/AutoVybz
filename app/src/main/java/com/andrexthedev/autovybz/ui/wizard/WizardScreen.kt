@@ -792,13 +792,23 @@ private fun ResultStep(
                 R.plurals.avz_result_summary,
                 e.bands.size,
                 e.bands.size,
-                fmt1(e.preampDb),
+                fmtSigned1(e.preampDb),
                 fmt1(e.rmsErrorBeforeDb),
                 fmt1(e.rmsErrorAfterDb),
             ),
             style = MaterialTheme.typography.bodyMedium,
             color = AutoVybzColors.OnDarkMuted,
         )
+        // A correction that (mostly) cuts is loudness-compensated; say so, otherwise "pre-gain +4.6 dB"
+        // looks like an error to anyone who expects a negative pre-gain.
+        if (e.makeUpDb >= 0.5) {
+            Text(
+                stringResource(R.string.avz_result_loudness_makeup, fmtSigned1(e.makeUpDb)),
+                style = MaterialTheme.typography.bodyMedium,
+                color = AutoVybzColors.GreenBright,
+                modifier = Modifier.testTag("avz:result:makeup"),
+            )
+        }
         if (o.positions > 1) {
             Text(
                 stringResource(R.string.avz_result_positions, o.positions, fmt1(o.positionSpreadDb ?: 0.0)),
@@ -874,7 +884,7 @@ private fun ResultStep(
                 Spacer(Modifier.width(10.dp))
                 Text(stringResource(R.string.avz_out_result_title), style = MaterialTheme.typography.titleMedium)
             }
-            Text(stringResource(R.string.avz_out_result_loudness, fmt1(e.preampDb)), style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(R.string.avz_out_result_loudness, fmtSigned1(e.preampDb)), style = MaterialTheme.typography.bodyMedium)
             Text(stringResource(R.string.avz_out_result_limiter), style = MaterialTheme.typography.bodyMedium)
             Text(stringResource(R.string.avz_out_party_tip), style = MaterialTheme.typography.bodyMedium, color = AutoVybzColors.GreenBright)
             if (o.positions < 2) {
@@ -1194,3 +1204,6 @@ private fun formatRange(lo: Double, hi: Double): String {
 private const val HIGH_POSITION_SPREAD_DB = 4.0
 
 private fun fmt1(v: Double) = String.format(Locale.getDefault(), "%.1f", v)
+
+/** Like [fmt1] but always with a sign - a pre-gain may be a *boost* since the loudness make-up. */
+private fun fmtSigned1(v: Double) = String.format(Locale.getDefault(), "%+.1f", v)

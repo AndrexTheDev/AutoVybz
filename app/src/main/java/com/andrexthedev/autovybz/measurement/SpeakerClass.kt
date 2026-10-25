@@ -3,6 +3,7 @@ package com.andrexthedev.autovybz.measurement
 import com.andrexthedev.autovybz.measurement.audio.VolumeMath
 import com.andrexthedev.autovybz.measurement.dsp.SmoothingProfile
 import com.andrexthedev.autovybz.measurement.eq.AutoEqSettings
+import com.andrexthedev.autovybz.measurement.eq.PreampPlanner
 import com.andrexthedev.autovybz.measurement.eq.TargetType
 import kotlin.math.max
 import kotlin.math.min
@@ -50,6 +51,11 @@ data class SpeakerClassTuning(
     val lowLimitMaxHz: Double? = null,
     /** Cut sub-bass the driver cannot reproduce instead of letting it rattle (see AutoEqRenderer). */
     val protectiveHighPass: Boolean = false,
+    /**
+     * Fraction of a measured excess that is corrected (0.1..1.0); see [AutoEqSettings.cutTrust].
+     * `null` = full correction. Every dB cut in the ear's most sensitive band costs perceived loudness.
+     */
+    val cutTrust: Double? = null,
     /** Arm the limiter whenever such a calibration is activated. */
     val forceLimiter: Boolean = false,
     /** Target the wizard pre-selects for this class (the user can still change it). */
@@ -83,7 +89,9 @@ data class SpeakerClassTuning(
         )
 
         private val DEVICE = SpeakerClassTuning(
-            smoothing = SmoothingProfile.STRONG,
+            // Near field: bass smoothed hard (pressure zone + chassis vibration), midrange/treble fine
+            // (no room, no reflections) - see SmoothingProfile.DEVICE.
+            smoothing = SmoothingProfile.DEVICE,
             // Tiny drivers already run at their limit (OEM DSP); boosts mostly buy distortion.
             maxBoostCapDb = 4.0,
             // Above ~12 kHz the self-measurement says more about chassis diffraction than sound.
@@ -97,6 +105,10 @@ data class SpeakerClassTuning(
             lowLimitMaxHz = 900.0,
             protectiveHighPass = true,
             forceLimiter = true,
+            // A self-measurement at 1-15 cm overstates the presence region, and every dB cut around
+            // 1-4 kHz costs several dB of perceived loudness: correct 75 % of a measured excess. The
+            // remaining 25 % is what the manufacturer's own tuning usually leaves in, too.
+            cutTrust = 0.75,
             suggestedTarget = TargetType.HARMAN,
             // The microphone sits centimetres from the speaker: 50 % is plenty of level
             // (70 % would risk clipping the mic and exciting chassis rattles).
@@ -143,5 +155,16 @@ object CorrectionPlanner {
         lowLimitScanHz = speakerClass.lowLimitScanHz ?: 200.0, // = AutoEqSettings default
         lowLimitMaxHz = speakerClass.lowLimitMaxHz ?: 160.0, // = AutoEqSettings default
         protectiveHighPass = speakerClass.protectiveHighPass,
+        cutTrust = (speakerClass.cutTrust ?: 1.0).coerceIn(0.1, 1.0), // = AutoEqSettings default
+        // Gain staging (PreampPlanner): undo the perceived level loss of cuts, and - only where the preset
+        // arms the limiter anyway - let the make-up use a bounded share of the limiter's headroom. A
+        // calibration must make the speaker better, not quieter.
+        loudnessMakeUp = true,
+        maxMakeUpDb = PreampPlanner.MAX_MAKE_UP_DB,
+        preampHeadroomAllowanceDb = if (forceLimiter(environment, speakerClass)) {
+            PreampPlanner.LIMITER_HEADROOM_ALLOWANCE_DB
+        } else {
+            0.0 // no limiter armed -> the clipping-safe pre-gain is the last line of defence
+        },
     )
 }

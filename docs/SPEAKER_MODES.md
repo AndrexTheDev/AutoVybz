@@ -7,15 +7,17 @@ The optimal correction strategy differs fundamentally:
 | | External speaker (`STANDARD`) | Weak / cheap speaker (`RESCUE`) | This phone / tablet (`DEVICE`) |
 |---|---|---|---|
 | Goal | precise correction | mask the flaws, accept the limits | calibrate the built-in speakers with the built-in mic |
-| Smoothing (auto) | dynamic | strong (⅔–1½ oct) | strong |
+| Smoothing (auto) | dynamic | strong (⅔–1½ oct) | **near-field** (`SmoothingProfile.DEVICE`: 1 oct ≤ 400 Hz, 1/3 oct ≥ 700 Hz) |
 | Max boost | user (6 dB default) | user (unchanged) | **4 dB cap** |
 | Max cut | 12 dB | **16 dB** | 12 dB |
+| Cut trust | 100 % | 100 % | **75 %** (near field overstates presence peaks) |
 | Broad boosts only | outdoors only | **always (1 oct median)** | **always** |
 | Excursion ramp | 1 oct (1.5 outdoors) | ≥ 1.5 oct | **2 oct** |
 | Correction top | 16 kHz | 16 kHz | **12 kHz** |
 | Roll-off scan | from 200 Hz, clamp ≤ 160 Hz | from 400 Hz, ≤ 350 Hz | from 1.2 kHz, ≤ 900 Hz |
 | Protective high pass | – | **yes** | **yes** |
 | Limiter forced | outdoors only | **yes** | **yes** |
+| Loudness make-up | – | **up to +6 dB** | **up to +6 dB** |
 | Pre-selected target | user default | Harman | Harman |
 | Measurement | 70 % volume, 1–3 positions | 70 %, 1–3 positions | **50 %, 1 position, phone mic** |
 
@@ -76,7 +78,12 @@ Limitations, honestly stated, and how the strategy is built around them:
   exaggerates low frequencies and picks up structure-borne chassis vibration below
   ~300 Hz. Above ~12 kHz chassis diffraction dominates the reading.
   → Correction is band-limited to [measured roll-off … 12 kHz], boosts capped at
-  4 dB with a 2-octave excursion ramp, strong smoothing (tonal shape only).
+  4 dB with a 2-octave excursion ramp, near-field smoothing (`SmoothingProfile.DEVICE`:
+  one octave up to 400 Hz - pressure zone and chassis vibration - and 1/3 octave from
+  700 Hz up, so a phone's genuinely narrow midrange/treble features stay visible instead
+  of being averaged into a gentle tilt like the 1/2 octave of a boomy room), and
+  cuts limited to 75 % of the measured excess (`cutTrust`): the near field overstates the
+  presence region, and every dB cut there costs perceived loudness.
 * **Tiny drivers have no bass to correct** (phones roll off ~400–900 Hz, tablets
   ~150–350 Hz – measured per device by the widened roll-off scan, never guessed).
   → The protective high pass at the measured −6 dB point is the main quality lever:
@@ -91,9 +98,11 @@ Limitations, honestly stated, and how the strategy is built around them:
   deterministically clipping again.
 * **Stereo phones** (earpiece + bottom speaker): the bottom mic mostly hears the
   bottom speaker; the earpiece arrives ~0.4 ms later and quieter, which would comb
-  the raw curve. The strong smoothing averages that ripple out, and the (stereo-linked)
+  the raw curve. The 1/3-octave near-field smoothing averages that ripple out, and the (stereo-linked)
   EQ corrects the shared tonal shape – the dominant defects (LF distortion load,
   midrange shout) are common to both drivers anyway.
+* **Gain staging** — see the section above: the calibration is loudness-neutral by design,
+  otherwise a correct tonal correction reads as "much quieter and less detailed".
 * **OEM speaker DSP is level-dependent** (dynamic bass/loudness processing). The
   calibration is exact at the measured volume and a good approximation around it;
   the help text says so.
@@ -103,6 +112,45 @@ Limitations, honestly stated, and how the strategy is built around them:
 The result is a normal AutoVybz profile (stored with `speakerClass = DEVICE`, tagged
 in the Pro list). Like every calibration it applies until the user selects another
 profile – e.g. when an external speaker is connected again.
+
+## Gain staging: why a correction made the phone quieter
+
+The classic anti-clipping rule is "pre-gain = −(largest boost + 0.5 dB)". It is correct for a
+correction that *boosts*, but it silently punished the most common device-speaker correction:
+the ear is most sensitive between 1 and 4 kHz, so a near-field measurement of a phone speaker
+shows a presence excess there, and correcting it means cutting exactly the band that carries
+perceived loudness. Measured with the model used by the tests, a typical phone correction
+(−1.6 … −4.3 dB of A-weighted level) combined with the old pre-gain (−3.5 dB) made playback
+**3–5 dB quieter**, and because quiet means less detail at both ends of the spectrum
+(equal-loudness contours), it also sounded *duller* – "the calibration takes the details away".
+
+`PreampPlanner` implements the policy that fixes this:
+
+1. **Clipping-safe value** (unchanged, `Plan.clippingSafeDb`): `−(peak + 0.5 dB)` if the
+   correction boosts anywhere, else 0 dB. `peak` comes from `AntiClipping.maxBoostDb`, i.e. the
+   analytic maximum of the whole chain (24 points/octave over 20 Hz–20 kHz, protective high pass
+   included), not just the render grid.
+2. **Loudness compensation** (`Plan.makeUpDb`): the perceived level change of the correction is
+   estimated on the *predicted* response (measurement + correction, A-weighted pink programme
+   spectrum on a 1/3-octave grid 40 Hz–16 kHz) and undone – upwards only, at most
+   `MAX_MAKE_UP_DB` (6 dB). A correction that gets louder is never pulled back down.
+3. **Headroom allowance** (`preampHeadroomAllowanceDb`): the make-up is *added to* the
+   clipping-safe value, never instead of it, and only by this much. It is 6 dB exactly for the
+   presets that force the limiter (device, rescue, outdoor), because there the limiter
+   (−1 dB, 10:1) is the actual peak protection – a 10:1 limiter maps a +6 dB over-shoot to
+   −0.4 dBFS, so the static over-shoot is bounded and cannot clip. For every other preset the
+   allowance is 0 and the pre-gain is bit-identical to the old value, so external speakers keep
+   the classic behaviour.
+
+The result screen shows the value (signed, e.g. `+4.3 dB`) and adds a green line whenever the
+make-up is at least 0.5 dB, so a positive pre-gain does not look like a bug. `PreampPlannerTest`
+pins the invariants: without an allowance the legacy value is reproduced exactly, a cut-only
+correction comes out loudness-neutral (|Δ| < 0.5 dB), the make-up never reduces the clipping
+protection of a genuine boost, and the static over-shoot never exceeds the allowance.
+`SoundComposer` moves the same make-up through style layering, and `AutoVybzPresetStore` switches
+the inherited DP *auto-gain* off for AutoVybz presets — it shifts the whole curve by the largest
+boost, which would otherwise undo the make-up a second time (the wizard path also re-reads the
+gain-staging and limiter settings when a profile is applied to a running engine).
 
 ## Roll-off detection (shared improvement)
 

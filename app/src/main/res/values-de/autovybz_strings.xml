@@ -349,7 +349,7 @@
     <string name="avz_warn_dropout">Das Signal ist kurz ausgefallen – typisch für Bluetooth am Rand der Reichweite. Geh mit dem Handy näher an die Box und miss neu.</string>
     <string name="avz_result_gated">Wegen Störgeräuschen nicht korrigiert: %1$s</string>
     <string name="avz_out_result_title">Outdoor-Modus</string>
-    <string name="avz_out_result_loudness">Vorabsenkung (Preamp) nur %1$s dB: Draußen hebt AutoVybz höchstens 3 dB an und senkt lieber ab – so bleibt dir die Lautstärke für die Party.</string>
+    <string name="avz_out_result_loudness">Vorverstärkung %1$s dB: Draußen hebt AutoVybz höchstens 3 dB an und senkt lieber ab, der Lautheits-Ausgleich hält dir die Lautstärke für die Party.</string>
     <string name="avz_out_result_limiter">Der Limiter wird beim Aktivieren automatisch eingeschaltet und schützt die Box bei Party-Lautstärke.</string>
     <string name="avz_out_party_tip">Party-Tipp: Mehr Bass gibt es gratis durch die Aufstellung – Box auf den Boden (bis +6 dB) oder nah an eine Wand. Danach neu messen.</string>
     <string name="avz_out_single_position">Draußen ist eine einzelne Position unsicher (Bodenreflexion). Mit 3 Positionen wird das Ergebnis deutlich genauer.</string>
@@ -405,6 +405,7 @@
     <string name="avz_result_highpass">Schutz-Hochpass bei %1$d Hz: Bass darunter wird entfernt, weil der Lautsprecher ihn ohnehin nicht wiedergeben kann und dabei nur verzerrt.</string>
     <string name="avz_result_limiter">Der Limiter wird mit dieser Kalibrierung automatisch aktiviert und schützt den Lautsprecher bei hoher Lautstärke.</string>
     <string name="avz_result_device_profile">Dieses Profil ist auf die Lautsprecher dieses Geräts abgestimmt. Wenn du wieder über einen externen Lautsprecher hörst, wechsle zurück zu dessen Profil.</string>
+    <string name="avz_result_loudness_makeup">Lautheits-Ausgleich %1$s dB: Die Korrektur bleibt so laut wie vorher, und der Limiter bleibt als Sicherheitsnetz aktiv.</string>
     <string name="avz_help_rescue_title">Schwache Lautsprecher retten</string>
     <string name="avz_help_rescue_body">Wähle den Lautsprecher-Typ für schwache oder billige Lautsprecher und miss wie gewohnt. AutoVybz greift dann entschlossener ein: Dröhnender Bass und schrille Mitten werden tiefer geschnitten, fehlende Höhen breit angehoben, und ein Schutz-Hochpass entfernt Tiefbass, den der kleine Treiber nicht wiedergeben kann – allein das nimmt den größten Teil von Klappern und Verzerrung und schafft Platz für saubere Lautstärke. Physik bleibt Physik: Echter Tiefbass entsteht nicht, aber ausgewogen und klar ist sehr wohl möglich.</string>
     <string name="avz_help_device_title">Dieses Handy oder Tablet kalibrieren</string>
