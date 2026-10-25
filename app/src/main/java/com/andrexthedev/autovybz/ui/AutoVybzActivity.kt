@@ -26,6 +26,7 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -49,6 +50,7 @@ import com.andrexthedev.autovybz.measurement.ListeningEnvironment
 import com.andrexthedev.autovybz.measurement.audio.EqBypass
 import com.andrexthedev.autovybz.ui.about.AboutScreen
 import com.andrexthedev.autovybz.ui.components.AutoVybzHeader
+import com.andrexthedev.autovybz.ui.components.StickyFooterBanner
 import com.andrexthedev.autovybz.ui.components.VybzIcons
 import com.andrexthedev.autovybz.ui.home.SoundScreen
 import com.andrexthedev.autovybz.ui.intro.IntroGate
@@ -162,22 +164,27 @@ private fun AutoVybzApp(startTab: Tab, wizardContent: @Composable (openHelp: () 
             else AutoVybzHeader(subtitle = stringResource(R.string.avz_tagline), compact = compactHeader)
         },
         bottomBar = {
-            if (!compact) NavigationBar(containerColor = AutoVybzColors.BackgroundDeep) {
-                for (t in Tab.values()) {
-                    NavigationBarItem(
-                        selected = t == tab,
-                        onClick = { tabIndex = t.ordinal },
-                        modifier = Modifier.testTag("avz:tab:${t.name}"),
-                        icon = { Icon(t.icon, contentDescription = null) },
-                        label = { Text(stringResource(t.label), style = navLabel(), maxLines = 1) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = AutoVybzColors.OnGreen,
-                            selectedTextColor = AutoVybzColors.Green,
-                            indicatorColor = AutoVybzColors.Green,
-                            unselectedIconColor = AutoVybzColors.OnDarkMuted,
-                            unselectedTextColor = AutoVybzColors.OnDarkMuted,
-                        ),
-                    )
+            Column(Modifier.fillMaxWidth()) {
+                // Permanent footer slot: composed once by the shell, above the portrait navigation and also
+                // present when compact landscape layouts move navigation into the side rail.
+                StickyFooterBanner()
+                if (!compact) NavigationBar(containerColor = AutoVybzColors.BackgroundDeep) {
+                    for (t in Tab.values()) {
+                        NavigationBarItem(
+                            selected = t == tab,
+                            onClick = { tabIndex = t.ordinal },
+                            modifier = Modifier.testTag("avz:tab:${t.name}"),
+                            icon = { Icon(t.icon, contentDescription = null) },
+                            label = { Text(stringResource(t.label), style = navLabel(), maxLines = 1) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = AutoVybzColors.OnGreen,
+                                selectedTextColor = AutoVybzColors.Green,
+                                indicatorColor = AutoVybzColors.Green,
+                                unselectedIconColor = AutoVybzColors.OnDarkMuted,
+                                unselectedTextColor = AutoVybzColors.OnDarkMuted,
+                            ),
+                        )
+                    }
                 }
             }
         },

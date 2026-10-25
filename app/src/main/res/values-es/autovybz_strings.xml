@@ -7,6 +7,7 @@
     <string name="avz_nav_about">Info</string>
     <string name="avz_nav_home">Sonido</string>
     <string name="avz_tagline">Tu altavoz, perfectamente ajustado</string>
+    <string name="avz_sticky_footer_placeholder">Espacio para banner</string>
     <string name="avz_intro_skip">Saltar</string>
     <string name="avz_intro_a11y">Intro de AutoVybz. Toca para saltar.</string>
     <string name="avz_home_title">Tu sonido</string>

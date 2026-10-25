@@ -7,6 +7,7 @@
     <string name="avz_nav_about">Info</string>
     <string name="avz_nav_home">Sound</string>
     <string name="avz_tagline">Dein Lautsprecher, perfekt abgestimmt</string>
+    <string name="avz_sticky_footer_placeholder">Banner-Platzhalter</string>
     <string name="avz_intro_skip">Überspringen</string>
     <string name="avz_intro_a11y">AutoVybz-Intro. Tippen zum Überspringen.</string>
     <string name="avz_home_title">Dein Sound</string>
