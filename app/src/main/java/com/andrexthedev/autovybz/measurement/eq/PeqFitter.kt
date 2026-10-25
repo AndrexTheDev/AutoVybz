@@ -158,6 +158,8 @@ class PeqFitter(
         PeqType.PEAK -> constraints.minFrequency to constraints.maxFrequency
         PeqType.LOW_SHELF -> max(constraints.minFrequency, 30.0) to 400.0
         PeqType.HIGH_SHELF -> 2000.0 to max(2500.0, constraints.maxFrequency)
+        // Never fitted (candidates are peaks/shelves only); bounds exist for exhaustiveness.
+        PeqType.HIGH_PASS -> constraints.minFrequency to 1000.0
     }
 
     private fun qBounds(type: PeqType): Pair<Double, Double> = when (type) {

@@ -10,6 +10,23 @@ import kotlin.random.Random
 class BiquadParityTest {
 
     @Test
+    fun highPassMatchesEqualizer314() {
+        val rnd = Random(11)
+        repeat(50) {
+            val f = 30.0 * Math.pow(30.0, rnd.nextDouble()) // 30..900 Hz (protective-pass range)
+            val q = rnd.nextDouble(0.5, 1.5)
+            // Gain is meaningless for a pass - both implementations must ignore it.
+            val upstream = BiquadFilter(f.toFloat(), 7.5f, BiquadFilter.FilterType.HIGH_PASS, 48000, q)
+            val band = PeqBand(PeqType.HIGH_PASS, f.toFloat().toDouble(), 0.0, q)
+            for (probe in listOf(20.0, 40.0, 80.0, 160.0, 320.0, 640.0, 1280.0, 4000.0)) {
+                val expected = 20.0 * log10(upstream.getFrequencyResponse(probe.toFloat()).toDouble())
+                assertEquals("$band @ $probe Hz", expected, BiquadMath.magnitudeDb(band, probe), 1e-3)
+            }
+        }
+    }
+
+
+    @Test
     fun matchesEqualizer314BiquadFilter() {
         val rnd = Random(7)
         val types = mapOf(

@@ -25,7 +25,12 @@ object PresetExporters {
         comment?.lineSequence()?.forEach { appendLine("# $it") }
         appendLine("Preamp: ${fmt1(preampDb)} dB")
         bands.forEachIndexed { i, b ->
-            appendLine("Filter ${i + 1}: ON ${b.type.apoCode} Fc ${fmtFreq(b.frequency)} Hz Gain ${fmt1(b.gainDb)} dB Q ${fmt2(b.q)}")
+            // APO passes (HPQ) have no Gain token - upstream PresetFileIo agrees (hasGain=false).
+            if (b.type == PeqType.HIGH_PASS) {
+                appendLine("Filter ${i + 1}: ON ${b.type.apoCode} Fc ${fmtFreq(b.frequency)} Hz Q ${fmt2(b.q)}")
+            } else {
+                appendLine("Filter ${i + 1}: ON ${b.type.apoCode} Fc ${fmtFreq(b.frequency)} Hz Gain ${fmt1(b.gainDb)} dB Q ${fmt2(b.q)}")
+            }
         }
     }
 
@@ -69,7 +74,8 @@ object PresetExporters {
         var preamp = 0.0
         val bands = mutableListOf<PeqBand>()
         val preampRe = Regex("""(?i)^\s*preamp\s*:\s*(-?[\d.]+)\s*db""")
-        val filterRe = Regex("""(?i)^\s*filter\s*\d*\s*:\s*on\s+(\w+)\s+fc\s+([\d.]+)\s*hz\s+gain\s+(-?[\d.]+)\s*db\s+q\s+([\d.]+)""")
+        // The Gain token is optional: passes (HPQ) don't have one.
+        val filterRe = Regex("""(?i)^\s*filter\s*\d*\s*:\s*on\s+(\w+)\s+fc\s+([\d.]+)\s*hz(?:\s+gain\s+(-?[\d.]+)\s*db)?\s+q\s+([\d.]+)""")
         // Imported files come from anywhere: malformed numbers ("1.2.3", "-") and values no filter can
         // realise (Fc 0 Hz, Q 0, +100 dB) are skipped instead of crashing or producing NaN coefficients.
         for (line in text.lineSequence()) {
@@ -77,7 +83,8 @@ object PresetExporters {
             filterRe.find(line)?.let { m ->
                 val type = PeqType.fromApoCode(m.groupValues[1]) ?: return@let
                 val fc = m.groupValues[2].toDoubleOrNull()?.takeIf { it > 0.0 && it < 24_000.0 } ?: return@let
-                val gain = m.groupValues[3].toDoubleOrNull()?.takeIf { it in -30.0..30.0 } ?: return@let
+                val gain = m.groupValues[3].toDoubleOrNull()?.takeIf { it in -30.0..30.0 }
+                    ?: if (type == PeqType.HIGH_PASS) 0.0 else return@let
                 val q = m.groupValues[4].toDoubleOrNull()?.takeIf { it > 0.0 && it <= 100.0 } ?: return@let
                 bands += PeqBand(type, fc, gain, q)
             }

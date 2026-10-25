@@ -64,12 +64,14 @@ data class AutoVybzPreset(
             PeqType.PEAK -> "BELL"
             PeqType.LOW_SHELF -> "LOW_SHELF"
             PeqType.HIGH_SHELF -> "HIGH_SHELF"
+            PeqType.HIGH_PASS -> "HIGH_PASS"
         }
 
         fun peqTypeFromFilterTypeName(name: String): PeqType? = when (name) {
             "BELL" -> PeqType.PEAK
             "LOW_SHELF" -> PeqType.LOW_SHELF
             "HIGH_SHELF" -> PeqType.HIGH_SHELF
+            "HIGH_PASS" -> PeqType.HIGH_PASS
             else -> null
         }
     }

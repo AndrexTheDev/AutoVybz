@@ -13,13 +13,21 @@ import kotlin.math.sqrt
 enum class PeqType(val apoCode: String) {
     PEAK("PK"),
     LOW_SHELF("LSC"),
-    HIGH_SHELF("HSC");
+    HIGH_SHELF("HSC"),
+
+    /**
+     * 2nd-order high pass (12 dB/oct). Never produced by [PeqFitter] - used only as the
+     * protective sub-bass cut of the rescue / device-speaker strategies (see AutoEqRenderer).
+     * [PeqBand.gainDb] is meaningless for it and kept at 0.
+     */
+    HIGH_PASS("HPQ");
 
     companion object {
         fun fromApoCode(code: String): PeqType? = when (code.uppercase()) {
             "PK", "PEQ" -> PEAK
             "LSC", "LS" -> LOW_SHELF
             "HSC", "HS" -> HIGH_SHELF
+            "HPQ" -> HIGH_PASS
             else -> null
         }
     }
@@ -35,8 +43,8 @@ data class PeqBand(
 
 /**
  * RBJ biquad magnitude maths. Coefficients are *identical* to
- * com.bearinmind.equalizer314.dsp.BiquadFilter (BELL / LOW_SHELF / HIGH_SHELF,
- * non-Vicanek bell), so a preset rendered here sounds exactly like the curve
+ * com.bearinmind.equalizer314.dsp.BiquadFilter (BELL / LOW_SHELF / HIGH_SHELF /
+ * HIGH_PASS, non-Vicanek bell), so a preset rendered here sounds exactly like the curve
  * the Equalizer314 engine plays (see BiquadParityTest).
  */
 object BiquadMath {
@@ -75,6 +83,17 @@ object BiquadMath {
                     (a + 1) - (a - 1) * cw + beta * sw,
                     2 * ((a - 1) - (a + 1) * cw),
                     (a + 1) - (a - 1) * cw - beta * sw,
+                )
+            }
+            PeqType.HIGH_PASS -> {
+                val alpha = sw / (2.0 * band.q)
+                doubleArrayOf(
+                    (1.0 + cw) / 2.0,
+                    -(1.0 + cw),
+                    (1.0 + cw) / 2.0,
+                    1.0 + alpha,
+                    -2.0 * cw,
+                    1.0 - alpha,
                 )
             }
         }
