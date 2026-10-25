@@ -103,6 +103,13 @@ fun ExportButton(
             Icon(Icons.Filled.ArrowDropDown, contentDescription = null)
         }
         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+            if (!externalExportsEnabled) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.avz_premium_locked_exports)) },
+                    onClick = { menu = false; onOpenPremium() },
+                    modifier = Modifier.testTag("avz:export:LOCKED"),
+                )
+            }
             DropdownMenuItem(text = { Text(stringResource(R.string.avz_export_apo)) }, onClick = { start(ExportFormat.APO) }, modifier = Modifier.testTag("avz:export:APO"))
             DropdownMenuItem(text = { Text(stringResource(R.string.avz_export_json)) }, onClick = { start(ExportFormat.PEQ_JSON) }, modifier = Modifier.testTag("avz:export:PEQ_JSON"))
             if (preset()?.measurement != null) {
