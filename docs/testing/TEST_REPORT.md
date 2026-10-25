@@ -11,6 +11,36 @@ the temporary screenshot matrix (END_USER_TEST Part A) and the history of fiftee
 screenshot matrix itself is **temporary**: it is part of the campaign's results bundle and of
 `tmp_screenshot_matrix/` (git-ignored). It is never committed.
 
+## 0. Rebrand pass (task 6) – campaigns 16–20
+
+Tested commit: `d12ddc9` · CI run `40173601506` ✅ · Beta test campaign run `40173601500` ✅ (all six jobs green).
+Scope: intro video, Vybz Slate design + Outfit typeface, Sound start screen (speaker profiles, 14 genre styles),
+Studio, dark-only theme, inherited engine screens re-themed to slate, share card + landing page restyle.
+Sections 1–9 below describe the earlier campaign on `1d59823` and stay valid for everything not listed here.
+
+| | Result on `d12ddc9` |
+|---|---|
+| JVM | **129 tests / 26 classes**, 0 failed (new: `SoundStyleTest` 10, `InheritedPaletteAuditTest` 3, `LicenseAuditTest.bundledFontsAreOflAndCredited`) |
+| Functional E2E | **76/76** on API 28, 30 and 35 (+ permission 1/1, tour smoke **8/8** each; new: `SoundE2ETest` 4, `IntroE2ETest` 4, tour `t08_soundStyles`) |
+| Screenshot matrix | **7/7 configurations, 609 screenshots**, 27/27 screen tests per configuration |
+| Accessibility | **0 findings in 7/7 configurations**, incl. the new Sound and Studio screens at 130 % font on a small phone |
+| Robustness | monkey 4000 events: API 28 ✅, API 35 ✅, API 30 ⚠️ SystemUI ANR (NotificationShade) while the AutoVybz main thread was drawing normally – no AutoVybz ANR, 0 FATAL, 0 StrictMode lines |
+| Static | Lint AutoVybz **0 findings** (inherited 427), OSV 0 advisories (115 artifacts), secrets 0, APK 38.1 MB / 60 MB, website audit 0/0 |
+| Cold start (TotalTime ms, 3 runs) | API 28: 2803 / 1942 / 1711 · API 30: 1243 / 1328 / 1340 · API 35: 1958 / 1743 / 1665 |
+| PSS after start | API 28: 61092 kB · API 30: 58402 kB · API 35: 72114 kB |
+
+| # | Commit | Run | Result | Consequence |
+|---|---|---|---|---|
+| 16 | `4319a09` | `40142539340` | ✅ all green; API 30 monkey ⚠️ SystemUI ANR, app thread busy in text layout | ring pulse recomposed the whole card every frame → draw-phase pulse (17) |
+| 17 | `a7fec33` | `40145132584` (cancelled after the device jobs) | ❌ API 30 monkey: AutoVybz ANR in Compose frame dispatch | every style/profile tap rebuilt the engine's DSP chain → coalesced engine updates, debounced power ring, draw-phase pulse |
+| 18 | `a081f58` | `40147235288` | ❌ API 28 75/76: safety-start tap swallowed on the slow emulator; API 30 ⚠️ SystemUI ANR, app idle | robot retries a swallowed start tap once (logged, only if the screen did not move, never unticks) |
+| 19 | `4cc2905` | `40150193925` | ❌ API 30 monkey: AutoVybz ANR blocked in a system IME binder call | engine writes spaced ≥ 700 ms (last state always lands), power toggles ≥ 1.2 s |
+| 20 | `d12ddc9` | `40173601500` | ✅ all green; API 30 ⚠️ SystemUI ANR, app drawing normally | – |
+
+Open observation: the API 30 emulator's SystemUI (notification shade) has hit input timeouts under the monkey in
+every run of this pass, while campaign 15 on the old UI was clean. AutoVybz itself is no longer involved (no own ANR in
+campaigns 18 and 20); it is still recorded as ⚠️ and should be watched in the closed beta (ANR gate < 0.47 %).
+
 ## 1. Verdict
 
 **Ready for the closed beta (phase 1 of BETA_TEST_PLAN).** Every automated layer is green on the tested commit.
