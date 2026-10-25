@@ -55,8 +55,20 @@ jobs:
       - name: Release build smoke test (R8 + shrinkResources)
         run: |
           set -o pipefail
-          if ! ./gradlew assembleRelease --no-daemon --console=plain 2>&1 | tee release.log; then
-            grep -E '^e: |error:|FAILED|What went wrong|Missing class|Exception' release.log | head -60 | sed 's/^/::error::/'
+          if ! ./gradlew assembleRelease --no-daemon --console=plain --stacktrace 2>&1 | tee release.log; then
+            grep -n -A60 "What went wrong" release.log | head -80 | sed 's/^/::error::/'
+            ls -la app/build/intermediates/merged_java_res/release/ 2>&1 | sed 's/^/::error::/'
+            python3 - <<'PYEOF' 2>&1 | sed 's/^/::error::/'
+          import zipfile, collections
+          p = 'app/build/intermediates/merged_java_res/release/base.jar'
+          try:
+              z = zipfile.ZipFile(p)
+              names = z.namelist()
+              print(f"base.jar OK: {len(names)} entries, dupes={[n for n,c in collections.Counter(names).items() if c>1][:10]}")
+          except Exception as e:
+              import os
+              print(f"base.jar UNREADABLE: {e!r} size={os.path.getsize(p) if os.path.exists(p) else 'MISSING'}")
+          PYEOF
             exit 1
           fi
           ls -la app/build/outputs/apk/release/
