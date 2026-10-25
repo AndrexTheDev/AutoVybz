@@ -19,6 +19,7 @@ ClaudeWebHelp/
 # Local working notes — not published (published docs are whitelisted explicitly)
 docs/*
 !docs/OUTDOOR.md
+!docs/SPEAKER_MODES.md
 !docs/MIC_PROFILES.md
 !docs/UPSTREAM_README.md
 !docs/upstream_changelogs/
