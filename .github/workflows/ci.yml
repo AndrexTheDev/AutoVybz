@@ -52,6 +52,27 @@ jobs:
           python3 tools/autoeq/pack_autoeq.py
           git diff --exit-code app/src/main/assets/autoeq/autoeq.bin
 
+      - name: Release build smoke test (R8 + shrinkResources)
+        run: |
+          set -o pipefail
+          if ! ./gradlew assembleRelease --no-daemon --console=plain 2>&1 | tee release.log; then
+            grep -E '^e: |error:|FAILED|What went wrong|Missing class|Exception' release.log | head -60 | sed 's/^/::error::/'
+            exit 1
+          fi
+          ls -la app/build/outputs/apk/release/
+          python3 - <<'PYEOF' >>"$GITHUB_STEP_SUMMARY"
+          import glob, zipfile
+          a = glob.glob('app/build/outputs/apk/release/*.apk')[0]
+          z = zipfile.ZipFile(a)
+          infos = z.infolist()
+          libs = sorted({i.filename.split('/')[1] for i in infos if i.filename.startswith('lib/')})
+          ae = [i for i in infos if 'autoeq' in i.filename]
+          print(f"### Release APK `{a}`")
+          print(f"- entries: {len(infos)}, size: {sum(i.compress_size for i in infos)/1e6:.2f} MB compressed")
+          print(f"- ABIs: {libs}")
+          print(f"- autoeq entries: {[i.filename for i in ae]} ({[i.compress_size for i in ae]})")
+          PYEOF
+
       - name: Native host checks (FFT vs. DFT, Oboe/JNI syntax)
         if: always()
         run: |
@@ -66,5 +87,6 @@ jobs:
             app/build/outputs/apk/debug/*.apk
             app/build/reports/tests/
             gradle.log
+            release.log
             host.log
           if-no-files-found: ignore
