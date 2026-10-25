@@ -94,7 +94,9 @@ class AutoEqResult(
  *
  * With [AutoEqSettings.protectiveHighPass] one of the fitted bands is replaced by a
  * high pass at the measured -6 dB roll-off point, so weak drivers stop wasting their
- * excursion (and the listener's patience) on bass they cannot play.
+ * excursion (and the listener's patience) on bass they cannot play. The fitter is told
+ * about the pass (its slope inside the correction band is compensated in the desired
+ * curve), so the band edge is not cut twice.
  */
 object AutoEqRenderer {
 
@@ -167,9 +169,20 @@ object AutoEqRenderer {
             allowShelves = true,
             noBoostBelowHz = lowLimit / 2,
         )
-        val fitted = PeqFitter(grid, desired, weights, constraints).fit()
-        val bands = if (highPassHz != null) {
-            (fitted + PeqBand(PeqType.HIGH_PASS, highPassHz, 0.0, PROTECTIVE_HP_Q)).sortedBy { it.frequency }
+        val highPass = highPassHz?.let { PeqBand(PeqType.HIGH_PASS, it, 0.0, PROTECTIVE_HP_Q) }
+        // The fitter must see the world *with* the protective pass in place: inside the correction
+        // band its slope is part of the desired curve (otherwise the low edge ends up cut twice -
+        // by the fit and by the pass, up to ~1.5 dB at the low limit). Outside the band nothing is
+        // compensated: there the cut is the protection. The excursion guard was already applied to
+        // [desired], so compensating the slope can never increase the electrical signal beyond
+        // what the guard budgeted.
+        val fitDesired = if (highPass != null) {
+            val hp = DoubleArray(frequencies.size).also { grid.response(highPass, it) }
+            DoubleArray(frequencies.size) { i -> desired[i] - hp[i] * inRange[i] * reliable[i] }
+        } else desired
+        val fitted = PeqFitter(grid, fitDesired, weights, constraints).fit()
+        val bands = if (highPass != null) {
+            (fitted + highPass).sortedBy { it.frequency }
         } else fitted
         val response = grid.response(bands)
         val predicted = DoubleArray(frequencies.size) { measuredDb[it] + response[it] }
@@ -238,15 +251,20 @@ object AutoEqRenderer {
     }
 
     /**
-     * Speaker bass extension: the frequency where the (1/3 octave) response falls 6 dB below the
-     * 300 Hz - 3 kHz reference. Correction starts a little above it ([LOW_LIMIT_SAFETY]) so the EQ
+     * Speaker bass extension: the frequency where the (1/3 octave) response falls 6 dB below its
+     * midrange reference. Correction starts a little above it ([LOW_LIMIT_SAFETY]) so the EQ
      * never fights the physical roll-off (driver excursion!).
      *
      * The crossing is the top of the below-threshold run that reaches the bottom of the grid -
      * an isolated room dip above the true roll-off must not be mistaken for it (this matters once
      * [scanFromHz] reaches into the midrange for tiny speakers). If measurement noise lifts the
      * deepest bins above the threshold, the classic scan-down from [scanFromHz] is the fallback.
-     * Defaults (scan from 200 Hz, clamp 25..160 Hz) preserve the original external-speaker values.
+     *
+     * The reference band starts at max(300 Hz, 0.75 * [scanFromHz]): with the wide tiny-speaker
+     * scan the classic 300 Hz edge would sit *inside* the roll-off it is supposed to find, which
+     * depresses the reference and biases the result low (phone speaker: 519 Hz detected instead
+     * of the true 665 Hz; with the scaled reference: 644 Hz). The defaults (scan from 200 Hz,
+     * clamp 25..160 Hz) preserve the original external-speaker values exactly.
      */
     fun detectLowLimit(
         frequencies: DoubleArray,
@@ -255,7 +273,7 @@ object AutoEqRenderer {
         minHz: Double = 25.0,
         maxHz: Double = 160.0,
     ): Double {
-        val ref = FrequencyGrid.bandMean(frequencies, measuredDb, 300.0, 3000.0)
+        val ref = FrequencyGrid.bandMean(frequencies, measuredDb, maxOf(300.0, scanFromHz * 0.75), 3000.0)
         val threshold = ref - 6.0
         val scanIdx = frequencies.indexOfLast { it <= scanFromHz }
         if (scanIdx < 0) return minHz

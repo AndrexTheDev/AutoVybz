@@ -5,6 +5,7 @@ import kotlin.math.exp
 import kotlin.math.ln
 import kotlin.math.log2
 import kotlin.math.max
+import kotlin.math.min
 import kotlin.math.pow
 import kotlin.math.sign
 import kotlin.math.sqrt
@@ -156,10 +157,13 @@ class PeqFitter(
 
     private fun freqBounds(type: PeqType): Pair<Double, Double> = when (type) {
         PeqType.PEAK -> constraints.minFrequency to constraints.maxFrequency
-        PeqType.LOW_SHELF -> max(constraints.minFrequency, 30.0) to 400.0
-        PeqType.HIGH_SHELF -> 2000.0 to max(2500.0, constraints.maxFrequency)
+        // The shelf corner range is capped at 400 Hz for normal speakers, but a tiny driver's
+        // correction band can start above that (minFrequency up to ~720 Hz) - never invert the
+        // bounds, clamp() would throw on coerceIn(lo > hi).
+        PeqType.LOW_SHELF -> max(constraints.minFrequency, 30.0).let { lo -> lo to max(400.0, lo) }
+        PeqType.HIGH_SHELF -> min(2000.0, constraints.maxFrequency) to max(2500.0, constraints.maxFrequency)
         // Never fitted (candidates are peaks/shelves only); bounds exist for exhaustiveness.
-        PeqType.HIGH_PASS -> constraints.minFrequency to 1000.0
+        PeqType.HIGH_PASS -> constraints.minFrequency to max(1000.0, constraints.minFrequency)
     }
 
     private fun qBounds(type: PeqType): Pair<Double, Double> = when (type) {
