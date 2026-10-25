@@ -94,14 +94,17 @@ real Bluetooth latency, real microphones, loudness comfort, and whether the EQ i
 | Safe file names, presets survive | `PresetFilesTest.*`, `AutoVybzPresetCodecTest.*`, `AutoVybzPresetTest.*` | — |
 | Exports internal / APO / REW CSV / PEQ JSON | `PresetExportersTest.*`, `PresetNamingAndApoFuzzTest.apo*`, `ExportShareE2ETest.allExportFormats_produceValidFiles` | EUT T5 |
 | Share card | `ExportShareE2ETest.shareCard_isAPngGrantedThroughTheFileProvider`, `ManifestAuditTest.fileProviderIsPrivate…` | EUT T5 |
-| Pro area (PEQ, MBC, limiter, calibrations) | `ProE2ETest.*`, `NavigationE2ETest.proLinks_openTheEqualizer314Engine`, `LegacyScreensE2ETest.*`, `BiquadParityTest` | EUT T3 |
-| Navigation Wizard / Pro / Help / About | `NavigationE2ETest.allTabsAreReachable`, `.helpSections_expandAndCollapse`, `.wizardHelpLink_opensHelp`, `WizardLifecycleE2ETest.backFromOtherTabs_returnsToWizard` | EUT all |
+| Sound screen: EQ ring, speaker profiles, 14 genre styles, strength, curve | `SoundStyleTest.*` (10: budget, ±6 dB, identity, clip-safe pre-gain, style-only), `SoundE2ETest.firstStart_opensCalibration_andSoundExplainsThreeSteps`, `.styleWithoutCalibration_isAudibleAndCannotClip`, `.styleLayersOnTheCalibration_andSurvivesSpeakerSwitching` | EUT T2/T3 |
+| Studio: bass/treble, volume protection, A/B | `SoundE2ETest.studioBassAndTreble_addShelvesAndReset`, `ProE2ETest.soundCorrectionSwitch_isAccessibleAndFollowsTheEngine` | EUT T3 |
+| Intro video (silent, skippable, every cold start) | `IntroE2ETest.*` (plays once, skip, fade, stuck-player cap) | — |
+| Expert tools (PEQ, MBC, limiter, calibrations) | `ProE2ETest.*`, `NavigationE2ETest.proLinks_openTheEqualizer314Engine`, `LegacyScreensE2ETest.*`, `BiquadParityTest` | EUT T3 |
+| Navigation Sound / Calibrate / Studio / Help / About | `NavigationE2ETest.allTabsAreReachable`, `.helpSections_expandAndCollapse`, `.wizardHelpLink_opensHelp`, `WizardLifecycleE2ETest.backFromOtherTabs_returnsToWizard` | EUT all |
 | Survives rotation / process recreation | `WizardLifecycleE2ETest.resultAndOpenDialog_surviveActivityRecreation`, `.measurementSurvivesRecreation`, `LegacyScreensE2ETest.*` (recreate) | — |
 | Unsaved-result protection | `WizardLifecycleE2ETest.back*AsksBeforeDiscarding…`, `.measureAgain_asksBeforeDiscarding…` | EUT T2 |
 | Settings persist | `WizardLifecycleE2ETest.wizardChoices_arePersisted`, `ProE2ETest.wizardPicksUpSettingsChangedElsewhere` | — |
 | Donate modal with exact addresses + copy | `ProjectInfoAuditTest.*` (checksums: Bech32, base58/32 bytes, EIP-55), `NavigationE2ETest.donateDialog_copiesAllThreeAddressesExactly`, website audit | EUT T6 |
 | Contact e-mail, developer name | `ProjectInfoAuditTest.valuesAreExactlyTheRequestedOnes`, `NavigationE2ETest.feedbackMail_isAddressedToTheDeveloper`, website audit (imprint) | — |
-| Theme #121212 / green #009B3A / gold #FED100, WCAG | `ColorContrastAuditTest.*` | Q7 |
+| Vybz Slate theme (slate #1E262D / neon green #1EED61 / gold #FCD207), WCAG; inherited screens on slate, no upstream purple | `ColorContrastAuditTest.*`, `InheritedPaletteAuditTest.*`, `LicenseAuditTest.bundledFontsAreOflAndCredited` | Q7 |
 | Accessibility (48 dp / WCAG 2.5.8 spacing, labels, headings, no clipped or mid-word split text) | `AccessibilityE2ETest` × 7 configurations (incl. font 130 %, small phone, landscape), `AdaptiveButtonRow` stacks buttons above 115 % font | EUT Q7, Part A |
 | EN / DE / ES complete, consistent, own quotation marks | `StringResourceAuditTest.*` (13 checks incl. plurals with Spanish `many` and `everyLanguageUsesItsOwnQuotationMarks`), `ManifestAuditTest.localeConfig…`, screenshot matrix per language, website i18n parity | EUT in tester's language |
 | GPL-3.0 open source, no trackers | `LicenseAuditTest.*`, OSV check, secret scan | — |

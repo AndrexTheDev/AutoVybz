@@ -5,8 +5,8 @@
 🌐 **[andrexthedev.github.io/AutoVybz](https://andrexthedev.github.io/AutoVybz/)** – hear the interactive before/after demo & roast your speaker 🔥
 
 [![CI](https://github.com/AndrexTheDev/AutoVybz/actions/workflows/ci.yml/badge.svg)](https://github.com/AndrexTheDev/AutoVybz/actions/workflows/ci.yml)
-[![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-009B3A)](LICENSE)
-[![Android 9+](https://img.shields.io/badge/Android-9%2B-FED100)](#building)
+[![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-1EED61)](LICENSE)
+[![Android 9+](https://img.shields.io/badge/Android-9%2B-FCD207)](#building)
 
 AutoVybz is a free, 100 % open-source (GPL-3.0) Android app that **automatically calibrates external
 loudspeakers** (Bluetooth, AUX, USB, HDMI) to your room with the phone's microphone — and then runs the
@@ -17,6 +17,20 @@ engine (DynamicsProcessing, 10-band PEQ, multiband compressor, limiter). Donatio
 
 ## Features
 
+- **Sound screen (start page)** – one ring switches the system-wide EQ on/off (A/B while music plays),
+  a 3-step guide on first start, your **speaker profiles** (one per calibrated speaker, e.g. Bluetooth box at
+  home vs. party speaker outdoors) and **14 sound styles** in 5 groups:
+  *Basis* (Pure) · *Beats & Bass* (Hip-hop & R&B, Reggae & dancehall, Afrobeats, Latin, Electronic) ·
+  *Band & stage* (Rock, Pop, Live & concert) · *Natural & acoustic* (Jazz & acoustic, Classical) ·
+  *Situations* (Podcast & speech, Party outdoors, Quiet listening). Styles are gentle curves (≤ 4 filters,
+  ≤ ±6 dB) layered **on top of** the calibration, with a strength slider (default 70 %) and a live curve.
+  Pre-gain is recomputed for every combination, so nothing can clip.
+- **Studio** – everyday fine-tuning: bass/treble shelves (±6 dB), volume protection (limiter), A/B switch,
+  speaker profiles (apply/delete); the expert tools (10-band PEQ, compressor, measurement & mic settings)
+  one level deeper.
+- **Intro** – the animated AutoVybz logo (`branding/intro/Intro1.mp4`, played silently from
+  `res/raw/avz_intro.mp4`) on every cold start; tap to skip, skipped automatically when the system has
+  animations switched off.
 - **1-click wizard for everyone** – big "Calibrate speaker" button, safety check, live mic level, result graph.
 - **Measurement**: exactly 10 s stimulus = room-noise capture + periodic pink noise + logarithmic sine sweep
   20 Hz – 20 kHz; Kirkeby-regularised deconvolution, automatic latency detection (Bluetooth-safe),
@@ -37,15 +51,18 @@ engine (DynamicsProcessing, 10-band PEQ, multiband compressor, limiter). Donatio
   preset list, activated with one tap.
 - **Export**: Equalizer APO / Peace / AutoEq `ParametricEQ.txt`, parametric EQ JSON, REW-importable CSV,
   internal `.avz.json` (curves + filters + metadata).
-- **Pro area**: Equalizer314 10-band PEQ graph, multiband compressor, limiter, measurement & mic settings,
-  saved calibrations.
+- **Expert tools** (from the Equalizer314 engine, restyled): 10-band PEQ graph, multiband compressor, limiter,
+  measurement & mic settings.
 - **Outdoor / party mode** – one tap in the wizard: max +3 dB boost (preserves loudness), ground-reflection
   notches ignored (1-octave median rule), per-frequency SNR gating (wind, traffic, birds are not "corrected"),
   wind / unsteady-noise / Bluetooth-dropout detection with "repeat this position", 3 positions recommended,
   limiter always on, full screen brightness for sunlight. Full failure-mode analysis with simulation numbers:
   [docs/OUTDOOR.md](docs/OUTDOOR.md).
 - **Help** with step-by-step phone placement guide; **About** with credits and crypto donate dialog.
-- Design: deep charcoal `#121212`, Jamaica green `#009B3A` + gold `#FED100`.
+- **Design "Vybz Slate"** – the colours of the logo: slate `#1E262D`, neon green `#1EED61`, gold `#FCD207`;
+  typeface Outfit (SIL OFL 1.1); dark-only (Dark / Black). Brand rings and line icons are drawn for AutoVybz.
+  The inherited engine screens were moved from neutral grey to slate with
+  [`tools/branding/retheme_inherited.py`](tools/branding/retheme_inherited.py) (guarded by `InheritedPaletteAuditTest`).
 
 ## Measurement tips
 
@@ -84,7 +101,8 @@ app/src/main/java/com/andrexthedev/autovybz/
   measurement/audio   Oboe/JNI + Java engines, route check, volume guard, EQ bypass
   measurement/        MeasurementController (orchestration)
   preset/, export/    AutoVybz preset model, Equalizer314 pool bridge, exporters
-  ui/                 Jetpack Compose: wizard, pro, help, about/donate, theme
+  sound/              sound styles, composer (calibration + style + tone), persistence
+  ui/                 Jetpack Compose: sound (home), wizard, studio, intro, help, about/donate, theme
 app/src/main/cpp/autovybz/   C++17 Oboe full-duplex engine + FFT + JNI
 app/src/main/java/com/bearinmind/equalizer314/   upstream Equalizer314 (classic Views)
 site/                landing page (GitHub Pages, see site/README.md)
