@@ -192,9 +192,13 @@ object AutoEqRenderer {
             snrDb?.let { reliability(it[i], settings.minSnrDb, settings.fullSnrDb) } ?: 1.0
         }
         val broad = settings.broadBoostOctaves?.let { medianLog(frequencies, measuredDb, it) }
-        // [cutTrust] only scales cuts: boosts are already limited by the excursion guard and the broad-only
-        // rule, and a missing treble is usually real (a phone speaker really does roll off up there).
-        val cutLimit = settings.maxCutDb * settings.cutTrust.coerceIn(0.1, 1.0)
+        // [cutTrust] scales cuts (a near-field self-measurement overstates peaks - correct only the
+        // trusted fraction, the rest is what the manufacturer's tuning leaves in); boosts are already
+        // limited by the excursion guard and the broad-only rule, and a missing treble is usually real
+        // (a phone speaker really does roll off up there). The scaled cut is still bounded by
+        // [cutLimit] = maxCutDb * cutTrust, so an excess beyond the limit cannot escape it.
+        val cutTrust = settings.cutTrust.coerceIn(0.1, 1.0)
+        val cutLimit = settings.maxCutDb * cutTrust
         val desired = DoubleArray(frequencies.size) { i ->
             // Two independent boost limits: the excursion guard (scaled by the distance above the
             // roll-off) and, above [AutoEqSettings.highBoostCapStartHz], the per-class absolute cap
@@ -208,7 +212,8 @@ object AutoEqRenderer {
             )
             var raw = targetDb[i] - measuredDb[i]
             if (broad != null && raw > 0) raw = minOf(raw, maxOf(0.0, targetDb[i] - broad[i]))
-            raw.coerceIn(-cutLimit, boostCap) * inRange[i] * reliable[i]
+            val scaled = if (raw < 0.0) raw * cutTrust else raw
+            scaled.coerceIn(-cutLimit, boostCap) * inRange[i] * reliable[i]
         }
         // Outside the range (and where noise hides the speaker) we still ask for "0 dB" - keeps filters
         // from acting there - just with less weight.
