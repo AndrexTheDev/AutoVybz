@@ -23,11 +23,8 @@ class LanguageActivity : AppCompatActivity() {
     /** Tag, own name, English name. One line per values-XX folder. */
     private val catalogue = listOf(
         Triple("en", "English", "English"),
+        Triple("de", "Deutsch", "German"),
         Triple("es", "Español", "Spanish"),
-        Triple("pt", "Português", "Portuguese"),
-        Triple("ru", "Русский", "Russian"),
-        Triple("uk", "Українська", "Ukrainian"),
-        Triple("zh", "简体中文", "Chinese (Simplified)"),
     )
 
     private lateinit var listContainer: LinearLayout
