@@ -92,11 +92,12 @@ data class SmoothingProfile(
          *   structure-borne chassis vibration, so below ~400 Hz one octave is smoothed (no over-correction
          *   of a measurement artefact).
          * * **Above ~700 Hz the direct sound is *more* trustworthy than any room measurement** - no room, no
-         *   reflections, just the driver a few centimetres away. 1/3 octave (instead of the heavy 1/2
-         *   octave used for boomy rooms) keeps the narrow midrange/treble features that carry detail, so
-         *   the correction can actually restore them instead of averaging them away.
+         *   reflections, just the driver a few centimetres away. 1/6 octave (instead of the heavy 1/2
+         *   octave used for boomy rooms) preserves the narrow driver resonances (often 1/6–1/3 octave wide)
+         *   that carry character, so the correction can actually restore them instead of averaging them away.
+         *   The near-field SNR is high enough that the finer window does not admit significant noise.
          */
-        val DEVICE = SmoothingProfile(bassOctaves = 1.0, bassCornerHz = 400.0, detailOctaves = 1.0 / 3.0, detailStartHz = 700.0)
+        val DEVICE = SmoothingProfile(bassOctaves = 1.0, bassCornerHz = 400.0, detailOctaves = 1.0 / 6.0, detailStartHz = 700.0)
         /** Fixed 1/3 octave - used for roll-off detection and quality metrics. */
         val THIRD_OCTAVE = SmoothingProfile(bassOctaves = 1.0 / 3, bassCornerHz = 20.0, detailOctaves = 1.0 / 3, detailStartHz = 21.0)
         /** Effectively unsmoothed display resolution (1/48 octave everywhere). */
