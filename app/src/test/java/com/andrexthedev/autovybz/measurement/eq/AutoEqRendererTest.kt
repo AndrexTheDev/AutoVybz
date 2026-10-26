@@ -391,4 +391,51 @@ class AutoEqRendererTest {
             0.7,
         )
     }
+
+    /**
+     * The DEVICE class uses a frequency-dependent cutTrust: below 300 Hz the near-field self-measurement
+     * overstates the bass heavily (pressure zone + chassis vibration), so cuts there are scaled by only
+     * 50 % instead of 75 %. Above 300 Hz the direct sound is more trustworthy and the 75 % cutTrust
+     * applies. This test verifies that the bass cut is gentler with the frequency-dependent setting
+     * while the midrange cut is identical.
+     */
+    @Test
+    fun deviceFrequencyDependentCutTrustScalesBassCutsLower() {
+        val phone = curveOf(
+            PeqBand(PeqType.PEAK, 100.0, 2.0, 1.0),    // bass overstatement (pressure zone)
+            PeqBand(PeqType.PEAK, 1000.0, 3.0, 1.0),   // midrange presence excess
+        )
+        val base = AutoEqSettings(
+            cutTrust = 0.75,
+            autoLowLimit = false,
+            manualLowLimitHz = 20.0,
+            maxBoostDb = 4.0,
+            highLimitHz = 12000.0,
+            broadBoostOctaves = 1.0,
+            excursionGuardOctaves = 2.0,
+        )
+        val withFreqDep = base.copy(cutTrustLowHz = 300.0, cutTrustLow = 0.5)
+        val rUniform = AutoEqRenderer.render(grid, phone, TargetCurve(TargetType.FLAT), base)
+        val rFreqDep = AutoEqRenderer.render(grid, phone, TargetCurve(TargetType.FLAT), withFreqDep)
+
+        val i100 = grid.indexOfFirst { it >= 100.0 }
+        val i1k = grid.indexOfFirst { it >= 1000.0 }
+
+        // Below 300 Hz: the frequency-dependent cut is gentler (0.5 vs 0.75 of the measured excess).
+        assertTrue(
+            "bass cut freq-dep ${rFreqDep.desiredCorrectionDb[i100]} should be gentler than uniform ${rUniform.desiredCorrectionDb[i100]}",
+            rFreqDep.desiredCorrectionDb[i100] > rUniform.desiredCorrectionDb[i100],
+        )
+        // The freq-dep bass cut is 0.5/0.75 = 2/3 of the uniform bass cut.
+        val ratio = rFreqDep.desiredCorrectionDb[i100] / rUniform.desiredCorrectionDb[i100]
+        assertTrue("bass cut ratio $ratio should be ~2/3", ratio > 0.5 && ratio < 0.8)
+
+        // Above 300 Hz: both use cutTrust = 0.75, so the desired correction is identical.
+        assertEquals(
+            "midrange desired correction should be identical with both settings",
+            rUniform.desiredCorrectionDb[i1k],
+            rFreqDep.desiredCorrectionDb[i1k],
+            1e-9,
+        )
+    }
 }

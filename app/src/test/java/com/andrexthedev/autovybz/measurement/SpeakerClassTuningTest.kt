@@ -83,6 +83,10 @@ class SpeakerClassTuningTest {
         // Gain staging: the near-field excesses are corrected to 75 % and the perceived level loss of
         // those cuts is made up - a self-calibration must not make the phone quieter.
         assertEquals(0.75, s.cutTrust, 0.0)
+        // Frequency-dependent cutTrust: below 300 Hz the pressure-zone + chassis-vibration overstatement
+        // is far larger than the actual acoustic excess, so cuts there are scaled by only 50 %.
+        assertEquals(300.0, s.cutTrustLowHz, 0.0)
+        assertEquals(0.5, s.cutTrustLow, 0.0)
         assertTrue(s.loudnessMakeUp)
         assertEquals(PreampPlanner.MAX_MAKE_UP_DB, s.maxMakeUpDb, 0.0)
         assertEquals(PreampPlanner.LIMITER_HEADROOM_ALLOWANCE_DB, s.preampHeadroomAllowanceDb, 0.0)

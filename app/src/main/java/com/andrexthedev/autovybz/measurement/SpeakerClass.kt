@@ -68,6 +68,14 @@ data class SpeakerClassTuning(
      * `null` = full correction. Every dB cut in the ear's most sensitive band costs perceived loudness.
      */
     val cutTrust: Double? = null,
+    /**
+     * Frequency-dependent cutTrust (DEVICE class): below this Hz the near-field self-measurement
+     * overstates the bass heavily, so cuts there are scaled by [cutTrustLow] instead of [cutTrust].
+     * `null` = uniform [cutTrust] (disabled).
+     */
+    val cutTrustLowHz: Double? = null,
+    /** Low-band cutTrust fraction (0.1..1.0); used below [cutTrustLowHz] when set. */
+    val cutTrustLow: Double? = null,
     /** Arm the limiter whenever such a calibration is activated. */
     val forceLimiter: Boolean = false,
     /** Target the wizard pre-selects for this class (the user can still change it). */
@@ -129,6 +137,12 @@ data class SpeakerClassTuning(
             // 1-4 kHz costs several dB of perceived loudness: correct 75 % of a measured excess. The
             // remaining 25 % is what the manufacturer's own tuning usually leaves in, too.
             cutTrust = 0.75,
+            // Below 300 Hz the near-field measurement is dominated by pressure-zone boost and chassis
+            // vibration: the measured excess is far larger than the actual acoustic excess. Correct
+            // only 50 % there - the remaining 50 % is artefact, not tone. Above 300 Hz the direct
+            // sound is more trustworthy and the 75 % cutTrust applies.
+            cutTrustLowHz = 300.0,
+            cutTrustLow = 0.5,
             suggestedTarget = TargetType.HARMAN,
             // The microphone sits centimetres from the speaker: 50 % is plenty of level
             // (70 % would risk clipping the mic and exciting chassis rattles).
@@ -179,6 +193,8 @@ object CorrectionPlanner {
         highBoostCapDb = speakerClass.highBoostCapDb,
         highBoostCapStartHz = speakerClass.highBoostCapStartHz ?: HIGH_BOOST_CAP_START_HZ,
         cutTrust = (speakerClass.cutTrust ?: 1.0).coerceIn(0.1, 1.0), // = AutoEqSettings default
+        cutTrustLowHz = speakerClass.cutTrustLowHz ?: 0.0, // = AutoEqSettings default (disabled)
+        cutTrustLow = speakerClass.cutTrustLow ?: 1.0, // = AutoEqSettings default
         // Gain staging (PreampPlanner): a calibration must make the speaker better, not quieter. Where
         // the preset arms the limiter anyway, the pre-gain is loudness-neutral (bounded by the limiter's
         // headroom); everywhere else the legacy clipping-safe value is kept.

@@ -22,6 +22,15 @@ data class AutoEqSettings(
      * the tonal correction while the sound stays as loud as before (see [PreampPlanner]).
      */
     val cutTrust: Double = 1.0,
+    /**
+     * Frequency-dependent cutTrust (DEVICE class): below [cutTrustLowHz] the near-field self-measurement
+     * overstates the bass heavily (pressure zone + chassis vibration), so cuts there are scaled by
+     * [cutTrustLow] instead of [cutTrust]. Above [cutTrustLowHz] the direct sound is more trustworthy
+     * and [cutTrust] applies. 0 = disabled (uniform cutTrust).
+     */
+    val cutTrustLowHz: Double = 0.0,
+    /** Low-band cutTrust fraction (0.1-1.0); used below [cutTrustLowHz] when [cutTrustLowHz] > 0. */
+    val cutTrustLow: Double = 1.0,
     /** Upper correction limit: phone mics are unreliable above ~16 kHz. */
     val highLimitHz: Double = 16000.0,
     /** Detect the speaker's bass roll-off and never boost below it. */
@@ -198,7 +207,7 @@ object AutoEqRenderer {
         // (a phone speaker really does roll off up there). The scaled cut is still bounded by
         // [cutLimit] = maxCutDb * cutTrust, so an excess beyond the limit cannot escape it.
         val cutTrust = settings.cutTrust.coerceIn(0.1, 1.0)
-        val cutLimit = settings.maxCutDb * cutTrust
+        val cutTrustLow = settings.cutTrustLow.coerceIn(0.1, 1.0)
         val desired = DoubleArray(frequencies.size) { i ->
             // Two independent boost limits: the excursion guard (scaled by the distance above the
             // roll-off) and, above [AutoEqSettings.highBoostCapStartHz], the per-class absolute cap
@@ -212,8 +221,13 @@ object AutoEqRenderer {
             )
             var raw = targetDb[i] - measuredDb[i]
             if (broad != null && raw > 0) raw = minOf(raw, maxOf(0.0, targetDb[i] - broad[i]))
-            val scaled = if (raw < 0.0) raw * cutTrust else raw
-            scaled.coerceIn(-cutLimit, boostCap) * inRange[i] * reliable[i]
+            // Frequency-dependent cutTrust: below [AutoEqSettings.cutTrustLowHz] the near-field
+            // self-measurement overstates the bass heavily (pressure zone + chassis vibration), so
+            // cuts there are scaled by the lower trust fraction. The cut limit follows the same
+            // frequency-dependent scaling so a deep cut cannot escape the lower-trust band.
+            val ct = if (settings.cutTrustLowHz > 0.0 && frequencies[i] < settings.cutTrustLowHz) cutTrustLow else cutTrust
+            val scaled = if (raw < 0.0) raw * ct else raw
+            scaled.coerceIn(-settings.maxCutDb * ct, boostCap) * inRange[i] * reliable[i]
         }
         // Outside the range (and where noise hides the speaker) we still ask for "0 dB" - keeps filters
         // from acting there - just with less weight.
