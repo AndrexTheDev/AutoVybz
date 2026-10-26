@@ -85,7 +85,7 @@ class SpeakerClassTuningTest {
         assertEquals(0.75, s.cutTrust, 0.0)
         // Frequency-dependent cutTrust: below 300 Hz the pressure-zone + chassis-vibration overstatement
         // is far larger than the actual acoustic excess, so cuts there are scaled by only 50 %.
-        assertEquals(300.0, s.cutTrustLowHz, 0.0)
+        assertEquals(400.0, s.cutTrustLowHz, 0.0)
         assertEquals(0.5, s.cutTrustLow, 0.0)
         assertTrue(s.loudnessMakeUp)
         assertEquals(PreampPlanner.MAX_MAKE_UP_DB, s.maxMakeUpDb, 0.0)

@@ -137,11 +137,13 @@ data class SpeakerClassTuning(
             // 1-4 kHz costs several dB of perceived loudness: correct 75 % of a measured excess. The
             // remaining 25 % is what the manufacturer's own tuning usually leaves in, too.
             cutTrust = 0.75,
-            // Below 300 Hz the near-field measurement is dominated by pressure-zone boost and chassis
-            // vibration: the measured excess is far larger than the actual acoustic excess. Correct
-            // only 50 % there - the remaining 50 % is artefact, not tone. Above 300 Hz the direct
-            // sound is more trustworthy and the 75 % cutTrust applies.
-            cutTrustLowHz = 300.0,
+            // Below 400 Hz the near-field measurement is dominated by pressure-zone boost and chassis
+            // vibration (the same region where SmoothingProfile.DEVICE applies 1-octave smoothing):
+            // the measured excess is far larger than the actual acoustic excess. Correct only 50 %
+            // there - the remaining 50 % is artefact, not tone. Above 400 Hz the direct sound is more
+            // trustworthy and the 75 % cutTrust applies. Aligning cutTrustLowHz with the smoothing
+            // corner (400 Hz) keeps the two frequency-dependent mechanisms consistent.
+            cutTrustLowHz = 400.0,
             cutTrustLow = 0.5,
             suggestedTarget = TargetType.HARMAN,
             // The microphone sits centimetres from the speaker: 50 % is plenty of level
