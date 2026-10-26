@@ -11,9 +11,10 @@ import kotlin.math.ln
 /**
  * Gain staging of a finished correction: clipping safety first, perceived loudness second.
  *
- * These are the invariants the user notices: a calibration that mostly cuts must sound as loud as
- * before (it used to sound up to 7 dB quieter), while a correction that boosts keeps its full
- * anti-clipping attenuation unless an armed limiter allows a bounded share.
+ * These are the invariants the user notices: a calibration must never sound quieter than the
+ * original - a correction that mostly cuts gets its perceived level back, and with the limiter armed
+ * (device / rescue / outdoor) even a correction that boosts comes out loudness-neutral instead of
+ * `peak + headroom` dB quieter. Without a limiter the legacy clipping-safe value is kept exactly.
  */
 class PreampPlannerTest {
 
@@ -95,28 +96,63 @@ class PreampPlannerTest {
     }
 
     @Test
-    fun makeUpIsBoundedAndNeverReducesTheClippingProtection() {
+    fun makeUpIsBoundedByTheLimiterAllowance() {
         val cut = band(1500.0, -12.0, octaves = 0.5)
         val bounded = PreampPlanner.plan(
             grid, flat(0.0), cut, headroomAllowanceDb = 100.0, maxMakeUpDb = 0.5,
         )
         assertEquals(0.5, bounded.preampDb, 0.1)
 
-        // A genuine +9 dB boost keeps its full attenuation even with the limiter armed: the make-up is
-        // added on top, it never eats into the clipping-safe value.
+        // A genuine +9 dB boost with the limiter armed: the pre-gain may use the bounded share of the
+        // limiter's headroom (the allowance) so the correction does not come out 9.5 dB quieter - but
+        // the static overshoot never exceeds the allowance, and the pre-gain never drops below the
+        // clipping-safe value.
         val boost = band(100.0, 9.0, octaves = 0.5)
         val plan = PreampPlanner.plan(
             grid, flat(0.0), boost, headroomDb = 0.5,
             headroomAllowanceDb = PreampPlanner.LIMITER_HEADROOM_ALLOWANCE_DB,
         )
         assertEquals(-9.5, plan.clippingSafeDb, 0.1)
-        assertEquals(plan.clippingSafeDb, plan.preampDb, 0.0)
-        assertEquals(0.0, plan.makeUpDb, 0.0)
+        assertTrue("preamp ${plan.preampDb} above clipping-safe", plan.preampDb > plan.clippingSafeDb)
+        assertTrue("make-up ${plan.makeUpDb} within allowance", plan.makeUpDb <= PreampPlanner.LIMITER_HEADROOM_ALLOWANCE_DB)
+        assertTrue(
+            "static overshoot bounded",
+            plan.peakDb + plan.preampDb <= PreampPlanner.LIMITER_HEADROOM_ALLOWANCE_DB + 1e-9,
+        )
+        // The bass boost adds almost nothing to the A-weighted loudness, so the loudness-neutral target
+        // sits at the allowance boundary.
+        assertEquals(
+            plan.clippingSafeDb + PreampPlanner.LIMITER_HEADROOM_ALLOWANCE_DB,
+            plan.preampDb,
+            0.1,
+        )
+    }
+
+    @Test
+    fun boostingCorrectionComesOutLoudnessNeutralWithTheLimiter() {
+        // The device-speaker case: a presence cut (loudness cost) plus a treble boost (clipping-safe
+        // attenuation). With the limiter armed the corrected chain must come out as loud as the
+        // original - the legacy rule made it peak + headroom dB quieter.
+        val presenceCut = band(2000.0, -6.0)
+        val trebleBoost = band(9000.0, 4.0, octaves = 0.5)
+        val mixed = DoubleArray(grid.size) { presenceCut[it] + trebleBoost[it] }
+        val plan = PreampPlanner.plan(
+            grid, flat(0.0), mixed, headroomDb = 0.5,
+            headroomAllowanceDb = PreampPlanner.LIMITER_HEADROOM_ALLOWANCE_DB,
+        )
+        assertTrue("peak ${plan.peakDb}", plan.peakDb > 0.0)
+        // Residual perceived level change of the output vs. the original: never louder, and never
+        // quieter than the allowance allows.
+        val residual = plan.loudnessDeltaDb + plan.preampDb
+        assertTrue("residual $residual dB", residual <= 1e-9)
+        assertTrue("residual $residual dB within allowance", residual >= -PreampPlanner.LIMITER_HEADROOM_ALLOWANCE_DB - 0.6)
+        assertTrue("static overshoot bounded", plan.peakDb + plan.preampDb <= PreampPlanner.LIMITER_HEADROOM_ALLOWANCE_DB + 1e-9)
     }
 
     @Test
     fun mixedCorrectionRecoversTheLevelOnlyUpToTheAllowance() {
-        // A cut plus a small boost: the clipping-safe value is negative, the make-up is a partial credit.
+        // A cut plus a small boost: the clipping-safe value is negative, the loudness-neutral target is
+        // capped by the allowance (the limiter's headroom).
         val presenceCut = band(2000.0, -8.0)
         val trebleBoost = band(9000.0, 4.0, octaves = 0.5)
         val mixed = DoubleArray(grid.size) { presenceCut[it] + trebleBoost[it] }

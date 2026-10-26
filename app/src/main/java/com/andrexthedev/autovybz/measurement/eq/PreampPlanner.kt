@@ -76,7 +76,7 @@ object PreampPlanner {
     data class Plan(
         /** Pre-gain written to the engine / preset (<= 0 only when the correction really boosts). */
         val preampDb: Double,
-        /** Part of [preampDb] that is loudness compensation instead of clipping protection (>= 0). */
+        /** Part of [preampDb] above the clipping-safe value: loudness compensation (>= 0). */
         val makeUpDb: Double,
         /** Estimated perceived level change of the correction alone: negative = quieter. */
         val loudnessDeltaDb: Double,
@@ -113,14 +113,19 @@ object PreampPlanner {
         val delta = if (loudnessMakeUp && frequencies.size > 8) {
             loudnessDeltaDb(frequencies, measuredDb, correctionDb)
         } else 0.0
-        val need = if (loudnessMakeUp) (-delta).coerceIn(0.0, maxMakeUpDb.coerceAtLeast(0.0)) else 0.0
 
-        // The make-up is *added* to the clipping-safe value, never used to weaken it: a correction that
-        // genuinely boosts keeps its full anti-clipping attenuation, a cut-only correction gets the gain
-        // back. Without a limiter (allowance 0) the result is exactly the legacy value - the static
-        // pre-gain is then the last line of defence and must not be traded for loudness.
         val allowance = headroomAllowanceDb.coerceAtLeast(0.0)
-        val preamp = roundDown((clippingSafe + minOf(need, allowance)).coerceAtLeast(MIN_PREAMP_DB))
+        val preamp = if (loudnessMakeUp && allowance > 0.0) {
+            // Limiter armed: the pre-gain is loudness-neutral (the corrected chain is as loud as the
+            // original), bounded below by the clipping-safe value and above by what the limiter can
+            // absorb. The static overshoot (peak + preamp) never exceeds the allowance.
+            val upper = clippingSafe + minOf(allowance, maxMakeUpDb.coerceAtLeast(0.0))
+            roundDown(minOf(maxOf(-delta, clippingSafe), upper).coerceAtLeast(MIN_PREAMP_DB))
+        } else {
+            // No limiter (or make-up switched off): the static pre-gain is the last line of defence and
+            // must not be traded for loudness - exactly the legacy value.
+            clippingSafe
+        }
         return Plan(
             preampDb = preamp,
             makeUpDb = (preamp - clippingSafe).coerceAtLeast(0.0),

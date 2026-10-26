@@ -3,6 +3,7 @@ package com.andrexthedev.autovybz.measurement
 import com.andrexthedev.autovybz.measurement.audio.VolumeMath
 import com.andrexthedev.autovybz.measurement.dsp.SmoothingProfile
 import com.andrexthedev.autovybz.measurement.eq.AutoEqSettings
+import com.andrexthedev.autovybz.measurement.eq.HIGH_BOOST_CAP_START_HZ
 import com.andrexthedev.autovybz.measurement.eq.PreampPlanner
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -72,6 +73,12 @@ class SpeakerClassTuningTest {
         assertEquals(1200.0, s.lowLimitScanHz, 0.0)
         assertEquals(900.0, s.lowLimitMaxHz, 0.0)
         assertTrue(s.protectiveHighPass)
+        // Sub-bass protection only: the -6 dB point of a tiny driver is midrange, cutting there would
+        // eat musical bass. And the treble boost is capped: above 6 kHz the self-measurement is
+        // dominated by the estimated mic profile.
+        assertEquals(60.0, s.protectiveHighPassHz, 0.0)
+        assertEquals(2.0, s.highBoostCapDb, 0.0)
+        assertEquals(HIGH_BOOST_CAP_START_HZ, s.highBoostCapStartHz, 0.0)
         assertTrue(CorrectionPlanner.forceLimiter(indoor, device))
         // Gain staging: the near-field excesses are corrected to 75 % and the perceived level loss of
         // those cuts is made up - a self-calibration must not make the phone quieter.

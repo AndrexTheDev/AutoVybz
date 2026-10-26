@@ -207,24 +207,42 @@ class AutoEqRendererTest {
     }
 
     @Test
-    fun phoneSpeakerRenderIsBandLimitedAndProtected() {
+    fun phoneSpeakerRenderKeepsTheBassAndCapsTheTreble() {
+        // A tiny driver rolling off in the midrange: the protective pass must protect the sub-bass only
+        // (the -6 dB point sits at ~500-700 Hz - cutting there would eat the bass the driver *does*
+        // play), and the treble boost is capped because the self-measurement above ~6 kHz is dominated
+        // by the estimated mic profile. The gain staging (limiter armed) must leave the chain as loud
+        // as the original.
         val phone = curveOf(
             PeqBand(PeqType.HIGH_PASS, 700.0, 0.0, 0.707),
-            PeqBand(PeqType.PEAK, 3000.0, 5.0, 1.5), // typical small-speaker shout
+            PeqBand(PeqType.PEAK, 3000.0, 5.0, 1.5),   // typical small-speaker shout
+            PeqBand(PeqType.HIGH_SHELF, 9000.0, -8.0, 0.7), // rolled-off top end
         )
         val settings = AutoEqSettings(
             maxBoostDb = 4.0, highLimitHz = 12000.0, protectiveHighPass = true,
+            protectiveHighPassHz = 60.0,
+            highBoostCapDb = 2.0, highBoostCapStartHz = 6000.0,
             lowLimitScanHz = 1200.0, lowLimitMaxHz = 900.0,
             broadBoostOctaves = 1.0, excursionGuardOctaves = 2.0,
+            cutTrust = 0.75,
+            preampHeadroomAllowanceDb = PreampPlanner.LIMITER_HEADROOM_ALLOWANCE_DB,
         )
         val r = AutoEqRenderer.render(grid, phone, TargetCurve(TargetType.HARMAN), settings)
         assertTrue("low limit ${r.lowLimitHz}", r.lowLimitHz in 400.0..900.0)
-        val hpHz = r.highPassHz
-        assertTrue("hp $hpHz", hpHz != null && hpHz in 300.0..750.0)
+        // Sub-bass protection only: the pass sits at the fixed 60 Hz corner, not at the roll-off point.
+        assertEquals(60.0, r.highPassHz!!, 1e-9)
         assertTrue("max boost ${r.maxFilterBoostDb}", r.maxFilterBoostDb <= 4.0 + 0.5)
         r.bands.forEach { assertTrue("band above correction limit $it", it.frequency <= 12000.0 + 1e-9) }
+        // The bass the driver does play must survive: at 100 Hz the chain is at most ~1 dB down.
         val deep = grid.indexOfFirst { it >= 100.0 }
-        assertTrue("100 Hz is cut hard: ${r.filterResponseDb[deep]} dB", r.filterResponseDb[deep] < -15.0)
+        assertTrue("100 Hz kept: ${r.filterResponseDb[deep]} dB", r.filterResponseDb[deep] > -3.0)
+        // Treble boost capped above 6 kHz.
+        for (i in grid.indices) if (grid[i] >= 6000.0) {
+            assertTrue("HF boost at ${grid[i]}: ${r.desiredCorrectionDb[i]} dB", r.desiredCorrectionDb[i] <= 2.0 + 1e-9)
+        }
+        // The calibrated chain must not be quieter than the original (limiter-armed loudness make-up).
+        val residual = r.loudnessDeltaDb + r.preampDb
+        assertTrue("residual level $residual dB", residual in -PreampPlanner.LIMITER_HEADROOM_ALLOWANCE_DB - 0.6..0.0)
     }
 
     @Test

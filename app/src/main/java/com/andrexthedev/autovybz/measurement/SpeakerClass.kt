@@ -3,6 +3,7 @@ package com.andrexthedev.autovybz.measurement
 import com.andrexthedev.autovybz.measurement.audio.VolumeMath
 import com.andrexthedev.autovybz.measurement.dsp.SmoothingProfile
 import com.andrexthedev.autovybz.measurement.eq.AutoEqSettings
+import com.andrexthedev.autovybz.measurement.eq.HIGH_BOOST_CAP_START_HZ
 import com.andrexthedev.autovybz.measurement.eq.PreampPlanner
 import com.andrexthedev.autovybz.measurement.eq.TargetType
 import kotlin.math.max
@@ -51,6 +52,17 @@ data class SpeakerClassTuning(
     val lowLimitMaxHz: Double? = null,
     /** Cut sub-bass the driver cannot reproduce instead of letting it rattle (see AutoEqRenderer). */
     val protectiveHighPass: Boolean = false,
+    /**
+     * Fixed corner of the protective high pass in Hz; `null` derives it from the measured bass
+     * roll-off (the classic behaviour). A tiny driver's -6 dB point sits in the *midrange*
+     * (400-900 Hz) - cutting there would eat musical bass, so a device self-measurement protects
+     * the sub-bass only.
+     */
+    val protectiveHighPassHz: Double? = null,
+    /** Absolute boost cap (dB) above [highBoostCapStartHz]; `null` = [AutoEqSettings.maxBoostDb]. */
+    val highBoostCapDb: Double? = null,
+    /** Start of the [highBoostCapDb] region (Hz). */
+    val highBoostCapStartHz: Double? = null,
     /**
      * Fraction of a measured excess that is corrected (0.1..1.0); see [AutoEqSettings.cutTrust].
      * `null` = full correction. Every dB cut in the ear's most sensitive band costs perceived loudness.
@@ -104,6 +116,14 @@ data class SpeakerClassTuning(
             lowLimitScanHz = 1200.0,
             lowLimitMaxHz = 900.0,
             protectiveHighPass = true,
+            // The -6 dB point of a tiny driver is midrange (400-900 Hz): a protective pass there would
+            // eat the bass the driver *does* play. Protect the sub-bass only - the driver cannot
+            // reproduce anything below ~60 Hz cleanly anyway (rattle, excursion).
+            protectiveHighPassHz = 60.0,
+            // Above ~6 kHz the self-measurement is dominated by the (estimated) mic profile and the
+            // driver's own hash: a +4 dB "correction" there is mostly phantom boost. Cap it.
+            highBoostCapDb = 2.0,
+            highBoostCapStartHz = 6000.0,
             forceLimiter = true,
             // A self-measurement at 1-15 cm overstates the presence region, and every dB cut around
             // 1-4 kHz costs several dB of perceived loudness: correct 75 % of a measured excess. The
@@ -155,10 +175,13 @@ object CorrectionPlanner {
         lowLimitScanHz = speakerClass.lowLimitScanHz ?: 200.0, // = AutoEqSettings default
         lowLimitMaxHz = speakerClass.lowLimitMaxHz ?: 160.0, // = AutoEqSettings default
         protectiveHighPass = speakerClass.protectiveHighPass,
+        protectiveHighPassHz = speakerClass.protectiveHighPassHz,
+        highBoostCapDb = speakerClass.highBoostCapDb,
+        highBoostCapStartHz = speakerClass.highBoostCapStartHz ?: HIGH_BOOST_CAP_START_HZ,
         cutTrust = (speakerClass.cutTrust ?: 1.0).coerceIn(0.1, 1.0), // = AutoEqSettings default
-        // Gain staging (PreampPlanner): undo the perceived level loss of cuts, and - only where the preset
-        // arms the limiter anyway - let the make-up use a bounded share of the limiter's headroom. A
-        // calibration must make the speaker better, not quieter.
+        // Gain staging (PreampPlanner): a calibration must make the speaker better, not quieter. Where
+        // the preset arms the limiter anyway, the pre-gain is loudness-neutral (bounded by the limiter's
+        // headroom); everywhere else the legacy clipping-safe value is kept.
         loudnessMakeUp = true,
         maxMakeUpDb = PreampPlanner.MAX_MAKE_UP_DB,
         preampHeadroomAllowanceDb = if (forceLimiter(environment, speakerClass)) {

@@ -6,6 +6,9 @@ import kotlin.math.cos
 import kotlin.math.ln
 import kotlin.math.sqrt
 
+/** Default start of the per-class high-frequency boost cap region (see [AutoEqSettings.highBoostCapDb]). */
+const val HIGH_BOOST_CAP_START_HZ = 6000.0
+
 data class AutoEqSettings(
     /** 5 (fast) or 10 (max precision, default - uses the full Equalizer314 engine). */
     val bandCount: Int = 10,
@@ -27,17 +30,20 @@ data class AutoEqSettings(
     /** Extra safety margin on top of the max filter boost for the pre-gain. */
     val headroomDb: Double = 0.5,
     /**
-     * Compensate the *perceived* level loss of a correction that (mostly) cuts, so a calibration makes the
-     * speaker better, not quieter. Never lowers the pre-gain: a correction that gets louder is left alone.
-     * See [PreampPlanner]. On by default; harmless with [preampHeadroomAllowanceDb] = 0 (legacy values).
+     * Compensate the *perceived* level loss of a correction, so a calibration makes the speaker better,
+     * not quieter. Never lowers the pre-gain: a correction that gets louder is left alone. With
+     * [preampHeadroomAllowanceDb] > 0 (limiter armed) the pre-gain is set loudness-neutral; with 0 it is
+     * the legacy clipping-safe value. See [PreampPlanner]. On by default.
      */
     val loudnessMakeUp: Boolean = true,
     /** Upper bound of the loudness make-up (dB). */
     val maxMakeUpDb: Double = PreampPlanner.MAX_MAKE_UP_DB,
     /**
-     * Static overshoot the pre-gain may leave when the engine limiter is armed (0 = never above the
-     * clipping-safe value). Only [com.andrexthedev.autovybz.measurement.CorrectionPlanner] sets this, and
-     * only for calibrations whose preset forces the limiter on.
+     * Static overshoot the pre-gain may leave when the engine limiter is armed: with a limiter the
+     * pre-gain is loudness-neutral and may sit up to this much above the clipping-safe value (the
+     * limiter is the peak protection). 0 (the default) keeps the legacy clipping-safe value exactly.
+     * Only [com.andrexthedev.autovybz.measurement.CorrectionPlanner] sets this, and only for
+     * calibrations whose preset forces the limiter on.
      */
     val preampHeadroomAllowanceDb: Double = 0.0,
     val sampleRate: Double = BiquadMath.DEFAULT_SAMPLE_RATE,
@@ -68,8 +74,18 @@ data class AutoEqSettings(
      * driver cannot reproduce only costs excursion, rattling and intermodulation distortion.
      * Removing it is pure win for weak / tiny speakers (more clean headroom). Consumes one of the
      * [bandCount] bands; skipped when the speaker plays (almost) full-range anyway.
+     *
+     * [protectiveHighPassHz] overrides the corner: the -6 dB point of a tiny driver sits in the
+     * midrange (a phone speaker rolls off at 400-900 Hz), and cutting the bass the driver *does*
+     * play would make the calibration sound thin. Such classes protect the sub-bass only.
      */
     val protectiveHighPass: Boolean = false,
+    /** Fixed corner of the protective high pass in Hz; `null` derives it from the measured roll-off. */
+    val protectiveHighPassHz: Double? = null,
+    /** Absolute boost cap (dB) above [highBoostCapStartHz]; `null` = [maxBoostDb]. */
+    val highBoostCapDb: Double? = null,
+    /** Start of the [highBoostCapDb] region (Hz). */
+    val highBoostCapStartHz: Double = HIGH_BOOST_CAP_START_HZ,
 ) {
     init {
         require(bandCount in 1..16)
@@ -123,10 +139,10 @@ class AutoEqResult(
  *    and, only while the engine limiter is armed, by [AutoEqSettings.preampHeadroomAllowanceDb].
  *
  * With [AutoEqSettings.protectiveHighPass] one of the fitted bands is replaced by a
- * high pass at the measured -6 dB roll-off point, so weak drivers stop wasting their
- * excursion (and the listener's patience) on bass they cannot play. The fitter is told
- * about the pass (its slope inside the correction band is compensated in the desired
- * curve), so the band edge is not cut twice.
+ * high pass at the measured -6 dB roll-off point (or [AutoEqSettings.protectiveHighPassHz]
+ * when set), so weak drivers stop wasting their excursion (and the listener's patience) on
+ * bass they cannot play. The fitter is told about the pass (its slope inside the correction
+ * band is compensated in the desired curve), so the band edge is not cut twice.
  */
 object AutoEqRenderer {
 
@@ -167,7 +183,9 @@ object AutoEqRenderer {
             detectLowLimit(frequencies, rollOffDb, settings.lowLimitScanHz, maxHz = settings.lowLimitMaxHz)
         } else settings.manualLowLimitHz.coerceIn(20.0, 500.0)
         val highLimit = settings.highLimitHz.coerceIn(2000.0, 20000.0)
-        val highPassHz = if (settings.protectiveHighPass) protectiveHighPassHz(lowLimit) else null
+        val highPassHz = if (settings.protectiveHighPass) {
+            (settings.protectiveHighPassHz ?: protectiveHighPassHz(lowLimit))?.coerceIn(35.0, 1000.0)
+        } else null
 
         val inRange = DoubleArray(frequencies.size) { rangeWeight(frequencies[it], lowLimit, highLimit) }
         val reliable = DoubleArray(frequencies.size) { i ->
@@ -178,7 +196,16 @@ object AutoEqRenderer {
         // rule, and a missing treble is usually real (a phone speaker really does roll off up there).
         val cutLimit = settings.maxCutDb * settings.cutTrust.coerceIn(0.1, 1.0)
         val desired = DoubleArray(frequencies.size) { i ->
-            val boostCap = settings.maxBoostDb * excursionGuard(frequencies[i], lowLimit, settings.excursionGuardOctaves)
+            // Two independent boost limits: the excursion guard (scaled by the distance above the
+            // roll-off) and, above [AutoEqSettings.highBoostCapStartHz], the per-class absolute cap
+            // (the self-measurement of a tiny driver is untrustworthy up there - see DEVICE).
+            val regionCap = if (frequencies[i] >= settings.highBoostCapStartHz) {
+                minOf(settings.maxBoostDb, settings.highBoostCapDb ?: settings.maxBoostDb)
+            } else settings.maxBoostDb
+            val boostCap = minOf(
+                settings.maxBoostDb * excursionGuard(frequencies[i], lowLimit, settings.excursionGuardOctaves),
+                regionCap,
+            )
             var raw = targetDb[i] - measuredDb[i]
             if (broad != null && raw > 0) raw = minOf(raw, maxOf(0.0, targetDb[i] - broad[i]))
             raw.coerceIn(-cutLimit, boostCap) * inRange[i] * reliable[i]

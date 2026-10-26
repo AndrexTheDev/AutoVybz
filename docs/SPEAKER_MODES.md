@@ -15,7 +15,7 @@ The optimal correction strategy differs fundamentally:
 | Excursion ramp | 1 oct (1.5 outdoors) | ≥ 1.5 oct | **2 oct** |
 | Correction top | 16 kHz | 16 kHz | **12 kHz** |
 | Roll-off scan | from 200 Hz, clamp ≤ 160 Hz | from 400 Hz, ≤ 350 Hz | from 1.2 kHz, ≤ 900 Hz |
-| Protective high pass | – | **yes** | **yes** |
+| Protective high pass | – | **yes** (at the roll-off point) | **yes** (sub-bass only, fixed 60 Hz) |
 | Limiter forced | outdoors only | **yes** | **yes** |
 | Loudness make-up | – | **up to +6 dB** | **up to +6 dB** |
 | Pre-selected target | user default | Harman | Harman |
@@ -27,15 +27,27 @@ proves that `STANDARD` reproduces the classic settings exactly.
 
 ## The protective high pass
 
-Both new strategies add a 2nd-order high pass (12 dB/oct, Q = 0.707) at the speaker's
-measured −6 dB bass point (`AutoEqRenderer.detectLowLimit` result ÷ 1.25). It replaces
-one fitted EQ band, so presets stay within the promised 5/10 filters, and it is skipped
-below 35 Hz (a speaker that plays almost full-range does not need one). The fitter is
-told about the pass: its slope *inside* the correction band is subtracted from the
-desired curve, so the fitted bands + pass jointly reach the target at the low edge
-instead of cutting it twice (−1.5 dB at the low limit). Outside the band nothing is
-compensated – and since the excursion guard was already applied to the desired curve,
-the compensation can never push the electrical signal beyond the guard's budget.
+Both new strategies add a 2nd-order high pass (12 dB/oct, Q = 0.707). It replaces one
+fitted EQ band, so presets stay within the promised 5/10 filters. The fitter is told
+about the pass: its slope *inside* the correction band is subtracted from the desired
+curve, so the fitted bands + pass jointly reach the target at the low edge instead of
+cutting it twice (−1.5 dB at the low limit). Outside the band nothing is compensated –
+and since the excursion guard was already applied to the desired curve, the compensation
+can never push the electrical signal beyond the guard's budget.
+
+The corner differs by class (`AutoEqSettings.protectiveHighPassHz`):
+
+* **RESCUE** (external weak speaker): the speaker's measured −6 dB bass point
+  (`AutoEqRenderer.detectLowLimit` result ÷ 1.25), skipped below 35 Hz. Deep bass a
+  small driver cannot reproduce still costs cone excursion – rattling, port noise and
+  intermodulation distortion across the whole audible band. Removing it electrically
+  buys clean headroom in the band the speaker *can* play.
+* **DEVICE** (phone / tablet self-measurement): a fixed **60 Hz** corner. A tiny driver's
+  −6 dB point sits in the *midrange* (phone speakers roll off at 400–900 Hz), and a
+  protective pass there would eat the bass the driver *does* play – the calibration
+  would sound thin and quiet (the model measures −9…−18 dB at 100–200 Hz with the
+  derived corner). At 60 Hz the pass removes only the sub-bass the driver cannot
+  reproduce cleanly (rattle, excursion) and costs ≤ 1 dB at 100 Hz.
 
 Why it matters more than any tonal correction on weak hardware: deep bass that a small
 driver cannot reproduce still costs cone excursion. That excursion produces rattling,
@@ -130,23 +142,28 @@ perceived loudness. Measured with the model used by the tests, a typical phone c
    correction boosts anywhere, else 0 dB. `peak` comes from `AntiClipping.maxBoostDb`, i.e. the
    analytic maximum of the whole chain (24 points/octave over 20 Hz–20 kHz, protective high pass
    included), not just the render grid.
-2. **Loudness compensation** (`Plan.makeUpDb`): the perceived level change of the correction is
-   estimated on the *predicted* response (measurement + correction, A-weighted pink programme
-   spectrum on a 1/3-octave grid 40 Hz–16 kHz) and undone – upwards only, at most
-   `MAX_MAKE_UP_DB` (6 dB). A correction that gets louder is never pulled back down.
-3. **Headroom allowance** (`preampHeadroomAllowanceDb`): the make-up is *added to* the
-   clipping-safe value, never instead of it, and only by this much. It is 6 dB exactly for the
-   presets that force the limiter (device, rescue, outdoor), because there the limiter
-   (−1 dB, 10:1) is the actual peak protection – a 10:1 limiter maps a +6 dB over-shoot to
-   −0.4 dBFS, so the static over-shoot is bounded and cannot clip. For every other preset the
-   allowance is 0 and the pre-gain is bit-identical to the old value, so external speakers keep
-   the classic behaviour.
+2. **Loudness estimate**: the perceived level change of the correction is estimated on the
+   *predicted* response (measurement + correction, A-weighted pink programme spectrum on a
+   1/3-octave grid 40 Hz–16 kHz).
+3. **Two regimes** (`preampHeadroomAllowanceDb`):
+   * *Limiter armed* (device, rescue, outdoor – 6 dB allowance): the pre-gain is set
+     **loudness-neutral**: `pre-gain = clamp(−ΔL, clipping-safe, clipping-safe + allowance)`.
+     The corrected chain comes out as loud as the original. The legacy rule made every
+     correction that boosts anything `peak + 0.5 dB` quieter – e.g. the treble restoration
+     of a phone speaker cost the whole output 4.5 dB – and the limiter (−1 dB, 10:1) is the
+     actual peak protection anyway: a 10:1 limiter maps a +6 dB over-shoot to −0.4 dBFS, so
+     the static over-shoot is bounded and cannot clip.
+   * *No limiter* (every other preset, allowance 0): the pre-gain is exactly the clipping-safe
+     value – bit-identical to the old behaviour, so external speakers keep the classic rule.
+
+`MAX_MAKE_UP_DB` (6 dB) bounds the compensation on top of the allowance, and a correction that
+gets louder is never pulled back down (`makeUpDb >= 0`).
 
 The result screen shows the value (signed, e.g. `+4.3 dB`) and adds a green line whenever the
 make-up is at least 0.5 dB, so a positive pre-gain does not look like a bug. `PreampPlannerTest`
-pins the invariants: without an allowance the legacy value is reproduced exactly, a cut-only
-correction comes out loudness-neutral (|Δ| < 0.5 dB), the make-up never reduces the clipping
-protection of a genuine boost, and the static over-shoot never exceeds the allowance.
+pins the invariants: without an allowance the legacy value is reproduced exactly, with the limiter
+armed the corrected chain comes out loudness-neutral (bounded by the allowance), and the static
+over-shoot never exceeds the allowance.
 `SoundComposer` moves the same make-up through style layering, and `AutoVybzPresetStore` switches
 the inherited DP *auto-gain* off for AutoVybz presets — it shifts the whole curve by the largest
 boost, which would otherwise undo the make-up a second time (the wizard path also re-reads the
