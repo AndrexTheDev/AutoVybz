@@ -388,8 +388,13 @@ object AutoEqRenderer {
      * cone excursion for little gain. The allowed boost ramps from 0 at the
      * low limit to 100 % one octave (outdoors / party: 1.5) above it (cuts are always allowed).
      */
-    internal fun excursionGuard(f: Double, lowLimit: Double, octaves: Double = 1.0): Double =
-        (ln(f / lowLimit) / ln(2.0) / octaves.coerceAtLeast(0.1)).coerceIn(0.0, 1.0)
+    internal fun excursionGuard(f: Double, lowLimit: Double, octaves: Double = 1.0): Double {
+        val t = (ln(f / lowLimit) / ln(2.0) / octaves.coerceAtLeast(0.1)).coerceIn(0.0, 1.0)
+        // Smoothstep (S-curve) instead of a linear ramp: the boost ramps more gradually near the
+        // roll-off (where excursion risk is highest) and more aggressively further away. The endpoints
+        // and midpoint are identical to the linear ramp, so existing behaviour is preserved there.
+        return t * t * (3.0 - 2.0 * t)
+    }
 
     /** 1 inside [lo, hi], raised-cosine fade to 0 over half an octave outside. */
     internal fun rangeWeight(f: Double, lo: Double, hi: Double): Double {
