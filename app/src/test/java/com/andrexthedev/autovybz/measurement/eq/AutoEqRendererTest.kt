@@ -359,4 +359,36 @@ class AutoEqRendererTest {
         assertTrue("preamp without a limiter ${indoor.preampDb}", indoor.preampDb <= 0.0)
         assertEquals(0.0, indoor.makeUpDb, 0.0)
     }
+
+    /**
+     * The DEVICE `cutTrust` (0.75) must scale *each* cut to 75 % of the measured excess, not merely
+     * lower the maximum cut limit. The near field overstates presence peaks; cutting the full excess
+     * would over-correct and leave the manufacturer's residual behind unheard.
+     */
+    @Test
+    fun deviceCutTrustScalesEachCutTo75Percent() {
+        val phone = curveOf(
+            PeqBand(PeqType.HIGH_PASS, 700.0, 0.0, 0.707),
+            PeqBand(PeqType.PEAK, 1800.0, 5.0, 1.1),   // near-field presence excess
+            PeqBand(PeqType.HIGH_SHELF, 6000.0, -5.0, 0.7),
+        )
+        val settings = CorrectionPlanner.autoEqSettings(
+            10, EnvironmentTuning.of(ListeningEnvironment.INDOOR), SpeakerClassTuning.of(SpeakerClass.DEVICE),
+        )
+        val r = AutoEqRenderer.render(grid, phone, TargetCurve(TargetType.HARMAN), settings)
+        val idx = grid.indexOfFirst { it >= 1800.0 }
+        val excess = r.targetDb[idx] - r.measuredDb[idx]
+        assertTrue("presence excess $excess dB", excess < -3.0)
+        // The desired cut is gentler than the full excess (75 % of it, not 100 %).
+        assertTrue(
+            "cut ${r.desiredCorrectionDb[idx]} dB should be gentler than excess $excess dB",
+            r.desiredCorrectionDb[idx] > excess,
+        )
+        assertEquals(
+            "cut is 75 % of the measured excess",
+            excess * 0.75,
+            r.desiredCorrectionDb[idx],
+            0.7,
+        )
+    }
 }
