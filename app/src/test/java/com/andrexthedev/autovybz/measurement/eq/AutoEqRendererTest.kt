@@ -246,6 +246,20 @@ class AutoEqRendererTest {
     }
 
     @Test
+    fun flatSpeakerWithProtectiveHighPassKeepsOnlyTheHighPass() {
+        // A speaker that already matches the target needs no EQ. With a protective high pass
+        // configured, the fitter returns zero bands and the safety net keeps only the high
+        // pass - it protects the sub-bass without adding any correction that could make the
+        // response worse.
+        val flat = DoubleArray(grid.size)
+        val settings = AutoEqSettings(bandCount = 4, protectiveHighPass = true, protectiveHighPassHz = 70.0)
+        val result = AutoEqRenderer.render(grid, flat, TargetCurve(TargetType.FLAT), settings)
+        assertEquals(1, result.bands.size, "only the protective high pass should remain")
+        assertEquals(70.0, result.bands[0].frequency, 0.1)
+        assertEquals(0.0, result.bands[0].gainDb, 1e-9)
+    }
+
+    @Test
     fun protectiveHighPassSlopeIsCompensatedInBand() {
         val cheap = curveOf(
             PeqBand(PeqType.HIGH_PASS, 160.0, 0.0, 0.707),

@@ -268,6 +268,46 @@ object AutoEqRenderer {
             peakDb = maxBoost,
         )
 
+        val rmsBefore = rmsDeviation(frequencies, measuredDb, targetDb, lowLimit, highLimit)
+        val rmsAfter = rmsDeviation(frequencies, predicted, targetDb, lowLimit, highLimit)
+
+        // Safety net: a correction that does not improve the shape is worse than none. The fitter
+        // normally always reduces the RMS deviation, but a pathological input (or a future change)
+        // could produce a worse response. In that case drop the fitted EQ and keep only the
+        // protective high pass - it sits below the correction band, so it costs nothing there while
+        // still protecting the sub-bass from excursion.
+        if (rmsAfter >= rmsBefore - 1e-9) {
+            val hpBands = if (highPassHz != null) listOf(highPass) else emptyList()
+            val hpResponse = if (hpBands.isEmpty()) DoubleArray(frequencies.size) else grid.response(hpBands)
+            val hpPredicted = DoubleArray(frequencies.size) { measuredDb[it] + hpResponse[it] }
+            val hpPreamp = PreampPlanner.plan(
+                frequencies = frequencies, measuredDb = measuredDb, correctionDb = hpResponse,
+                headroomDb = settings.headroomDb, maxMakeUpDb = settings.maxMakeUpDb,
+                headroomAllowanceDb = settings.preampHeadroomAllowanceDb, loudnessMakeUp = settings.loudnessMakeUp,
+                peakDb = AntiClipping.maxBoostDb(hpBands, settings.sampleRate),
+            )
+            return AutoEqResult(
+                bands = hpBands,
+                preampDb = hpPreamp.preampDb,
+                lowLimitHz = lowLimit,
+                highLimitHz = highLimit,
+                frequencies = frequencies,
+                measuredDb = measuredDb,
+                targetDb = targetDb,
+                desiredCorrectionDb = desired,
+                filterResponseDb = hpResponse,
+                predictedDb = hpPredicted,
+                rmsErrorBeforeDb = rmsBefore,
+                rmsErrorAfterDb = rmsDeviation(frequencies, hpPredicted, targetDb, lowLimit, highLimit),
+                maxFilterBoostDb = AntiClipping.maxBoostDb(hpBands, settings.sampleRate),
+                noiseGatedRanges = gatedRanges(frequencies, reliable, lowLimit, highLimit),
+                highPassHz = highPassHz,
+                makeUpDb = hpPreamp.makeUpDb,
+                loudnessDeltaDb = hpPreamp.loudnessDeltaDb,
+                clippingSafeDb = hpPreamp.clippingSafeDb,
+            )
+        }
+
         return AutoEqResult(
             bands = bands,
             preampDb = preampPlan.preampDb,
@@ -279,8 +319,8 @@ object AutoEqRenderer {
             desiredCorrectionDb = desired,
             filterResponseDb = response,
             predictedDb = predicted,
-            rmsErrorBeforeDb = rmsDeviation(frequencies, measuredDb, targetDb, lowLimit, highLimit),
-            rmsErrorAfterDb = rmsDeviation(frequencies, predicted, targetDb, lowLimit, highLimit),
+            rmsErrorBeforeDb = rmsBefore,
+            rmsErrorAfterDb = rmsAfter,
             maxFilterBoostDb = maxBoost,
             noiseGatedRanges = gatedRanges(frequencies, reliable, lowLimit, highLimit),
             highPassHz = highPassHz,
