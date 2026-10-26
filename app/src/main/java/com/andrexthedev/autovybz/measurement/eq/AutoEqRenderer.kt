@@ -277,7 +277,7 @@ object AutoEqRenderer {
         // protective high pass - it sits below the correction band, so it costs nothing there while
         // still protecting the sub-bass from excursion.
         if (rmsAfter >= rmsBefore - 1e-9) {
-            val hpBands = if (highPassHz != null) listOf(highPass) else emptyList()
+            val hpBands = if (highPass != null) listOf(highPass) else emptyList()
             val hpResponse = if (hpBands.isEmpty()) DoubleArray(frequencies.size) else grid.response(hpBands)
             val hpPredicted = DoubleArray(frequencies.size) { measuredDb[it] + hpResponse[it] }
             val hpPreamp = PreampPlanner.plan(
