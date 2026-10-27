@@ -137,7 +137,15 @@ class PeqFitter(
             out += clamp(PeqBand(PeqType.PEAK, f[idx], g0, q))
         }
         if (constraints.allowShelves) {
-            val low = weightedMean(residual, constraints.minFrequency, 150.0)
+            // LOW_SHELF weighted-mean range: [minFrequency, max(150 Hz, minFrequency + 100 Hz)].
+            // The upper bound 150 Hz is the classic threshold, but for high-roll-off classes
+            // (RESCUE ~280 Hz, DEVICE ~560 Hz) minFrequency > 150 would make the range invalid
+            // (lo > hi) and the shelf would never be proposed. Widening to at least 100 Hz
+            // above minFrequency keeps the range valid and lets the shelf correct broad bass
+            // trends in the correction band above the roll-off.
+            val lowLo = constraints.minFrequency
+            val lowHi = max(150.0, lowLo + 100.0)
+            val low = weightedMean(residual, lowLo, lowHi)
             if (abs(low) > 0.5) out += clamp(PeqBand(PeqType.LOW_SHELF, 120.0, low, 0.7))
             val high = weightedMean(residual, 5000.0, constraints.maxFrequency)
             if (abs(high) > 0.5) out += clamp(PeqBand(PeqType.HIGH_SHELF, 6000.0, high, 0.7))

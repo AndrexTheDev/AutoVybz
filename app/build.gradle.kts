@@ -31,7 +31,7 @@ android {
 
         // Only locales the app actually translates (values-* dirs above); strips the
         // ~80 library locales AppCompat/Material/Compose would otherwise add.
-        resourceConfigurations += listOf("en", "de", "es", "pt", "ru", "uk", "zh-rCN")
+        resourceConfigurations += listOf("en", "de", "es")
 
         externalNativeBuild {
             cmake {

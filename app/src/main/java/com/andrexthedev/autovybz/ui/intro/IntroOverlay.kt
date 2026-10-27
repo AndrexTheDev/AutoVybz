@@ -58,16 +58,23 @@ object IntroGate {
     /** How often the intro was shown in this process (E2E: cold start shows it once, rotation never). */
     val shownCount = java.util.concurrent.atomic.AtomicInteger(0)
 
-    /** Upper bound for the 4 s clip: a stuck decoder must never trap the user in the intro. */
-    const val MAX_DURATION_MS = 7_000L
+    /** Upper bound for the 8.2 s clip: a stuck decoder must never trap the user in the intro. */
+    const val MAX_DURATION_MS = 11_000L
     const val FADE_MS = 350
+
+    /** res/raw/avz_intro.mp4: 1080x1920, 60 fps - the overlay letterboxes with exactly this ratio. */
+    const val CLIP_ASPECT = 1080f / 1920f
 }
 
 /**
- * Full-screen intro: res/raw/avz_intro.mp4 (the 4 s logo animation from branding/intro/Intro1.mp4, audio track
- * removed - the app must not open an audio stream on start, music may be playing). The clip is letterboxed on the
- * slate brand background, which is the clip's own backdrop, so the bands are invisible on every aspect ratio.
- * Tap anywhere or "Skip" to leave; it also ends on completion, on any player error and after [IntroGate.MAX_DURATION_MS].
+ * Full-screen intro: res/raw/avz_intro.mp4 - the logo animation from branding/intro/Intro1.mp4, rebuilt by
+ * tools/intro/make_intro.sh as 1080x1920 @ 60 fps, 8.2 s (0.67x slow motion + a 2.2 s hold of the finished
+ * logo, motion-interpolated instead of the source's 24 fps judder), upscaled 3x with lanczos + CAS and
+ * de-banded, faded from/to the slate brand background. No audio track: the app must not open an audio stream
+ * on start, music may be playing. The clip is letterboxed on the slate brand background, which is the clip's
+ * own backdrop, so the bands are invisible on every aspect ratio.
+ * Tap anywhere or "Skip" to leave; it also ends on completion, on any player error and after
+ * [IntroGate.MAX_DURATION_MS].
  */
 @Composable
 fun IntroOverlay(onFinished: () -> Unit) {
@@ -106,7 +113,7 @@ fun IntroOverlay(onFinished: () -> Unit) {
     ) {
         AndroidView(
             factory = { ctx -> TextureView(ctx).apply { surfaceTextureListener = player } },
-            modifier = Modifier.aspectRatio(360f / 640f, matchHeightConstraintsFirst = true),
+            modifier = Modifier.aspectRatio(IntroGate.CLIP_ASPECT, matchHeightConstraintsFirst = true),
         )
         TextButton(
             onClick = { leaving = true },

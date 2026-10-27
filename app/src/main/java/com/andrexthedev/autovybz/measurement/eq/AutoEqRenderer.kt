@@ -6,12 +6,31 @@ import kotlin.math.cos
 import kotlin.math.ln
 import kotlin.math.sqrt
 
+/** Default start of the per-class high-frequency boost cap region (see [AutoEqSettings.highBoostCapDb]). */
+const val HIGH_BOOST_CAP_START_HZ = 6000.0
+
 data class AutoEqSettings(
     /** 5 (fast) or 10 (max precision, default - uses the full Equalizer314 engine). */
     val bandCount: Int = 10,
     /** Largest allowed boost of the combined correction. Small speakers can't do much more. */
     val maxBoostDb: Double = 6.0,
     val maxCutDb: Double = 12.0,
+    /**
+     * Fraction of a measured excess that is actually cut (0.1-1.0, default 1.0 = full correction).
+     * Near-field self-measurements (a phone measuring its own speakers at centimetres) overstate peaks -
+     * and every dB cut in the 1-4 kHz presence band costs several dB of perceived loudness. 0.75 keeps
+     * the tonal correction while the sound stays as loud as before (see [PreampPlanner]).
+     */
+    val cutTrust: Double = 1.0,
+    /**
+     * Frequency-dependent cutTrust (DEVICE class): below [cutTrustLowHz] the near-field self-measurement
+     * overstates the bass heavily (pressure zone + chassis vibration), so cuts there are scaled by
+     * [cutTrustLow] instead of [cutTrust]. Above [cutTrustLowHz] the direct sound is more trustworthy
+     * and [cutTrust] applies. 0 = disabled (uniform cutTrust).
+     */
+    val cutTrustLowHz: Double = 0.0,
+    /** Low-band cutTrust fraction (0.1-1.0); used below [cutTrustLowHz] when [cutTrustLowHz] > 0. */
+    val cutTrustLow: Double = 1.0,
     /** Upper correction limit: phone mics are unreliable above ~16 kHz. */
     val highLimitHz: Double = 16000.0,
     /** Detect the speaker's bass roll-off and never boost below it. */
@@ -19,6 +38,23 @@ data class AutoEqSettings(
     val manualLowLimitHz: Double = 40.0,
     /** Extra safety margin on top of the max filter boost for the pre-gain. */
     val headroomDb: Double = 0.5,
+    /**
+     * Compensate the *perceived* level loss of a correction, so a calibration makes the speaker better,
+     * not quieter. Never lowers the pre-gain: a correction that gets louder is left alone. With
+     * [preampHeadroomAllowanceDb] > 0 (limiter armed) the pre-gain is set loudness-neutral; with 0 it is
+     * the legacy clipping-safe value. See [PreampPlanner]. On by default.
+     */
+    val loudnessMakeUp: Boolean = true,
+    /** Upper bound of the loudness make-up (dB). */
+    val maxMakeUpDb: Double = PreampPlanner.MAX_MAKE_UP_DB,
+    /**
+     * Static overshoot the pre-gain may leave when the engine limiter is armed: with a limiter the
+     * pre-gain is loudness-neutral and may sit up to this much above the clipping-safe value (the
+     * limiter is the peak protection). 0 (the default) keeps the legacy clipping-safe value exactly.
+     * Only [com.andrexthedev.autovybz.measurement.CorrectionPlanner] sets this, and only for
+     * calibrations whose preset forces the limiter on.
+     */
+    val preampHeadroomAllowanceDb: Double = 0.0,
     val sampleRate: Double = BiquadMath.DEFAULT_SAMPLE_RATE,
     /**
      * SNR gating (only when an SNR curve is passed to [AutoEqRenderer.render]): below [minSnrDb] the
@@ -47,8 +83,18 @@ data class AutoEqSettings(
      * driver cannot reproduce only costs excursion, rattling and intermodulation distortion.
      * Removing it is pure win for weak / tiny speakers (more clean headroom). Consumes one of the
      * [bandCount] bands; skipped when the speaker plays (almost) full-range anyway.
+     *
+     * [protectiveHighPassHz] overrides the corner: the -6 dB point of a tiny driver sits in the
+     * midrange (a phone speaker rolls off at 400-900 Hz), and cutting the bass the driver *does*
+     * play would make the calibration sound thin. Such classes protect the sub-bass only.
      */
     val protectiveHighPass: Boolean = false,
+    /** Fixed corner of the protective high pass in Hz; `null` derives it from the measured roll-off. */
+    val protectiveHighPassHz: Double? = null,
+    /** Absolute boost cap (dB) above [highBoostCapStartHz]; `null` = [maxBoostDb]. */
+    val highBoostCapDb: Double? = null,
+    /** Start of the [highBoostCapDb] region (Hz). */
+    val highBoostCapStartHz: Double = HIGH_BOOST_CAP_START_HZ,
 ) {
     init {
         require(bandCount in 1..16)
@@ -77,6 +123,12 @@ class AutoEqResult(
     val noiseGatedRanges: List<Pair<Double, Double>> = emptyList(),
     /** Corner frequency of the protective high pass in [bands], if one was added. */
     val highPassHz: Double? = null,
+    /** Part of [preampDb] that compensates the perceived level loss of the correction (>= 0 dB). */
+    val makeUpDb: Double = 0.0,
+    /** Estimated perceived level change of the correction alone (dB, negative = quieter). */
+    val loudnessDeltaDb: Double = 0.0,
+    /** The classic anti-clipping pre-gain for this correction (<= 0); [preampDb] - [clippingSafeDb] = [makeUpDb]. */
+    val clippingSafeDb: Double = 0.0,
 )
 
 /**
@@ -90,13 +142,16 @@ class AutoEqResult(
  *    (boost ramps in over the first octave above the roll-off - excursion
  *    guard) and faded to 0 dB over half an octave outside the range.
  * 3. Fit [AutoEqSettings.bandCount] biquads ([PeqFitter]).
- * 4. Anti-clipping: pre-gain = -(max combined boost + headroom).
+ * 4. Gain staging ([PreampPlanner]): the clipping-safe pre-gain is `-(max combined boost + headroom)`,
+ *    plus a loudness make-up that undoes the *perceived* level loss of a correction that only cuts (a
+ *    device-speaker calibration must sound better, not quieter). Bounded by [AutoEqSettings.maxMakeUpDb]
+ *    and, only while the engine limiter is armed, by [AutoEqSettings.preampHeadroomAllowanceDb].
  *
  * With [AutoEqSettings.protectiveHighPass] one of the fitted bands is replaced by a
- * high pass at the measured -6 dB roll-off point, so weak drivers stop wasting their
- * excursion (and the listener's patience) on bass they cannot play. The fitter is told
- * about the pass (its slope inside the correction band is compensated in the desired
- * curve), so the band edge is not cut twice.
+ * high pass at the measured -6 dB roll-off point (or [AutoEqSettings.protectiveHighPassHz]
+ * when set), so weak drivers stop wasting their excursion (and the listener's patience) on
+ * bass they cannot play. The fitter is told about the pass (its slope inside the correction
+ * band is compensated in the desired curve), so the band edge is not cut twice.
  */
 object AutoEqRenderer {
 
@@ -137,18 +192,42 @@ object AutoEqRenderer {
             detectLowLimit(frequencies, rollOffDb, settings.lowLimitScanHz, maxHz = settings.lowLimitMaxHz)
         } else settings.manualLowLimitHz.coerceIn(20.0, 500.0)
         val highLimit = settings.highLimitHz.coerceIn(2000.0, 20000.0)
-        val highPassHz = if (settings.protectiveHighPass) protectiveHighPassHz(lowLimit) else null
+        val highPassHz = if (settings.protectiveHighPass) {
+            (settings.protectiveHighPassHz ?: protectiveHighPassHz(lowLimit))?.coerceIn(35.0, 1000.0)
+        } else null
 
         val inRange = DoubleArray(frequencies.size) { rangeWeight(frequencies[it], lowLimit, highLimit) }
         val reliable = DoubleArray(frequencies.size) { i ->
             snrDb?.let { reliability(it[i], settings.minSnrDb, settings.fullSnrDb) } ?: 1.0
         }
         val broad = settings.broadBoostOctaves?.let { medianLog(frequencies, measuredDb, it) }
+        // [cutTrust] scales cuts (a near-field self-measurement overstates peaks - correct only the
+        // trusted fraction, the rest is what the manufacturer's tuning leaves in); boosts are already
+        // limited by the excursion guard and the broad-only rule, and a missing treble is usually real
+        // (a phone speaker really does roll off up there). The scaled cut is still bounded by
+        // [cutLimit] = maxCutDb * cutTrust, so an excess beyond the limit cannot escape it.
+        val cutTrust = settings.cutTrust.coerceIn(0.1, 1.0)
+        val cutTrustLow = settings.cutTrustLow.coerceIn(0.1, 1.0)
         val desired = DoubleArray(frequencies.size) { i ->
-            val boostCap = settings.maxBoostDb * excursionGuard(frequencies[i], lowLimit, settings.excursionGuardOctaves)
+            // Two independent boost limits: the excursion guard (scaled by the distance above the
+            // roll-off) and, above [AutoEqSettings.highBoostCapStartHz], the per-class absolute cap
+            // (the self-measurement of a tiny driver is untrustworthy up there - see DEVICE).
+            val regionCap = if (frequencies[i] >= settings.highBoostCapStartHz) {
+                minOf(settings.maxBoostDb, settings.highBoostCapDb ?: settings.maxBoostDb)
+            } else settings.maxBoostDb
+            val boostCap = minOf(
+                settings.maxBoostDb * excursionGuard(frequencies[i], lowLimit, settings.excursionGuardOctaves),
+                regionCap,
+            )
             var raw = targetDb[i] - measuredDb[i]
             if (broad != null && raw > 0) raw = minOf(raw, maxOf(0.0, targetDb[i] - broad[i]))
-            raw.coerceIn(-settings.maxCutDb, boostCap) * inRange[i] * reliable[i]
+            // Frequency-dependent cutTrust: below [AutoEqSettings.cutTrustLowHz] the near-field
+            // self-measurement overstates the bass heavily (pressure zone + chassis vibration), so
+            // cuts there are scaled by the lower trust fraction. The cut limit follows the same
+            // frequency-dependent scaling so a deep cut cannot escape the lower-trust band.
+            val ct = if (settings.cutTrustLowHz > 0.0 && frequencies[i] < settings.cutTrustLowHz) cutTrustLow else cutTrust
+            val scaled = if (raw < 0.0) raw * ct else raw
+            scaled.coerceIn(-settings.maxCutDb * ct, boostCap) * inRange[i] * reliable[i]
         }
         // Outside the range (and where noise hides the speaker) we still ask for "0 dB" - keeps filters
         // from acting there - just with less weight.
@@ -188,11 +267,24 @@ object AutoEqRenderer {
         val predicted = DoubleArray(frequencies.size) { measuredDb[it] + response[it] }
 
         val maxBoost = AntiClipping.maxBoostDb(bands, settings.sampleRate)
-        val preamp = AntiClipping.preampFor(maxBoost, settings.headroomDb)
+        // Clipping-safe pre-gain + loudness compensation (see PreampPlanner): a calibration that mostly
+        // cuts must not make the speaker quieter instead of better.
+        val preampPlan = PreampPlanner.plan(
+            frequencies = frequencies,
+            measuredDb = measuredDb,
+            correctionDb = response,
+            headroomDb = settings.headroomDb,
+            maxMakeUpDb = settings.maxMakeUpDb,
+            headroomAllowanceDb = settings.preampHeadroomAllowanceDb,
+            loudnessMakeUp = settings.loudnessMakeUp,
+            // The analytic maximum of the filter chain (24 points/octave), not just the render grid:
+            // the clipping-safe value must cover the whole 20 Hz-20 kHz range.
+            peakDb = maxBoost,
+        )
 
         return AutoEqResult(
             bands = bands,
-            preampDb = preamp,
+            preampDb = preampPlan.preampDb,
             lowLimitHz = lowLimit,
             highLimitHz = highLimit,
             frequencies = frequencies,
@@ -206,6 +298,9 @@ object AutoEqRenderer {
             maxFilterBoostDb = maxBoost,
             noiseGatedRanges = gatedRanges(frequencies, reliable, lowLimit, highLimit),
             highPassHz = highPassHz,
+            makeUpDb = preampPlan.makeUpDb,
+            loudnessDeltaDb = preampPlan.loudnessDeltaDb,
+            clippingSafeDb = preampPlan.clippingSafeDb,
         )
     }
 
@@ -293,8 +388,13 @@ object AutoEqRenderer {
      * cone excursion for little gain. The allowed boost ramps from 0 at the
      * low limit to 100 % one octave (outdoors / party: 1.5) above it (cuts are always allowed).
      */
-    internal fun excursionGuard(f: Double, lowLimit: Double, octaves: Double = 1.0): Double =
-        (ln(f / lowLimit) / ln(2.0) / octaves.coerceAtLeast(0.1)).coerceIn(0.0, 1.0)
+    internal fun excursionGuard(f: Double, lowLimit: Double, octaves: Double = 1.0): Double {
+        val t = (ln(f / lowLimit) / ln(2.0) / octaves.coerceAtLeast(0.1)).coerceIn(0.0, 1.0)
+        // Smoothstep (S-curve) instead of a linear ramp: the boost ramps more gradually near the
+        // roll-off (where excursion risk is highest) and more aggressively further away. The endpoints
+        // and midpoint are identical to the linear ramp, so existing behaviour is preserved there.
+        return t * t * (3.0 - 2.0 * t)
+    }
 
     /** 1 inside [lo, hi], raised-cosine fade to 0 over half an octave outside. */
     internal fun rangeWeight(f: Double, lo: Double, hi: Double): Double {

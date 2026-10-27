@@ -41,8 +41,9 @@ The permanent bottom banner in this build is an in-app placeholder and Pro entry
 - **Studio** – everyday fine-tuning: bass/treble shelves (±6 dB), volume protection (limiter), A/B switch,
   speaker profiles (apply/delete); the expert tools (10-band PEQ, compressor, measurement & mic settings)
   one level deeper.
-- **Intro** – the animated AutoVybz logo (`branding/intro/Intro1.mp4`, played silently from
-  `res/raw/avz_intro.mp4`) on every cold start; tap to skip, skipped automatically when the system has
+- **Intro** – the animated AutoVybz logo on every cold start (1080x1920, 60 fps, 8.2 s: `tools/intro/make_intro.sh`
+  rebuilds `res/raw/avz_intro.mp4` from `branding/intro/Intro1.mp4` with motion interpolation, a 3x lanczos + CAS
+  upscale and fades to the brand slate); silent by design, tap to skip, skipped automatically when the system has
   animations switched off.
 - **1-click wizard for everyone** – big "Calibrate speaker" button, safety check, live mic level, result graph.
 - **Measurement**: exactly 10 s stimulus = room-noise capture + periodic pink noise + logarithmic sine sweep

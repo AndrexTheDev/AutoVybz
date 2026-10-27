@@ -1,13 +1,15 @@
 package com.andrexthedev.autovybz.measurement.eq
 
 import com.andrexthedev.autovybz.measurement.dsp.FrequencyGrid
-import kotlin.math.ceil
 
 /**
  * Anti-clipping protection, two layers:
  *  1. Static pre-gain: the master level is lowered by the largest boost the
  *     filter chain produces anywhere in 20 Hz - 20 kHz (+ headroom), so a
- *     full-scale signal can never be pushed over 0 dBFS by the EQ.
+ *     full-scale signal can never be pushed over 0 dBFS by the EQ. The policy
+ *     (and its loudness make-up for cut-only corrections) lives in
+ *     [PreampPlanner]; [AutoEqRenderer] and [com.andrexthedev.autovybz.sound.SoundComposer]
+ *     both go through it.
  *  2. Dynamic safety net: Equalizer314's DynamicsProcessing limiter (and
  *     optionally a multiband "bass guard") catch what's left, e.g. inter-sample
  *     peaks or a user raising the pre-gain later.
@@ -20,12 +22,6 @@ object AntiClipping {
         if (bands.isEmpty()) return 0.0
         val r = BiquadMath.Grid(denseGrid, sampleRate).response(bands)
         return r.maxOrNull() ?: 0.0
-    }
-
-    /** Pre-gain in dB (<= 0), rounded *down* to 0.1 dB. */
-    fun preampFor(maxBoostDb: Double, headroomDb: Double = 0.5): Double {
-        if (maxBoostDb <= 0.0) return 0.0
-        return -ceil((maxBoostDb + headroomDb) * 10.0) / 10.0
     }
 
     /** Settings for Equalizer314's limiter stage. */

@@ -3,6 +3,8 @@ package com.andrexthedev.autovybz.measurement
 import com.andrexthedev.autovybz.measurement.audio.VolumeMath
 import com.andrexthedev.autovybz.measurement.dsp.SmoothingProfile
 import com.andrexthedev.autovybz.measurement.eq.AutoEqSettings
+import com.andrexthedev.autovybz.measurement.eq.HIGH_BOOST_CAP_START_HZ
+import com.andrexthedev.autovybz.measurement.eq.PreampPlanner
 import com.andrexthedev.autovybz.measurement.eq.TargetType
 import kotlin.math.max
 import kotlin.math.min
@@ -50,6 +52,30 @@ data class SpeakerClassTuning(
     val lowLimitMaxHz: Double? = null,
     /** Cut sub-bass the driver cannot reproduce instead of letting it rattle (see AutoEqRenderer). */
     val protectiveHighPass: Boolean = false,
+    /**
+     * Fixed corner of the protective high pass in Hz; `null` derives it from the measured bass
+     * roll-off (the classic behaviour). A tiny driver's -6 dB point sits in the *midrange*
+     * (400-900 Hz) - cutting there would eat musical bass, so a device self-measurement protects
+     * the sub-bass only.
+     */
+    val protectiveHighPassHz: Double? = null,
+    /** Absolute boost cap (dB) above [highBoostCapStartHz]; `null` = [AutoEqSettings.maxBoostDb]. */
+    val highBoostCapDb: Double? = null,
+    /** Start of the [highBoostCapDb] region (Hz). */
+    val highBoostCapStartHz: Double? = null,
+    /**
+     * Fraction of a measured excess that is corrected (0.1..1.0); see [AutoEqSettings.cutTrust].
+     * `null` = full correction. Every dB cut in the ear's most sensitive band costs perceived loudness.
+     */
+    val cutTrust: Double? = null,
+    /**
+     * Frequency-dependent cutTrust (DEVICE class): below this Hz the near-field self-measurement
+     * overstates the bass heavily, so cuts there are scaled by [cutTrustLow] instead of [cutTrust].
+     * `null` = uniform [cutTrust] (disabled).
+     */
+    val cutTrustLowHz: Double? = null,
+    /** Low-band cutTrust fraction (0.1..1.0); used below [cutTrustLowHz] when set. */
+    val cutTrustLow: Double? = null,
     /** Arm the limiter whenever such a calibration is activated. */
     val forceLimiter: Boolean = false,
     /** Target the wizard pre-selects for this class (the user can still change it). */
@@ -70,20 +96,35 @@ data class SpeakerClassTuning(
             // Boom / honk / enclosure resonances of cheap boxes are 6-12 dB tall - allow deep cuts.
             // Boosts keep the user's limit: they cost distortion and loudness on a weak amp.
             maxCutDb = 16.0,
+            // Additional boost cap on top of the user's limit: weak speakers distort easily, and the
+            // HARMAN bass shelf (+4 dB) is the most a cheap driver should ever be asked to boost.
+            maxBoostCapDb = 4.0,
             broadBoostOctaves = 1.0,
             excursionGuardOctaves = 1.5,
             // Budget speakers often roll off at 150-300 Hz; the standard scan/clamp would miss it.
             lowLimitScanHz = 400.0,
             lowLimitMaxHz = 350.0,
             protectiveHighPass = true,
+            // The auto-detected protective pass would sit at ~280 Hz (350 / 1.25), which cuts bass the
+            // driver actually plays (150-280 Hz) and makes the rescue sound thin. Protect the sub-bass
+            // only - below ~150 Hz a cheap driver cannot reproduce anything cleanly (rattle, excursion).
+            protectiveHighPassHz = 150.0,
             // Weak speakers get played loud - keep the safety net armed.
             forceLimiter = true,
+            // Above ~6 kHz the self-measurement is dominated by the mic profile and the driver's
+            // own hash: a large "correction" there is mostly phantom boost. Cap it like DEVICE.
+            highBoostCapDb = 2.0,
+            // Cheap drivers roll off steeply above ~14 kHz; mask correction there (like DEVICE
+            // masks above 12 kHz) so the fitter does not chase noise in the unreliable region.
+            highLimitHz = 14000.0,
             // Bass shelf + downward tilt forgives the typical midrange shout / harsh treble.
             suggestedTarget = TargetType.HARMAN,
         )
 
         private val DEVICE = SpeakerClassTuning(
-            smoothing = SmoothingProfile.STRONG,
+            // Near field: bass smoothed hard (pressure zone + chassis vibration), midrange/treble fine
+            // (no room, no reflections) - see SmoothingProfile.DEVICE.
+            smoothing = SmoothingProfile.DEVICE,
             // Tiny drivers already run at their limit (OEM DSP); boosts mostly buy distortion.
             maxBoostCapDb = 4.0,
             // Above ~12 kHz the self-measurement says more about chassis diffraction than sound.
@@ -96,7 +137,27 @@ data class SpeakerClassTuning(
             lowLimitScanHz = 1200.0,
             lowLimitMaxHz = 900.0,
             protectiveHighPass = true,
+            // The -6 dB point of a tiny driver is midrange (400-900 Hz): a protective pass there would
+            // eat the bass the driver *does* play. Protect the sub-bass only - the driver cannot
+            // reproduce anything below ~60 Hz cleanly anyway (rattle, excursion).
+            protectiveHighPassHz = 60.0,
+            // Above ~6 kHz the self-measurement is dominated by the (estimated) mic profile and the
+            // driver's own hash: a +4 dB "correction" there is mostly phantom boost. Cap it.
+            highBoostCapDb = 2.0,
+            highBoostCapStartHz = 6000.0,
             forceLimiter = true,
+            // A self-measurement at 1-15 cm overstates the presence region, and every dB cut around
+            // 1-4 kHz costs several dB of perceived loudness: correct 75 % of a measured excess. The
+            // remaining 25 % is what the manufacturer's own tuning usually leaves in, too.
+            cutTrust = 0.75,
+            // Below 400 Hz the near-field measurement is dominated by pressure-zone boost and chassis
+            // vibration (the same region where SmoothingProfile.DEVICE applies 1-octave smoothing):
+            // the measured excess is far larger than the actual acoustic excess. Correct only 50 %
+            // there - the remaining 50 % is artefact, not tone. Above 400 Hz the direct sound is more
+            // trustworthy and the 75 % cutTrust applies. Aligning cutTrustLowHz with the smoothing
+            // corner (400 Hz) keeps the two frequency-dependent mechanisms consistent.
+            cutTrustLowHz = 400.0,
+            cutTrustLow = 0.5,
             suggestedTarget = TargetType.HARMAN,
             // The microphone sits centimetres from the speaker: 50 % is plenty of level
             // (70 % would risk clipping the mic and exciting chassis rattles).
@@ -143,5 +204,21 @@ object CorrectionPlanner {
         lowLimitScanHz = speakerClass.lowLimitScanHz ?: 200.0, // = AutoEqSettings default
         lowLimitMaxHz = speakerClass.lowLimitMaxHz ?: 160.0, // = AutoEqSettings default
         protectiveHighPass = speakerClass.protectiveHighPass,
+        protectiveHighPassHz = speakerClass.protectiveHighPassHz,
+        highBoostCapDb = speakerClass.highBoostCapDb,
+        highBoostCapStartHz = speakerClass.highBoostCapStartHz ?: HIGH_BOOST_CAP_START_HZ,
+        cutTrust = (speakerClass.cutTrust ?: 1.0).coerceIn(0.1, 1.0), // = AutoEqSettings default
+        cutTrustLowHz = speakerClass.cutTrustLowHz ?: 0.0, // = AutoEqSettings default (disabled)
+        cutTrustLow = speakerClass.cutTrustLow ?: 1.0, // = AutoEqSettings default
+        // Gain staging (PreampPlanner): a calibration must make the speaker better, not quieter. Where
+        // the preset arms the limiter anyway, the pre-gain is loudness-neutral (bounded by the limiter's
+        // headroom); everywhere else the legacy clipping-safe value is kept.
+        loudnessMakeUp = true,
+        maxMakeUpDb = PreampPlanner.MAX_MAKE_UP_DB,
+        preampHeadroomAllowanceDb = if (forceLimiter(environment, speakerClass)) {
+            PreampPlanner.LIMITER_HEADROOM_ALLOWANCE_DB
+        } else {
+            0.0 // no limiter armed -> the clipping-safe pre-gain is the last line of defence
+        },
     )
 }

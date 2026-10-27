@@ -22,7 +22,7 @@ class IntroE2ETest : E2eTest(intro = true) {
     fun coldStartPlaysTheIntroOnceAndHandsOverToTheApp() {
         compose.waitRobust("intro was never shown", TIMEOUT_MS) { IntroGate.shownCount.get() >= 1 }
         val shown = IntroGate.shownCount.get()
-        // 4 s clip, hard limit 7 s - generous margin for slow emulators
+        // 8.2 s clip, hard limit 11 s - generous margin for slow emulators
         compose.awaitGone("avz:intro", timeoutMs = 20_000)
         compose.await("avz:start") // fresh install -> calibration tab
         compose.activityRule.scenario.recreate()

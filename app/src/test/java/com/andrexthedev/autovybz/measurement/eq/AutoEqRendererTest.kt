@@ -1,10 +1,16 @@
 package com.andrexthedev.autovybz.measurement.eq
 
+import com.andrexthedev.autovybz.measurement.CorrectionPlanner
+import com.andrexthedev.autovybz.measurement.EnvironmentTuning
+import com.andrexthedev.autovybz.measurement.ListeningEnvironment
+import com.andrexthedev.autovybz.measurement.SpeakerClass
+import com.andrexthedev.autovybz.measurement.SpeakerClassTuning
 import com.andrexthedev.autovybz.measurement.dsp.FrequencyGrid
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.math.abs
+import kotlin.math.min
 import kotlin.math.sqrt
 
 class AutoEqRendererTest {
@@ -201,24 +207,42 @@ class AutoEqRendererTest {
     }
 
     @Test
-    fun phoneSpeakerRenderIsBandLimitedAndProtected() {
+    fun phoneSpeakerRenderKeepsTheBassAndCapsTheTreble() {
+        // A tiny driver rolling off in the midrange: the protective pass must protect the sub-bass only
+        // (the -6 dB point sits at ~500-700 Hz - cutting there would eat the bass the driver *does*
+        // play), and the treble boost is capped because the self-measurement above ~6 kHz is dominated
+        // by the estimated mic profile. The gain staging (limiter armed) must leave the chain as loud
+        // as the original.
         val phone = curveOf(
             PeqBand(PeqType.HIGH_PASS, 700.0, 0.0, 0.707),
-            PeqBand(PeqType.PEAK, 3000.0, 5.0, 1.5), // typical small-speaker shout
+            PeqBand(PeqType.PEAK, 3000.0, 5.0, 1.5),   // typical small-speaker shout
+            PeqBand(PeqType.HIGH_SHELF, 9000.0, -8.0, 0.7), // rolled-off top end
         )
         val settings = AutoEqSettings(
             maxBoostDb = 4.0, highLimitHz = 12000.0, protectiveHighPass = true,
+            protectiveHighPassHz = 60.0,
+            highBoostCapDb = 2.0, highBoostCapStartHz = 6000.0,
             lowLimitScanHz = 1200.0, lowLimitMaxHz = 900.0,
             broadBoostOctaves = 1.0, excursionGuardOctaves = 2.0,
+            cutTrust = 0.75,
+            preampHeadroomAllowanceDb = PreampPlanner.LIMITER_HEADROOM_ALLOWANCE_DB,
         )
         val r = AutoEqRenderer.render(grid, phone, TargetCurve(TargetType.HARMAN), settings)
         assertTrue("low limit ${r.lowLimitHz}", r.lowLimitHz in 400.0..900.0)
-        val hpHz = r.highPassHz
-        assertTrue("hp $hpHz", hpHz != null && hpHz in 300.0..750.0)
+        // Sub-bass protection only: the pass sits at the fixed 60 Hz corner, not at the roll-off point.
+        assertEquals(60.0, r.highPassHz!!, 1e-9)
         assertTrue("max boost ${r.maxFilterBoostDb}", r.maxFilterBoostDb <= 4.0 + 0.5)
         r.bands.forEach { assertTrue("band above correction limit $it", it.frequency <= 12000.0 + 1e-9) }
+        // The bass the driver does play must survive: at 100 Hz the chain is at most ~1 dB down.
         val deep = grid.indexOfFirst { it >= 100.0 }
-        assertTrue("100 Hz is cut hard: ${r.filterResponseDb[deep]} dB", r.filterResponseDb[deep] < -15.0)
+        assertTrue("100 Hz kept: ${r.filterResponseDb[deep]} dB", r.filterResponseDb[deep] > -3.0)
+        // Treble boost capped above 6 kHz.
+        for (i in grid.indices) if (grid[i] >= 6000.0) {
+            assertTrue("HF boost at ${grid[i]}: ${r.desiredCorrectionDb[i]} dB", r.desiredCorrectionDb[i] <= 2.0 + 1e-9)
+        }
+        // The calibrated chain must not be quieter than the original (limiter-armed loudness make-up).
+        val residual = r.loudnessDeltaDb + r.preampDb
+        assertTrue("residual level $residual dB", residual in -PreampPlanner.LIMITER_HEADROOM_ALLOWANCE_DB - 0.6..0.0)
     }
 
     @Test
@@ -282,5 +306,136 @@ class AutoEqRendererTest {
         // a 1/8-octave notch does not move a 1-octave median at all
         val notch = DoubleArray(grid.size) { if (grid[it] in 950.0..1050.0) -12.0 else 0.0 }
         assertEquals(0.0, AutoEqRenderer.medianLog(grid, notch, 1.0)[grid.indexOfFirst { it >= 1000.0 }], 1e-12)
+    }
+
+    /**
+     * The user-visible regression this guards: a device-speaker calibration used to make the phone
+     * *quieter* instead of better. The near-field presence excess is corrected by cutting exactly the
+     * band the ear is most sensitive to, and the old pre-gain only ever lowered the level further - the
+     * perceived result was 3-5 dB quieter, which also reads as "less detail".
+     */
+    @Test
+    fun deviceCalibrationKeepsThePerceivedLevelInsteadOfGettingQuieter() {
+        val phone = curveOf(
+            PeqBand(PeqType.HIGH_PASS, 700.0, 0.0, 0.707),
+            PeqBand(PeqType.PEAK, 1800.0, 5.0, 1.1),   // typical near-field presence excess
+            PeqBand(PeqType.PEAK, 3200.0, -3.0, 1.6),
+            PeqBand(PeqType.HIGH_SHELF, 6000.0, -5.0, 0.7),
+        )
+        val settings = CorrectionPlanner.autoEqSettings(
+            10, EnvironmentTuning.of(ListeningEnvironment.INDOOR), SpeakerClassTuning.of(SpeakerClass.DEVICE),
+        )
+        // The device preset arms the limiter, which is what allows the make-up to use headroom at all.
+        assertTrue("device preset must arm the limiter", settings.preampHeadroomAllowanceDb > 0.0)
+        val r = AutoEqRenderer.render(grid, phone, TargetCurve(TargetType.HARMAN), settings)
+        val legacy = AutoEqRenderer.render(
+            grid, phone, TargetCurve(TargetType.HARMAN),
+            settings.copy(loudnessMakeUp = false, preampHeadroomAllowanceDb = 0.0),
+        )
+        // The correction alone costs perceived level: the presence cut sits where the ear is most sensitive.
+        assertTrue("correction costs ${r.loudnessDeltaDb} dB", r.loudnessDeltaDb < -0.5)
+        // The make-up gives exactly that back (capped at MAX_MAKE_UP_DB) - not more, not less.
+        assertEquals(
+            "make-up vs loudness delta",
+            min(PreampPlanner.MAX_MAKE_UP_DB, -r.loudnessDeltaDb),
+            r.makeUpDb,
+            0.11,
+        )
+        // Same correction, old policy: the volume drops. New policy: it does not.
+        assertTrue("preamp ${r.preampDb} vs legacy ${legacy.preampDb}", r.preampDb > legacy.preampDb)
+        assertEquals("make-up = preamp - clipping-safe", r.makeUpDb, r.preampDb - r.clippingSafeDb, 0.11)
+        // Whatever is left above the clipping-safe value is bounded by the allowance the limiter absorbs.
+        assertTrue(
+            "static overshoot ${r.maxFilterBoostDb + r.preampDb} dB",
+            r.maxFilterBoostDb + r.preampDb <= settings.preampHeadroomAllowanceDb + 0.1,
+        )
+        // The classic external-speaker path indoors has no limiter, so it keeps the clipping-safe pre-gain.
+        val indoor = AutoEqRenderer.render(
+            grid, phone, TargetCurve(TargetType.HARMAN),
+            CorrectionPlanner.autoEqSettings(
+                10, EnvironmentTuning.of(ListeningEnvironment.INDOOR), SpeakerClassTuning.of(SpeakerClass.STANDARD),
+            ),
+        )
+        assertTrue("preamp without a limiter ${indoor.preampDb}", indoor.preampDb <= 0.0)
+        assertEquals(0.0, indoor.makeUpDb, 0.0)
+    }
+
+    /**
+     * The DEVICE `cutTrust` (0.75) must scale *each* cut to 75 % of the measured excess, not merely
+     * lower the maximum cut limit. The near field overstates presence peaks; cutting the full excess
+     * would over-correct and leave the manufacturer's residual behind unheard.
+     */
+    @Test
+    fun deviceCutTrustScalesEachCutTo75Percent() {
+        val phone = curveOf(
+            PeqBand(PeqType.HIGH_PASS, 700.0, 0.0, 0.707),
+            PeqBand(PeqType.PEAK, 1800.0, 5.0, 1.1),   // near-field presence excess
+            PeqBand(PeqType.HIGH_SHELF, 6000.0, -5.0, 0.7),
+        )
+        val settings = CorrectionPlanner.autoEqSettings(
+            10, EnvironmentTuning.of(ListeningEnvironment.INDOOR), SpeakerClassTuning.of(SpeakerClass.DEVICE),
+        )
+        val r = AutoEqRenderer.render(grid, phone, TargetCurve(TargetType.HARMAN), settings)
+        val idx = grid.indexOfFirst { it >= 1800.0 }
+        val excess = r.targetDb[idx] - r.measuredDb[idx]
+        assertTrue("presence excess $excess dB", excess < -3.0)
+        // The desired cut is gentler than the full excess (75 % of it, not 100 %).
+        assertTrue(
+            "cut ${r.desiredCorrectionDb[idx]} dB should be gentler than excess $excess dB",
+            r.desiredCorrectionDb[idx] > excess,
+        )
+        assertEquals(
+            "cut is 75 % of the measured excess",
+            excess * 0.75,
+            r.desiredCorrectionDb[idx],
+            0.7,
+        )
+    }
+
+    /**
+     * The DEVICE class uses a frequency-dependent cutTrust: below 300 Hz the near-field self-measurement
+     * overstates the bass heavily (pressure zone + chassis vibration), so cuts there are scaled by only
+     * 50 % instead of 75 %. Above 300 Hz the direct sound is more trustworthy and the 75 % cutTrust
+     * applies. This test verifies that the bass cut is gentler with the frequency-dependent setting
+     * while the midrange cut is identical.
+     */
+    @Test
+    fun deviceFrequencyDependentCutTrustScalesBassCutsLower() {
+        val phone = curveOf(
+            PeqBand(PeqType.PEAK, 100.0, 2.0, 1.0),    // bass overstatement (pressure zone)
+            PeqBand(PeqType.PEAK, 1000.0, 3.0, 1.0),   // midrange presence excess
+        )
+        val base = AutoEqSettings(
+            cutTrust = 0.75,
+            autoLowLimit = false,
+            manualLowLimitHz = 20.0,
+            maxBoostDb = 4.0,
+            highLimitHz = 12000.0,
+            broadBoostOctaves = 1.0,
+            excursionGuardOctaves = 2.0,
+        )
+        val withFreqDep = base.copy(cutTrustLowHz = 300.0, cutTrustLow = 0.5)
+        val rUniform = AutoEqRenderer.render(grid, phone, TargetCurve(TargetType.FLAT), base)
+        val rFreqDep = AutoEqRenderer.render(grid, phone, TargetCurve(TargetType.FLAT), withFreqDep)
+
+        val i100 = grid.indexOfFirst { it >= 100.0 }
+        val i1k = grid.indexOfFirst { it >= 1000.0 }
+
+        // Below 300 Hz: the frequency-dependent cut is gentler (0.5 vs 0.75 of the measured excess).
+        assertTrue(
+            "bass cut freq-dep ${rFreqDep.desiredCorrectionDb[i100]} should be gentler than uniform ${rUniform.desiredCorrectionDb[i100]}",
+            rFreqDep.desiredCorrectionDb[i100] > rUniform.desiredCorrectionDb[i100],
+        )
+        // The freq-dep bass cut is 0.5/0.75 = 2/3 of the uniform bass cut.
+        val ratio = rFreqDep.desiredCorrectionDb[i100] / rUniform.desiredCorrectionDb[i100]
+        assertTrue("bass cut ratio $ratio should be ~2/3", ratio > 0.5 && ratio < 0.8)
+
+        // Above 300 Hz: both use cutTrust = 0.75, so the desired correction is identical.
+        assertEquals(
+            "midrange desired correction should be identical with both settings",
+            rUniform.desiredCorrectionDb[i1k],
+            rFreqDep.desiredCorrectionDb[i1k],
+            1e-9,
+        )
     }
 }

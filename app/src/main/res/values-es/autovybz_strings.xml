@@ -351,7 +351,7 @@
     <string name="avz_warn_dropout">La señal se cortó un momento, algo típico del Bluetooth al límite de su alcance. Acerca el móvil al altavoz y vuelve a medir.</string>
     <string name="avz_result_gated">No corregido por el ruido de fondo: %1$s</string>
     <string name="avz_out_result_title">Modo exterior</string>
-    <string name="avz_out_result_loudness">Pre-ganancia de solo %1$s dB: en exterior AutoVybz realza como máximo 3 dB y prefiere recortar, así conservas el volumen para la fiesta.</string>
+    <string name="avz_out_result_loudness">Pre-ganancia %1$s dB: en exterior AutoVybz realza como máximo 3 dB y prefiere recortar, y la compensación de sonoridad mantiene el volumen para la fiesta.</string>
     <string name="avz_out_result_limiter">El limitador se activa automáticamente al aplicar esta calibración y protege el altavoz a volumen de fiesta.</string>
     <string name="avz_out_party_tip">Consejo de fiesta: más graves gratis con la colocación: pon el altavoz en el suelo (hasta +6 dB) o cerca de una pared. Después vuelve a medir.</string>
     <string name="avz_out_single_position">En exterior una sola posición es poco fiable (reflexión del suelo). Con 3 posiciones el resultado es mucho más preciso.</string>
@@ -407,6 +407,7 @@
     <string name="avz_result_highpass">Paso alto protector a %1$d Hz: los graves por debajo se eliminan, porque el altavoz no puede reproducirlos y solo distorsionaría al intentarlo.</string>
     <string name="avz_result_limiter">El limitador se activa automáticamente con esta calibración y protege el altavoz a volumen alto.</string>
     <string name="avz_result_device_profile">Este perfil está ajustado para los altavoces de este dispositivo. Cuando vuelvas a escuchar por un altavoz externo, regresa a su perfil.</string>
+    <string name="avz_result_loudness_makeup">Compensación de sonoridad %1$s dB: la corrección mantiene el nivel que tenías y el limitador sigue como red de seguridad.</string>
     <string name="avz_help_rescue_title">Rescatar altavoces débiles</string>
     <string name="avz_help_rescue_body">Elige el tipo de altavoz para altavoces débiles o baratos y mide como siempre. AutoVybz intervendrá con más decisión: los graves retumbantes y los medios ásperos se recortan más, los agudos que faltan se refuerzan de forma amplia y un paso alto protector elimina los graves profundos que el pequeño altavoz no puede reproducir; solo eso ya quita la mayor parte de los traqueteos y la distorsión y deja sitio para un volumen más limpio. La física es la física: no aparecerán graves profundos de verdad, pero un sonido equilibrado y claro sí es posible.</string>
     <string name="avz_help_device_title">Calibrar este teléfono o tableta</string>

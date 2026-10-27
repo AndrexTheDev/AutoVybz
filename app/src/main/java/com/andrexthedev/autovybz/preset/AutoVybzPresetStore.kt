@@ -118,6 +118,11 @@ object AutoVybzPresetStore {
         eq.isEnabled = true
         p.saveState(eq, (0 until eq.getBandCount()).toList())
         p.savePreampGain(preset.preampDb.toFloat())
+        // One gain authority only: AutoVybz already balances the calibration (clipping-safe pre-gain plus
+        // loudness make-up, see PreampPlanner). The engine's own auto-gain shifts every band down by the
+        // largest boost *again* — with both active a device-speaker calibration lost up to 9 dB of level
+        // (i.e. all the quiet detail) for nothing.
+        p.saveAutoGainEnabled(false)
         p.savePresetName(preset.name)
         p.saveChannelSideEqEnabled(false)
         p.clearLeftRightBands()
