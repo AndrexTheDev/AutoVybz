@@ -105,6 +105,10 @@ data class SpeakerClassTuning(
             lowLimitScanHz = 400.0,
             lowLimitMaxHz = 350.0,
             protectiveHighPass = true,
+            // The auto-detected protective pass would sit at ~280 Hz (350 / 1.25), which cuts bass the
+            // driver actually plays (150-280 Hz) and makes the rescue sound thin. Protect the sub-bass
+            // only - below ~150 Hz a cheap driver cannot reproduce anything cleanly (rattle, excursion).
+            protectiveHighPassHz = 150.0,
             // Weak speakers get played loud - keep the safety net armed.
             forceLimiter = true,
             // Above ~6 kHz the self-measurement is dominated by the mic profile and the driver's

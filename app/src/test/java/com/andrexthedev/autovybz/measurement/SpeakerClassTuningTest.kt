@@ -53,6 +53,9 @@ class SpeakerClassTuningTest {
         assertEquals(400.0, s.lowLimitScanHz, 0.0)
         assertEquals(350.0, s.lowLimitMaxHz, 0.0)
         assertTrue(s.protectiveHighPass)
+        // The auto-detected protective pass would sit at ~280 Hz (350 / 1.25), cutting bass the driver
+        // actually plays. Protect the sub-bass only, like DEVICE protects below 60 Hz.
+        assertEquals(150.0, s.protectiveHighPassHz ?: -1.0, 0.0)
         // Full correction of the resonance peaks, but the limiter is armed -> the make-up may use
         // the limiter's headroom so the rescue does not end up quieter than the broken speaker.
         assertEquals(1.0, s.cutTrust, 0.0)
