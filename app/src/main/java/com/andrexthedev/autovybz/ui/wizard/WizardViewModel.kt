@@ -3,6 +3,7 @@ package com.andrexthedev.autovybz.ui.wizard
 import android.app.Application
 import android.os.Looper
 import android.util.Log
+import android.widget.Toast
 import com.andrexthedev.autovybz.AutoVybzServices
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -125,9 +126,14 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
     private fun limitedPositions(requested: Int = settings.positions): Int =
         EntitlementPolicy.allowedPositions(requested, featureLimits())
 
+    /**
+     * Counts *AutoVybz calibrations*, not every preset of the shared Equalizer314 pool: presets saved in the
+     * inherited studio screens must not consume the Free tier's single profile (see
+     * [AutoVybzPresetStore.calibrationNames]).
+     */
     private fun isProfileLimitReached(name: String): Boolean =
         EntitlementPolicy.isProfileLimitReached(
-            AutoVybzPresetStore.existingNames(getApplication()),
+            AutoVybzPresetStore.calibrationNames(getApplication()),
             name,
             featureLimits(),
         )
@@ -481,10 +487,24 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
         refitJob?.cancel()
         val preset = MeasurementController.buildPreset(name, step.outcome)
         val app = getApplication<Application>()
-        AutoVybzPresetStore.save(app, preset)
-        // Outdoor / party, rescue and device-speaker calibrations always arm the limiter.
-        val limiter = settings.enableLimiterOnApply || step.outcome.request.forceLimiter
-        if (apply) AutoVybzPresetStore.apply(app, preset, limiter)
+        // Two separate steps with two separate failures: "not stored" and "stored but not audible" need
+        // different advice, and neither may crash the app or silently look like success.
+        val saved = runCatching { AutoVybzPresetStore.save(app, preset) }
+            .onFailure {
+                Log.e(TAG, "saving the calibration failed", it)
+                Toast.makeText(app, R.string.avz_save_failed, Toast.LENGTH_LONG).show()
+            }
+            .isSuccess
+        if (!saved) return
+        if (apply) {
+            // Outdoor / party, rescue and device-speaker calibrations always arm the limiter.
+            val limiter = settings.enableLimiterOnApply || step.outcome.request.forceLimiter
+            runCatching { AutoVybzPresetStore.apply(app, preset, limiter) }
+                .onFailure {
+                    Log.e(TAG, "applying the calibration failed", it)
+                    Toast.makeText(app, R.string.avz_apply_failed, Toast.LENGTH_LONG).show()
+                }
+        }
         setStep(WizardStep.Saved(name, apply, step.outcome))
     }
 
@@ -517,6 +537,8 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     companion object {
+        private const val TAG = "AutoVybzWizard"
+
         /** Everything except the purely informational Bluetooth latency suggests repeating a position. */
         fun isDisturbed(warnings: List<MeasurementWarning>): Boolean = warnings.any { it != MeasurementWarning.HIGH_LATENCY }
     }

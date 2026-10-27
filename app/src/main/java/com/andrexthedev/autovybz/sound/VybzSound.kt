@@ -105,8 +105,13 @@ object VybzSound {
     }
 
     private fun applyBase(context: Context, preset: com.andrexthedev.autovybz.preset.model.AutoVybzPreset?) {
-        // outdoor calibrations always arm the limiter (as in the profile list)
-        val limiter = AutoVybzSettings(context).enableLimiterOnApply || preset?.measurement?.environment == "OUTDOOR"
+        // Outdoor / party, weak-speaker and device-speaker calibrations always arm the limiter - the same
+        // rule the wizard applies when saving (see PresetSafety). Checking only the environment used to drop
+        // the limiter as soon as a stored calibration was re-applied via a style change.
+        val limiter = PresetSafety.requiresLimiter(
+            AutoVybzSettings(context).enableLimiterOnApply,
+            preset?.measurement,
+        )
         if (preset != null) AutoVybzPresetStore.apply(context, preset, limiter)
         else AutoVybzPresetStore.applyComposed(context, SoundComposer.compose(SoundComposer.styleOnlyBase(), selection(context)), limiter)
     }

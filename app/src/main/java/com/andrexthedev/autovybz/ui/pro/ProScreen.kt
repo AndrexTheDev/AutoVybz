@@ -304,7 +304,8 @@ private fun CalibrationList(externalExportsEnabled: Boolean = true, onOpenPremiu
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Button(
                     onClick = {
-                        // style + Studio tone stay layered on top; outdoor calibrations always arm the limiter
+                        // style + Studio tone stay layered on top; outdoor / rescue / device calibrations always
+                        // arm the limiter (PresetSafety, the same rule the wizard uses when saving)
                         Toast.makeText(context, appliedMsg.replace("%s", p.name), Toast.LENGTH_SHORT).show()
                         scope.launch {
                             withContext(Dispatchers.IO) { VybzSound.useProfile(context, p.name) }

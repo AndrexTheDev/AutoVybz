@@ -37,6 +37,7 @@
     <string name="avz_premium_txid_invalid">Este formato de TXID no coincide con la moneda elegida.</string>
     <string name="avz_premium_activate">Activar Pro</string>
     <string name="avz_premium_activated">AutoVybz Pro está activo.</string>
+    <string name="avz_premium_activate_failed">La activación ha fallado: no se ha aceptado el ID de transacción. Comprueba el formato de la moneda elegida y vuelve a intentarlo.</string>
     <string name="avz_premium_reset_alpha">Prueba alfa: restablecer estado Pro</string>
     <string name="avz_premium_locked_positions">El modo preciso con 3 posiciones está disponible con AutoVybz Pro.</string>
     <string name="avz_premium_locked_profile">La versión gratis guarda un perfil de altavoz. Sobrescríbelo o activa Pro para perfiles ilimitados.</string>
@@ -361,6 +362,8 @@
 
     <!-- Refinement: interruptions, countdown, confirmations, accessibility -->
     <string name="avz_warn_glitch">Cortes de audio en la reproducción o la grabación (el móvil estaba sobrecargado). Cierra otras apps y vuelve a medir.</string>
+    <string name="avz_save_failed">No se pudo guardar la calibración. Comprueba el espacio libre y vuelve a intentarlo.</string>
+    <string name="avz_apply_failed">La calibración se ha guardado, pero el motor de sonido no la ha aceptado. Actívala en el Studio o reinicia la aplicación.</string>
     <string name="avz_err_route_changed">La salida de audio cambió durante la medición (Bluetooth desconectado o auriculares conectados). Comprueba la conexión e inténtalo de nuevo.</string>
     <string name="avz_err_interrupted">La medición se interrumpió: una llamada, una alarma u otra app tomó el control del audio.</string>
     <string name="avz_err_resume_hint">Las posiciones medidas hasta ahora se conservan: %1$d</string>

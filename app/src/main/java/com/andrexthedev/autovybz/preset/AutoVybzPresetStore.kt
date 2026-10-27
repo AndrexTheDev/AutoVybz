@@ -30,9 +30,85 @@ object AutoVybzPresetStore {
     private const val AVZ_PREFS = "autovybz_state"
     private const val KEY_PENDING_APPLY = "pending_apply"
     private const val KEY_LAST_PRESET = "last_preset"
+    private const val KEY_CALIBRATION_NAMES = "calibration_names"
+    private const val KEY_CALIBRATION_INDEX = "calibration_index"
+    /** Bump when the way names are derived from files changes; forces a one-time re-index. */
+    private const val CALIBRATION_INDEX_VERSION = 1
+    /** The writer puts format, formatVersion and name first (see [AutoVybzPreset.toInternalJson]). */
+    private const val HEAD_LINES = 4
 
     fun existingNames(context: Context): Set<String> =
         context.getSharedPreferences(POOL_PREFS, Context.MODE_PRIVATE).getStringSet(POOL_NAMES, emptySet()) ?: emptySet()
+
+    /* ---- calibration scope -------------------------------------------------- */
+
+    /**
+     * Names of the calibrations **AutoVybz** created (the `.avz.json` files), as opposed to every preset of
+     * the shared Equalizer314 pool that [existingNames] reports.
+     *
+     * The distinction matters in two places:
+     *  * the Free tier limit ("one saved profile") must only count profiles the user can actually see and
+     *    delete in the AutoVybz screens. Counting the pool blocked saving a calibration for anyone who had
+     *    ever saved an AutoEQ import or a studio preset - with a message about a profile limit while the
+     *    Sound screen showed no profiles at all;
+     *  * the "first start" decision (wizard vs. Sound screen) must not depend on unrelated presets.
+     *
+     * The index lives in preferences, so the check that runs on every keystroke of the result screen never
+     * touches the preset files. It is rebuilt once (migration from existing files) and maintained by
+     * [save] / [delete].
+     */
+    fun calibrationNames(context: Context): Set<String> {
+        ensureCalibrationIndex(context)
+        val stored = context.getSharedPreferences(AVZ_PREFS, Context.MODE_PRIVATE)
+            .getStringSet(KEY_CALIBRATION_NAMES, emptySet()) ?: emptySet()
+        return stored.toSet()
+    }
+
+    /** True when no AutoVybz calibration exists yet (the wizard is then the natural start screen). */
+    fun isFirstCalibration(context: Context): Boolean = calibrationNames(context).isEmpty()
+
+    private fun ensureCalibrationIndex(context: Context) {
+        val prefs = context.getSharedPreferences(AVZ_PREFS, Context.MODE_PRIVATE)
+        if (prefs.getInt(KEY_CALIBRATION_INDEX, 0) >= CALIBRATION_INDEX_VERSION) return
+        val onDisk = runCatching {
+            dir(context).listFiles { f -> f.name.endsWith(AutoVybzPreset.FILE_EXTENSION) }.orEmpty()
+                .mapNotNull { storedName(it) }
+        }.getOrDefault(emptyList())
+        val merged = (prefs.getStringSet(KEY_CALIBRATION_NAMES, emptySet()) ?: emptySet()) + onDisk
+        prefs.edit()
+            .putStringSet(KEY_CALIBRATION_NAMES, merged.toMutableSet())
+            .putInt(KEY_CALIBRATION_INDEX, CALIBRATION_INDEX_VERSION)
+            .apply()
+    }
+
+    /**
+     * Name of a stored preset file, read from its first few lines; full parse only as a fallback.
+     *
+     * Deliberately line-by-line and not `readLines()`: the measurement arrays sit on single lines of several
+     * hundred kilobytes, so "read everything, keep four lines" would defeat the point of the head parse.
+     */
+    private fun storedName(file: File): String? = runCatching {
+        val head = file.bufferedReader().use { reader ->
+            val lines = ArrayList<String>(HEAD_LINES)
+            while (lines.size < HEAD_LINES) lines += (reader.readLine() ?: break)
+            lines.joinToString("\n")
+        }
+        PresetFiles.nameFromHead(head) ?: AutoVybzPresetCodec.fromInternalJson(file.readText()).name
+    }.getOrNull()
+
+    private fun updateCalibrationIndex(context: Context, name: String, present: Boolean) {
+        // Adding before the one-time migration ran would hide the files that already exist, so make sure
+        // the index reflects the directory first.
+        if (present) ensureCalibrationIndex(context)
+        // Read-modify-write on its own instance: the set returned by getStringSet must not be mutated.
+        val prefs = context.getSharedPreferences(AVZ_PREFS, Context.MODE_PRIVATE)
+        val names = (prefs.getStringSet(KEY_CALIBRATION_NAMES, emptySet()) ?: emptySet()).toMutableSet()
+        if (present) names += name else names -= name
+        prefs.edit()
+            .putStringSet(KEY_CALIBRATION_NAMES, names)
+            .putInt(KEY_CALIBRATION_INDEX, CALIBRATION_INDEX_VERSION) // a write makes a later scan unnecessary
+            .apply()
+    }
 
     fun defaultName(context: Context, speakerName: String?): String =
         PresetNaming.defaultName(speakerName?.takeIf { it.isNotBlank() } ?: Build.MODEL, existing = existingNames(context))
@@ -49,9 +125,19 @@ object AutoVybzPresetStore {
         return f.takeIf { stored == name }
     }
 
-    /** Saves (or overwrites) [preset] under its name. Returns the stored name. */
+    /**
+     * Saves (or overwrites) [preset] under its name. Returns the stored name.
+     *
+     * Throws when the measurement file cannot be written (no space, revoked storage): the AutoVybz screens
+     * list calibrations from those files, so a silently missing file would show up as "saved" and then be
+     * invisible - and the Free tier would count a profile nobody can apply. The file is therefore written
+     * *before* the shared engine pool is updated.
+     */
     fun save(context: Context, preset: AutoVybzPreset): String {
         require(PresetNaming.isValid(preset.name)) { "invalid preset name" }
+        fileFor(context, preset.name).writeText(preset.toInternalJson())
+        runCatching { legacyFileFor(context, preset.name)?.delete() } // migrated
+            .onFailure { Log.w(TAG, "could not remove the migrated measurement file", it) }
         val prefs = context.getSharedPreferences(POOL_PREFS, Context.MODE_PRIVATE)
         val names = (prefs.getStringSet(POOL_NAMES, emptySet()) ?: emptySet()).toMutableSet()
         names += preset.name
@@ -59,10 +145,7 @@ object AutoVybzPresetStore {
             .putString("preset_${preset.name}", preset.toPoolJson())
             .putStringSet(POOL_NAMES, names)
             .apply()
-        runCatching {
-            fileFor(context, preset.name).writeText(preset.toInternalJson())
-            legacyFileFor(context, preset.name)?.delete() // migrated
-        }.onFailure { Log.w(TAG, "could not write measurement file", it) }
+        updateCalibrationIndex(context, preset.name, present = true)
         return preset.name
     }
 
@@ -85,6 +168,7 @@ object AutoVybzPresetStore {
         prefs.edit().remove("preset_$name").putStringSet(POOL_NAMES, names).apply()
         legacyFileFor(context, name)?.delete()
         fileFor(context, name).delete()
+        updateCalibrationIndex(context, name, present = false)
         // the deleted speaker is no longer "in use" (Sound screen, A/B switch)
         val state = context.getSharedPreferences(AVZ_PREFS, Context.MODE_PRIVATE)
         if (state.getString(KEY_LAST_PRESET, null) == name) state.edit().remove(KEY_LAST_PRESET).apply()

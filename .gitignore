@@ -22,6 +22,7 @@ docs/*
 !docs/SPEAKER_MODES.md
 !docs/MIC_PROFILES.md
 !docs/AUDIO_PIPELINE.md
+!docs/PRESETS_AND_LIMITS.md
 !docs/UPSTREAM_README.md
 !docs/upstream_changelogs/
 !docs/testing/

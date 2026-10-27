@@ -208,9 +208,14 @@ fun PremiumPaywallDialog(
                 Button(
                     onClick = {
                         showTxidError = !txidValid
-                        if (txidValid && onActivate(selectedPlan, selectedCoin, txid)) {
+                        if (!txidValid) return@Button
+                        if (onActivate(selectedPlan, selectedCoin, txid)) {
                             Toast.makeText(context, activatedMsg, Toast.LENGTH_SHORT).show()
                             onDismiss()
+                        } else {
+                            // Only reachable when the policy rejects the TXID itself (format checked above is
+                            // the same rule) - but then the user must not be left staring at an unchanged dialog.
+                            Toast.makeText(context, R.string.avz_premium_activate_failed, Toast.LENGTH_LONG).show()
                         }
                     },
                     enabled = txid.isNotBlank(),

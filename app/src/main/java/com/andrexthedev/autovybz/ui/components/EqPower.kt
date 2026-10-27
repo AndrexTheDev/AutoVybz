@@ -19,10 +19,17 @@ import com.andrexthedev.autovybz.measurement.audio.EqBypass
 import com.andrexthedev.autovybz.sound.VybzSound
 import com.bearinmind.equalizer314.audio.EqService
 
-/** Live on/off state of the system-wide sound engine plus the calibration that is audible. */
-@Stable
+/** Minimum gap between two on/off toggles (each one rebuilds the DSP chain on the service's main thread). */
 private const val MIN_TOGGLE_INTERVAL_MS = 1_200L
 
+/**
+ * Live on/off state of the system-wide sound engine plus the calibration that is audible.
+ *
+ * `@Stable` (on the class, not on a constant - the annotation used to sit on the wrong declaration, so
+ * Compose treated every instance as unstable and re-read all observables of the callers on each pass):
+ * the two mutable fields are Compose state, [context] never changes, and [set] is the only mutator.
+ */
+@Stable
 class EqPowerState internal constructor(private val context: Context) {
     var on by mutableStateOf(EqService.isDpRunning)
         internal set

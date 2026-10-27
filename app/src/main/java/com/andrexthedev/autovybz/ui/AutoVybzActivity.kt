@@ -95,9 +95,11 @@ class AutoVybzActivity : ComponentActivity() {
         if (savedInstanceState == null) EqBypass.startIfPersistedOn(this)
         // Cold start: brand intro (silent, skippable). Not after rotation / process restore.
         val playIntro = savedInstanceState == null && IntroGate.shouldPlay()
-        // First start (no calibration yet) opens the calibration, later starts open the everyday Sound screen.
-        // One small directory listing; done before the first frame so the start tab never flips.
-        val startTab = if (AutoVybzPresetStore.existingNames(this).isEmpty()) Tab.WIZARD else Tab.HOME
+        // First start (no AutoVybz calibration yet) opens the calibration, later starts open the everyday Sound
+        // screen. Deliberately keyed on calibrations, not on the shared engine preset pool: a user who only
+        // imported an AutoEQ preset in the studio still needs the calibration first. Reads a preference
+        // (one-time file index build on the very first start), so the start tab never flips after the frame.
+        val startTab = if (AutoVybzPresetStore.isFirstCalibration(this)) Tab.WIZARD else Tab.HOME
         setContent {
             AutoVybzTheme {
                 val state by wizard.state.collectAsState()
@@ -174,7 +176,10 @@ private fun AutoVybzApp(
 ) {
     var tabIndex by rememberSaveable { mutableIntStateOf(startTab.ordinal) }
     var showPremium by rememberSaveable { mutableStateOf(false) }
-    val tab = Tab.values()[tabIndex]
+    // The saved index survives a process death *and* an app update. If a release ever adds or removes a tab,
+    // the restored number no longer maps to an entry and indexing the enum array crashed the app on start;
+    // an unknown index simply falls back to the start tab.
+    val tab = Tab.entries.getOrElse(tabIndex) { startTab }
     // System back on the other tabs returns to the start tab instead of closing the app.
     BackHandler(enabled = tab != startTab) { tabIndex = startTab.ordinal }
     // Landscape phones (and split screen) have little height: header + bottom bar would eat half of it.

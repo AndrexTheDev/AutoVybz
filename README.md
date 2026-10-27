@@ -19,7 +19,8 @@ The permanent bottom banner in this build is an in-app placeholder and Pro entry
 
 ## Free & Pro (Alpha)
 
-- **Free with the permanent banner:** every feature family remains usable, but only **one saved profile**,
+- **Free with the permanent banner:** every feature family remains usable, but only **one saved profile**
+  (counted over AutoVybz calibrations only – presets from the inherited studio screens do not consume it),
   **one measurement position**, safe default measurement/mic settings and internal presets.
 - **7-day Pro trial:** starts automatically after the first successful calibration (or manually in the paywall).
 - **Pro:** unlimited profiles, precise **3-position** measurements, expert measurement/mic/custom-target
@@ -66,7 +67,10 @@ The permanent bottom banner in this build is an in-app placeholder and Pro entry
   (never boosts bass the speaker can't play), max boost / cut limits, automatic negative pre-gain +
   Equalizer314 limiter as anti-clipping.
 - **Presets**: auto-named `AutoVybz_<device>_<yyyy-MM-dd>` (editable), saved into the normal Equalizer314
-  preset list, activated with one tap.
+  preset list, activated with one tap. A calibration keeps its full measurement, so it can be re-fitted,
+  exported or re-applied later; sound styles are layered on top and the pre-amp is recomputed every time, so
+  nothing clips. Storage scopes, plan rules and the limiter policy:
+  [docs/PRESETS_AND_LIMITS.md](docs/PRESETS_AND_LIMITS.md).
 - **Export**: Equalizer APO / Peace / AutoEq `ParametricEQ.txt`, parametric EQ JSON, REW-importable CSV,
   internal `.avz.json` (curves + filters + metadata).
 - **Expert tools** (from the Equalizer314 engine, restyled): 10-band PEQ graph, multiband compressor, limiter,
