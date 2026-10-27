@@ -104,6 +104,9 @@ data class SpeakerClassTuning(
             protectiveHighPass = true,
             // Weak speakers get played loud - keep the safety net armed.
             forceLimiter = true,
+            // Above ~6 kHz the self-measurement is dominated by the mic profile and the driver's
+            // own hash: a large "correction" there is mostly phantom boost. Cap it like DEVICE.
+            highBoostCapDb = 2.0,
             // Bass shelf + downward tilt forgives the typical midrange shout / harsh treble.
             suggestedTarget = TargetType.HARMAN,
         )

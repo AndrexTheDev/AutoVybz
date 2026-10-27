@@ -46,6 +46,7 @@ class SpeakerClassTuningTest {
         val s = CorrectionPlanner.autoEqSettings(10, indoor, rescue)
         assertEquals(16.0, s.maxCutDb, 0.0)
         assertEquals(6.0, s.maxBoostDb, 0.0) // user boost limit untouched
+        assertEquals(2.0, s.highBoostCapDb ?: -1.0, 0.0) // HF boost capped to avoid phantom boost
         assertEquals(1.0, s.broadBoostOctaves)
         assertEquals(1.5, s.excursionGuardOctaves, 0.0)
         assertEquals(400.0, s.lowLimitScanHz, 0.0)
