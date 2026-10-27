@@ -16,7 +16,7 @@ The optimal correction strategy differs fundamentally:
 | Correction top | 16 kHz | **14 kHz** (steep roll-off region masked) | **12 kHz** |
 | HF boost cap | – | **2 dB above 6 kHz** (phantom-boost guard) | **2 dB above 6 kHz** |
 | Roll-off scan | from 200 Hz, clamp ≤ 160 Hz | from 400 Hz, ≤ 350 Hz | from 1.2 kHz, ≤ 900 Hz |
-| Protective high pass | – | **yes** (at the roll-off point) | **yes** (sub-bass only, fixed 60 Hz) |
+| Protective high pass | – | **yes** (sub-bass only, fixed 150 Hz) | **yes** (sub-bass only, fixed 60 Hz) |
 | Limiter forced | outdoors only | **yes** | **yes** |
 | Loudness make-up | – | **up to +6 dB** | **up to +6 dB** |
 | Pre-selected target | user default | Harman | Harman |
@@ -38,11 +38,12 @@ can never push the electrical signal beyond the guard's budget.
 
 The corner differs by class (`AutoEqSettings.protectiveHighPassHz`):
 
-* **RESCUE** (external weak speaker): the speaker's measured −6 dB bass point
-  (`AutoEqRenderer.detectLowLimit` result ÷ 1.25), skipped below 35 Hz. Deep bass a
-  small driver cannot reproduce still costs cone excursion – rattling, port noise and
-  intermodulation distortion across the whole audible band. Removing it electrically
-  buys clean headroom in the band the speaker *can* play.
+* **RESCUE** (external weak speaker): a fixed **150 Hz** corner. The auto-detected
+  pass would sit at ~280 Hz (350 / 1.25), which cuts bass the driver actually plays
+  (150–280 Hz) and makes the rescue sound thin. At 150 Hz the pass removes only the
+  sub-bass the driver cannot reproduce cleanly (rattle, excursion) and costs ≤ 1 dB
+  at 200 Hz. The correction can still shape the bass above 150 Hz, including the
+  boomy enclosure resonance (150–400 Hz).
 * **DEVICE** (phone / tablet self-measurement): a fixed **60 Hz** corner. A tiny driver's
   −6 dB point sits in the *midrange* (phone speakers roll off at 400–900 Hz), and a
   protective pass there would eat the bass the driver *does* play – the calibration
