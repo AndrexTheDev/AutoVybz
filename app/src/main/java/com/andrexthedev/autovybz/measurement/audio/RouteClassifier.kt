@@ -89,7 +89,9 @@ object RouteClassifier {
         if (candidates.isEmpty()) return Decision(Verdict.UNKNOWN, null)
         // Any headphone on the active path wins (e.g. dual routing) -> block.
         candidates.firstOrNull { it.kind == RouteKind.HEADPHONES }?.let { return Decision(Verdict.BLOCKED_HEADPHONES, it) }
-        val best = candidates.minByOrNull { priority(it.kind) }!!
+        // candidates is non-empty here; the explicit fallback keeps the compiler (and a future refactor)
+        // from depending on that - an empty decision is a valid UNKNOWN answer, not a crash.
+        val best = candidates.minByOrNull { priority(it.kind) } ?: return Decision(Verdict.UNKNOWN, null)
         return Decision(verdictFor(best), best)
     }
 

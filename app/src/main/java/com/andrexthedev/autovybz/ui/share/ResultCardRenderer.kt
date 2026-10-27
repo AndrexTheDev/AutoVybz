@@ -237,7 +237,8 @@ object ResultCardRenderer {
                 val w = maxOf(p.measureText(a), p.measureText(b))
                 if (w < bestWidth) { bestWidth = w; best = listOf(a, b) }
             }
-            if (bestWidth <= maxWidth || p.textSize <= 36f) return best!!
+            // best is always set: words.size >= 2 was checked above, so `1 until words.size` is not empty.
+            if (bestWidth <= maxWidth || p.textSize <= 36f) return best ?: listOf(s)
             p.textSize -= 2f
         }
     }

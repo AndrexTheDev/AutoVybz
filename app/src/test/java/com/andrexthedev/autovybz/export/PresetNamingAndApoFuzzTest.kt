@@ -3,6 +3,7 @@ package com.andrexthedev.autovybz.export
 import com.andrexthedev.autovybz.measurement.eq.PeqBand
 import com.andrexthedev.autovybz.measurement.eq.PeqType
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.Calendar
@@ -21,10 +22,29 @@ class PresetNamingAndApoFuzzTest {
         val r = Random(1)
         repeat(3000) {
             val s = PresetNaming.sanitize(randomText(r, 80))
-            assertTrue("'$s'", s.length <= 32)
+            // Counted in code points, not chars: non-BMP letters (see the case below) are two chars each.
+            assertTrue("'$s'", s.codePointCount(0, s.length) <= PresetNaming.MAX_NAME_CHARS)
             assertTrue("'$s'", s.all { it.isLetterOrDigit() || it in "-.+" })
             assertTrue("'$s'", !s.startsWith("-") && !s.startsWith(".") && !s.endsWith("-") && !s.endsWith("."))
         }
+    }
+
+    @Test
+    fun nonBmpLettersSurviveSanitizingWithoutBeingSplit() {
+        // MATHEMATICAL BOLD CAPITAL S et al.: letters whose code points are outside the BMP. Both surrogate
+        // halves used to fail `Char.isLetterOrDigit()`, so such a device name became "Speaker".
+        val fraktur = "\uD835\uDC12\uD835\uDC28\uD835\uDC27\uD835\uDC28\uD835\uDC2C"
+        assertEquals(fraktur, PresetNaming.sanitize(fraktur))
+        assertEquals("AutoVybz_$fraktur", PresetNaming.defaultName(fraktur).substringBeforeLast("_"))
+
+        // A long non-BMP name must be cut between code points: a trailing lone high surrogate would be an
+        // unencodable string (and would fail every later file-name use).
+        val cut = PresetNaming.sanitize(fraktur.repeat(10))
+        assertEquals(PresetNaming.MAX_NAME_CHARS, cut.codePointCount(0, cut.length))
+        assertFalse("cut ends inside a surrogate pair: $cut", cut.last().isHighSurrogate())
+        // Idempotent, and every code point is still a letter (no half pairs, no filler).
+        assertEquals(cut, PresetNaming.sanitize(cut))
+        assertTrue(cut, (0 until cut.codePointCount(0, cut.length)).all { Character.isLetter(cut.codePointAt(cut.offsetByCodePoints(0, it))) })
     }
 
     @Test

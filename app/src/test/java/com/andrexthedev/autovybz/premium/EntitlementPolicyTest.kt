@@ -139,6 +139,57 @@ class EntitlementPolicyTest {
     }
 
     @Test
+    fun absurdFutureClockCannotBuyExtraPaidTime() {
+        // A clock set years ahead must not stretch the paid period: the period starts from the last time the
+        // install actually saw, not from the manipulated reading.
+        val base = Entitlement(lastSeenEpochMs = now)
+        val jumped = EntitlementPolicy.activateCryptoAlpha(
+            entitlement = base,
+            plan = PremiumPlan.MONTHLY,
+            coin = CryptoCoin.BTC,
+            txid = "d".repeat(64),
+            nowEpochMs = now + 3_650 * day,
+        )
+        assertEquals(now + 30 * day, jumped.expiresAtEpochMs)
+        assertEquals(now, jumped.startedAtEpochMs)
+        assertEquals(EntitlementTier.PRO, EntitlementPolicy.effectiveTier(jumped, now + day))
+        assertEquals(EntitlementTier.FREE, EntitlementPolicy.effectiveTier(jumped, now + 31 * day))
+    }
+
+    @Test
+    fun absurdFutureReadingIsIgnoredButStillExpiresThePlan() {
+        val trial = Entitlement(tier = EntitlementTier.TRIAL, expiresAtEpochMs = now + 7 * day, lastSeenEpochMs = now)
+        // Not stored: a single bogus reading must not define the install's timeline forever ...
+        assertEquals(now, EntitlementPolicy.touch(trial, now + 3_650 * day).lastSeenEpochMs)
+        assertFalse(EntitlementPolicy.isClockPlausible(trial, now + 3_650 * day))
+        // ... but it still counts for expiry, so rolling the clock forward and back gains nothing.
+        assertEquals(EntitlementTier.FREE, EntitlementPolicy.effectiveTier(trial, now + 3_650 * day))
+        // With a sane clock the trial is intact again - the user is not locked out permanently.
+        val recovered = EntitlementPolicy.touch(trial, now + day)
+        assertEquals(now + day, recovered.lastSeenEpochMs)
+        assertEquals(EntitlementTier.TRIAL, EntitlementPolicy.effectiveTier(recovered, now + day))
+    }
+
+    @Test
+    fun aLongButPlausiblePauseIsStillRecorded() {
+        val trial = Entitlement(tier = EntitlementTier.TRIAL, expiresAtEpochMs = now + 7 * day, lastSeenEpochMs = now)
+        assertTrue(EntitlementPolicy.isClockPlausible(trial, now + 300 * day))
+        assertEquals(now + 300 * day, EntitlementPolicy.touch(trial, now + 300 * day).lastSeenEpochMs)
+        // Starting a trial after such a pause anchors it at the real date, not at the stale one.
+        val started = EntitlementPolicy.startTrial(Entitlement(lastSeenEpochMs = now), now + 300 * day)
+        assertEquals(now + 300 * day, started.startedAtEpochMs)
+        assertEquals(now + 307 * day, started.expiresAtEpochMs)
+    }
+
+    @Test
+    fun theFirstObservationHasToTrustTheClock() {
+        // Fresh install with a wrong-but-not-yet-comparable time: nothing to compare against, so it is used
+        // (and stored) as-is - the alternative would be to refuse every first launch with a broken RTC.
+        assertEquals(now, EntitlementPolicy.touch(Entitlement(), now).lastSeenEpochMs)
+        assertTrue(EntitlementPolicy.isClockPlausible(Entitlement(), now + 3_650 * day))
+    }
+
+    @Test
     fun oneProfileCanBeOverwrittenButSecondNameIsLockedInFree() {
         val free = EntitlementPolicy.limits(Entitlement.free(), now)
         assertFalse(EntitlementPolicy.isProfileLimitReached(setOf("Living room"), "Living room", free))

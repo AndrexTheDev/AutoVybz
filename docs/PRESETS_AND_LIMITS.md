@@ -79,7 +79,10 @@ The policy lives in `EntitlementPolicy` (pure, unit-tested) and is enforced in t
   paywall). `trialUsed` survives a reset of the paid period.
 * **Paid**: crypto Alpha activation with a TXID; periods stack; a lifetime plan has no expiry.
 * **Clock-rollback guard**: `effectiveNow()` never moves backwards, so changing the system clock cannot
-  extend a trial.
+  extend a trial. A reading more than a year ahead of the last recorded one (`MAX_TRUSTED_CLOCK_JUMP_MS`)
+  is treated as a broken/manipulated clock: it still lets an interval expire (no forward-jump cheat), but it
+  is neither stored nor used as the base of a new period – so one bogus reading (dead RTC, wrong timezone
+  set to 2099) cannot permanently lock the user out, and cannot stretch a paid period either.
 * **Re-entering the same TXID** while PRO is active is a no-op; after expiry it can be entered again – a
   documented Alpha limitation (payment reconciliation is manual), to be replaced by a signed licence.
 
@@ -102,4 +105,5 @@ party/rescue/device calibration lost its safety net the first time a sound style
 | measurement file cannot be written (no space, revoked access) | pool entry written, file missing → "saved" profile invisible in Sound/Pro, Free limit consumed | file is written **first**; failure propagates, the wizard stays on the result screen and shows `avz_save_failed` |
 | engine write throws while applying | app crash | caught, logged, same toast; the saved calibration can still be applied later |
 | deleted profile was the active one | active marker cleared, style-only until the next change | unchanged (intentional) |
+| mic calibration file written (Studio) | `writeText` truncated first: a crash or full disk left half a file, which is then ignored as unparseable – the imported calibration silently vanished | written to a sibling `.tmp` file, `fsync`ed and renamed over the target; a failed parse is logged (`AutoVybzSettings`) instead of disappearing |
 | unknown speaker class / environment in an old or hand-edited preset | – | `PresetSafety` falls back to the environment rule instead of crashing |

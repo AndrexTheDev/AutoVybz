@@ -1,13 +1,19 @@
 package com.andrexthedev.autovybz.e2e
 
+import android.content.Context
+import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.andrexthedev.autovybz.preset.AutoVybzPresetStore
 import com.andrexthedev.autovybz.premium.EntitlementPolicy
 import com.andrexthedev.autovybz.premium.EntitlementStore
 import com.andrexthedev.autovybz.premium.EntitlementTier
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -34,6 +40,34 @@ class PremiumE2ETest : E2eTest(premiumTrial = false) {
         compose.tap("avz:premium:locked-settings:open")
         compose.await("avz:premium")
         compose.tap("avz:premium:close")
+    }
+
+    /**
+     * Regression guard for the scope of the Free profile limit: a preset created in the inherited
+     * Equalizer314 screens shares the `custom_presets` pool but is *not* an AutoVybz calibration, so it must
+     * not consume the single Free calibration slot. Counting the pool disabled the save button (with the
+     * "Free saves one speaker profile" hint) although the Sound screen had no profile at all.
+     */
+    @Test
+    fun studioPresetsDoNotConsumeTheFreeCalibration() {
+        E2e.app.getSharedPreferences("custom_presets", Context.MODE_PRIVATE).edit()
+            .putStringSet("preset_names", setOf("StudioOnly"))
+            .apply()
+        assertTrue("StudioOnly" in AutoVybzPresetStore.existingNames(E2e.app))
+        assertTrue(AutoVybzPresetStore.calibrationNames(E2e.app).isEmpty())
+        assertTrue(AutoVybzPresetStore.isFirstCalibration(E2e.app))
+
+        val name = compose.quickCalibration()
+        compose.onNodeWithTag("avz:result:premium").assertDoesNotExist() // no "limit reached" CTA
+        compose.onNodeWithTag("avz:result:saveApply").assertIsEnabled()
+
+        compose.tap("avz:result:saveApply")
+        compose.await("avz:saved")
+        // The calibration index (the source of the limit and of the start-tab decision) knows the new profile.
+        assertEquals(setOf(name), AutoVybzPresetStore.calibrationNames(E2e.app))
+        assertFalse(AutoVybzPresetStore.isFirstCalibration(E2e.app))
+        // The studio preset is still there - saving a calibration must not touch foreign pool entries.
+        assertTrue("StudioOnly" in AutoVybzPresetStore.existingNames(E2e.app))
     }
 
     @Test

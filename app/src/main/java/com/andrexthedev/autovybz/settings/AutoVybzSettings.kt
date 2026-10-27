@@ -1,6 +1,7 @@
 package com.andrexthedev.autovybz.settings
 
 import android.content.Context
+import android.util.Log
 import com.andrexthedev.autovybz.measurement.ListeningEnvironment
 import com.andrexthedev.autovybz.measurement.MeasurementRequest
 import com.andrexthedev.autovybz.measurement.SpeakerClass
@@ -11,6 +12,7 @@ import com.andrexthedev.autovybz.measurement.eq.TargetType
 import com.andrexthedev.autovybz.measurement.mic.CalibrationFileParser
 import com.andrexthedev.autovybz.measurement.mic.ResponseCurve
 import java.io.File
+import java.io.FileOutputStream
 
 enum class SmoothingChoice(val profile: SmoothingProfile) {
     DYNAMIC(SmoothingProfile.DYNAMIC),
@@ -94,15 +96,42 @@ class AutoVybzSettings(context: Context) {
     val usbCalibrationFile: File get() = File(micDir(), "usb_calibration.txt")
     val userOffsetFile: File get() = File(micDir(), "user_offset.txt")
 
-    /** Validates + stores a calibration/offset text. Throws IllegalArgumentException on bad data. */
+    /**
+     * Validates + stores a calibration/offset text. Throws IllegalArgumentException on bad data.
+     *
+     * Written through a sibling `.tmp` file + rename: `writeText` truncates first, so a full disk, a killed
+     * process or a crash in the middle left a half file behind - and since [loadCurve] ignores unparseable
+     * files, the user's imported mic calibration then silently disappeared with a generic "invalid file"
+     * message on the next attempt. The rename is atomic on the app's own (POSIX) filesystem, so a reader
+     * either sees the old or the new text.
+     */
     fun storeCurve(file: File, text: String): ResponseCurve {
         val cal = CalibrationFileParser.parse(text)
-        file.writeText(text)
+        val dir = file.parentFile ?: app.filesDir
+        val tmp = File(dir, file.name + ".tmp")
+        try {
+            FileOutputStream(tmp).use { out ->
+                out.write(text.toByteArray(Charsets.UTF_8))
+                out.flush()
+                out.fd.sync() // survive a power loss right after the rename
+            }
+            if (!tmp.renameTo(file)) {
+                // Some (rare) filesystems refuse to rename over an existing file: fall back, but only after
+                // the content is already completely on disk.
+                file.writeText(text)
+            }
+        } finally {
+            tmp.delete() // no-op after a successful rename; never leave a stale .tmp in files/
+        }
         return cal.curve
     }
 
-    fun loadCurve(file: File): ResponseCurve? =
-        if (file.exists()) runCatching { CalibrationFileParser.parse(file.readText()).curve }.getOrNull() else null
+    fun loadCurve(file: File): ResponseCurve? {
+        if (!file.exists()) return null
+        return runCatching { CalibrationFileParser.parse(file.readText()).curve }
+            .onFailure { Log.w(TAG, "ignoring unreadable calibration file ${file.name}", it) }
+            .getOrNull()
+    }
 
     fun clearCurve(file: File) { file.delete() }
 
@@ -129,5 +158,9 @@ class AutoVybzSettings(context: Context) {
             environment = environment,
             speakerClass = cls,
         )
+    }
+
+    private companion object {
+        const val TAG = "AutoVybzSettings"
     }
 }

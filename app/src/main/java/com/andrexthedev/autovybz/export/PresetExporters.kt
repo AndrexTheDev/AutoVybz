@@ -115,6 +115,9 @@ object PresetNaming {
 
     const val PREFIX = "AutoVybz"
 
+    /** Sanitized device names are limited to this many characters (file names stay readable and portable). */
+    const val MAX_NAME_CHARS = 32
+
     fun defaultName(deviceName: String?, date: Date = Date(), existing: Collection<String> = emptyList()): String {
         val device = sanitize(deviceName).ifEmpty { "Speaker" }
         val day = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(date)
@@ -125,14 +128,36 @@ object PresetNaming {
         return "${base}_$i"
     }
 
-    /** Keep letters (incl. umlauts), digits, '-', '.', '+'; whitespace -> '-'; max 32 chars. */
+    /** Keep letters (incl. umlauts and non-BMP scripts), digits, '-', '.', '+'; whitespace -> '-'; max 32 characters. */
     fun sanitize(name: String?): String {
         if (name == null) return ""
         val collapsed = name.trim().replace(Regex("\\s+"), "-")
+        // Iterate code points, not chars: `Char.isLetterOrDigit()` is false for both halves of a surrogate
+        // pair, so a device named with (rare) non-BMP letters - e.g. mathematical alphanumerics or CJK
+        // extension B - used to be renamed to "Speaker" completely. Counting code points also makes the
+        // 32-character cut safe: it can no longer split a surrogate pair and leave an unencodable string.
         val cleaned = buildString {
-            for (c in collapsed) if (c.isLetterOrDigit() || c == '-' || c == '.' || c == '+') append(c)
+            var i = 0
+            while (i < collapsed.length) {
+                val cp = collapsed.codePointAt(i)
+                if (Character.isLetterOrDigit(cp) || cp == '-'.code || cp == '.'.code || cp == '+'.code) appendCodePoint(cp)
+                i += Character.charCount(cp)
+            }
         }
-        return cleaned.replace(Regex("-{2,}"), "-").trim('-', '.').take(32).trimEnd('-', '.')
+        val deduped = cleaned.replace(Regex("-{2,}"), "-").trim('-', '.')
+        return deduped.takeCodePoints(MAX_NAME_CHARS).trimEnd('-', '.')
+    }
+
+    /** `take(n)` for code points; a plain substring cut could end between the two halves of a surrogate pair. */
+    private fun String.takeCodePoints(max: Int): String {
+        if (length <= max) return this
+        var count = 0
+        var index = 0
+        while (index < length && count < max) {
+            index += Character.charCount(codePointAt(index))
+            count++
+        }
+        return substring(0, index)
     }
 
     /** Validates a user-edited preset name (non-blank, no path / control characters). */

@@ -57,9 +57,39 @@ object EntitlementPolicy {
     const val FREE_MAX_POSITIONS = 1
     const val PRO_MAX_POSITIONS = 3
 
+    /**
+     * A single reading at most this far ahead of the last recorded one counts as real time passing. Beyond
+     * it the reading is treated as a broken or manipulated clock: it may still let a *paid* interval expire
+     * (anti-cheat), but nothing is granted or stored on its basis.
+     *
+     * One year, because a legitimate pause between two launches before the user starts a trial or activates
+     * a plan is plausible; a decade-long jump never is.
+     */
+    const val MAX_TRUSTED_CLOCK_JUMP_MS = 365 * DAY_MS
+
     /** Clock-rollback guard: once the app has seen a later time, expiry checks never move backwards. */
     fun effectiveNow(nowEpochMs: Long, entitlement: Entitlement): Long =
         max(nowEpochMs, entitlement.lastSeenEpochMs)
+
+    /**
+     * False when [nowEpochMs] lies absurdly far in the future compared with what this install already saw -
+     * i.e. the system clock was changed, or the RTC came back garbage. The first observation has nothing to
+     * compare against and counts as plausible (trusting it cannot cost the user anything the device could not
+     * measure anyway).
+     */
+    fun isClockPlausible(entitlement: Entitlement, nowEpochMs: Long): Boolean {
+        val seen = entitlement.lastSeenEpochMs
+        return seen <= 0L || nowEpochMs <= seen + MAX_TRUSTED_CLOCK_JUMP_MS
+    }
+
+    /** Reference time a *grant* may use: an implausible jump is ignored, so it cannot buy extra paid time. */
+    private fun trustedNow(entitlement: Entitlement, nowEpochMs: Long): Long =
+        if (isClockPlausible(entitlement, nowEpochMs)) effectiveNow(nowEpochMs, entitlement) else entitlement.lastSeenEpochMs
+
+    /** Value to persist as `lastSeen`: an implausible jump is *not* stored, so one bogus reading cannot make
+     *  every later expiry check believe in a future far beyond the plan and lock the user out for good. */
+    private fun recordedLastSeen(entitlement: Entitlement, nowEpochMs: Long): Long =
+        if (isClockPlausible(entitlement, nowEpochMs)) effectiveNow(nowEpochMs, entitlement) else entitlement.lastSeenEpochMs
 
     fun effectiveTier(entitlement: Entitlement, nowEpochMs: Long = System.currentTimeMillis()): EntitlementTier {
         val expiry = entitlement.expiresAtEpochMs ?: return entitlement.tier
@@ -86,15 +116,15 @@ object EntitlementPolicy {
             )
         }
 
-    /** Records time progression without granting anything new. */
+    /** Records time progression without granting anything new (implausible jumps are ignored, see above). */
     fun touch(entitlement: Entitlement, nowEpochMs: Long = System.currentTimeMillis()): Entitlement {
-        val seen = effectiveNow(nowEpochMs, entitlement)
+        val seen = recordedLastSeen(entitlement, nowEpochMs)
         return if (seen == entitlement.lastSeenEpochMs) entitlement else entitlement.copy(lastSeenEpochMs = seen)
     }
 
     /** One full-feature trial. Called after the first successful measurement (and manually from the paywall). */
     fun startTrial(entitlement: Entitlement, nowEpochMs: Long = System.currentTimeMillis()): Entitlement {
-        val now = effectiveNow(nowEpochMs, entitlement)
+        val now = trustedNow(entitlement, nowEpochMs)
         if (entitlement.trialUsed || effectiveTier(entitlement, now) != EntitlementTier.FREE) {
             return entitlement.copy(lastSeenEpochMs = now)
         }
@@ -124,7 +154,8 @@ object EntitlementPolicy {
         nowEpochMs: Long = System.currentTimeMillis(),
     ): Entitlement {
         require(isValidTxid(coin, txid)) { "Invalid TXID format for $coin" }
-        val now = effectiveNow(nowEpochMs, entitlement)
+        // A clock jump must not stretch a paid period: the period is counted from the last plausible time.
+        val now = trustedNow(entitlement, nowEpochMs)
         val hash = txidHash(txid)
         if (hash == entitlement.txidHash && effectiveTier(entitlement, now) == EntitlementTier.PRO) {
             return entitlement.copy(lastSeenEpochMs = now)
