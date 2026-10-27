@@ -337,7 +337,9 @@ private fun CalibrationList(externalExportsEnabled: Boolean = true, onOpenPremiu
                     onClick = {
                         toDelete = null
                         scope.launch {
-                            withContext(Dispatchers.IO) { AutoVybzPresetStore.delete(context, name) }
+                            // sound layer, not the store: deleting the profile that is audible right now must
+                            // also stop playing its correction (otherwise the EQ keeps the deleted bands).
+                            withContext(Dispatchers.IO) { VybzSound.deleteCalibration(context, name) }
                             reload++
                         }
                     },

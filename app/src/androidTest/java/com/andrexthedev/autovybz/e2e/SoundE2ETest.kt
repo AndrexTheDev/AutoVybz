@@ -10,6 +10,7 @@ import com.andrexthedev.autovybz.sound.SoundStyle
 import com.andrexthedev.autovybz.sound.VybzSound
 import com.bearinmind.equalizer314.state.EqPreferencesManager
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -35,6 +36,63 @@ class SoundE2ETest : E2eTest() {
         shot("home_first_run")
         compose.tap("avz:home:calibrate")
         compose.await("avz:start")
+    }
+
+    /**
+     * Deleting the speaker that is audible right now must also change what is audible. The store only cleared
+     * the "in use" marker, so the deleted calibration's bands stayed in the engine until the next unrelated
+     * style tap - while the Sound screen already showed "Keine".
+     */
+    @Test
+    fun deletingTheActiveSpeaker_fallsBackToTheStyleImmediately() {
+        val name = compose.quickCalibration()
+        compose.tap("avz:result:saveApply")
+        compose.await("avz:saved")
+        val cal = AutoVybzPresetStore.loadFull(E2e.app, name)!!.bands.size
+
+        compose.tap("avz:tab:HOME")
+        compose.await("avz:screen:home")
+        compose.tap("avz:style:HIPHOP_RNB")
+        val style = SoundStyle.HIPHOP_RNB.bandsAt(SoundStyle.DEFAULT_INTENSITY).size
+        awaitBands(cal + style, "calibration + style before deleting")
+
+        compose.tap("avz:tab:PRO")
+        compose.await("avz:pro:cal:$name")
+        compose.tap("avz:pro:delete:$name")
+        compose.await("avz:dialog:confirm")
+        compose.tap("avz:dialog:confirm")
+        compose.awaitGone("avz:pro:cal:$name")
+
+        awaitBands(style, "only the style is left after deleting the active speaker")
+        assertNull(VybzSound.activeCalibrationName(E2e.app))
+        assertTrue(AutoVybzPresetStore.calibrationNames(E2e.app).isEmpty())
+        // The style itself is untouched by the deletion.
+        assertEquals(SoundStyle.HIPHOP_RNB, VybzSound.selection(E2e.app).style)
+    }
+
+    @Test
+    fun deletingAnInactiveSpeaker_keepsTheAudibleCalibration() {
+        val keep = compose.quickCalibration()
+        compose.tap("avz:result:saveApply")
+        compose.await("avz:saved")
+        // A second calibration (premium is granted in the E2E default setup) ...
+        compose.tap("avz:saved:done")
+        compose.await("avz:start")
+        val other = compose.quickCalibration()
+        compose.tap("avz:result:saveApply")
+        compose.await("avz:saved")
+        assertEquals(other, AutoVybzPresetStore.lastAppliedName(E2e.app))
+
+        // ... deleting the *other*, inactive one must not touch the audible state.
+        val keptBands = AutoVybzPresetStore.loadFull(E2e.app, other)!!.bands.size
+        compose.tap("avz:tab:PRO")
+        compose.await("avz:pro:cal:$keep")
+        compose.tap("avz:pro:delete:$keep")
+        compose.await("avz:dialog:confirm")
+        compose.tap("avz:dialog:confirm")
+        compose.awaitGone("avz:pro:cal:$keep")
+        assertEquals(other, AutoVybzPresetStore.lastAppliedName(E2e.app))
+        awaitBands(keptBands, "the audible calibration is unchanged")
     }
 
     @Test

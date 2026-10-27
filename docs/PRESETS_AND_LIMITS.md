@@ -104,6 +104,7 @@ party/rescue/device calibration lost its safety net the first time a sound style
 |---|---|---|
 | measurement file cannot be written (no space, revoked access) | pool entry written, file missing → "saved" profile invisible in Sound/Pro, Free limit consumed | file is written **first**; failure propagates, the wizard stays on the result screen and shows `avz_save_failed` |
 | engine write throws while applying | app crash | caught, logged, same toast; the saved calibration can still be applied later |
-| deleted profile was the active one | active marker cleared, style-only until the next change | unchanged (intentional) |
+| deleted profile was the active one | marker cleared, but its bands stayed audible until the next unrelated style/tone tap – the Sound screen said "none" while the phone still played that speaker's EQ | `VybzSound.deleteCalibration()` deletes *and* re-applies right away, so the engine falls back to "no profile + current style" in the same action |
+| engine write fails while a style / tone / profile is tapped on the Sound or Studio screen | exception propagated into the UI coroutine (app crash) | caught and logged (`AutoVybzSound`); the preferences are already saved, so the next change retries |
 | mic calibration file written (Studio) | `writeText` truncated first: a crash or full disk left half a file, which is then ignored as unparseable – the imported calibration silently vanished | written to a sibling `.tmp` file, `fsync`ed and renamed over the target; a failed parse is logged (`AutoVybzSettings`) instead of disappearing |
 | unknown speaker class / environment in an old or hand-edited preset | – | `PresetSafety` falls back to the environment rule instead of crashing |

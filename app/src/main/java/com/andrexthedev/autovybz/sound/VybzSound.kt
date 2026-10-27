@@ -1,6 +1,7 @@
 package com.andrexthedev.autovybz.sound
 
 import android.content.Context
+import android.util.Log
 import com.andrexthedev.autovybz.preset.AutoVybzPresetStore
 import com.andrexthedev.autovybz.settings.AutoVybzSettings
 
@@ -10,6 +11,7 @@ import com.andrexthedev.autovybz.settings.AutoVybzSettings
  * which layers the selection on the calibration (so picking another speaker keeps the chosen style).
  */
 object VybzSound {
+    private const val TAG = "AutoVybzSound"
     private const val PREFS = "autovybz_sound"
     private const val KEY_STYLE = "style"
     private const val KEY_INTENSITY = "intensity"
@@ -100,8 +102,29 @@ object VybzSound {
             }
             lastApplyAt = android.os.SystemClock.uptimeMillis()
             val preset = activeCalibrationName(context)?.let { AutoVybzPresetStore.loadFull(context, it) }
-            applyBase(context, preset)
+            // Called from a UI coroutine (style / tone / profile tap). A failing engine write - the sound service
+            // not running, a corrupt preset file, a rejected band - must not turn that tap into a crash; the
+            // preferences are already saved, so the state is consistent and the next change retries.
+            try {
+                applyBase(context, preset)
+            } catch (e: Exception) {
+                Log.e(TAG, "re-applying the sound failed", e)
+            }
         }
+    }
+
+    /**
+     * Deletes the saved calibration [name] and keeps the audible state in sync.
+     *
+     * If that calibration was the active one, the engine falls back to "no speaker profile + current style"
+     * right away. Before, `AutoVybzPresetStore.delete()` only cleared the "in use" marker, so the deleted
+     * speaker's correction stayed audible until the next unrelated style or tone change - the Sound screen
+     * said "Keine" (none) while the phone still played that speaker's EQ. Call off the main thread.
+     */
+    fun deleteCalibration(context: Context, name: String) {
+        val wasActive = activeCalibrationName(context) == name
+        AutoVybzPresetStore.delete(context, name)
+        if (wasActive) reapply(context) // activeCalibrationName() is null now -> style-only base
     }
 
     private fun applyBase(context: Context, preset: com.andrexthedev.autovybz.preset.model.AutoVybzPreset?) {
