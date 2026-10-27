@@ -8,12 +8,13 @@ The optimal correction strategy differs fundamentally:
 |---|---|---|---|
 | Goal | precise correction | mask the flaws, accept the limits | calibrate the built-in speakers with the built-in mic |
 | Smoothing (auto) | dynamic | strong (⅔–1½ oct) | **near-field** (`SmoothingProfile.DEVICE`: 1 oct ≤ 400 Hz, 1/3 oct ≥ 700 Hz) |
-| Max boost | user (6 dB default) | user (unchanged) | **4 dB cap** |
+| Max boost | user (6 dB default) | **4 dB cap** (min of user 6 dB and class 4 dB) | **4 dB cap** |
 | Max cut | 12 dB | **16 dB** | 12 dB |
 | Cut trust | 100 % | 100 % | **75 %** (near field overstates presence peaks) |
 | Broad boosts only | outdoors only | **always (1 oct median)** | **always** |
 | Excursion ramp | 1 oct (1.5 outdoors) | ≥ 1.5 oct | **2 oct** |
-| Correction top | 16 kHz | 16 kHz | **12 kHz** |
+| Correction top | 16 kHz | **14 kHz** (steep roll-off region masked) | **12 kHz** |
+| HF boost cap | – | **2 dB above 6 kHz** (phantom-boost guard) | **2 dB above 6 kHz** |
 | Roll-off scan | from 200 Hz, clamp ≤ 160 Hz | from 400 Hz, ≤ 350 Hz | from 1.2 kHz, ≤ 900 Hz |
 | Protective high pass | – | **yes** (at the roll-off point) | **yes** (sub-bass only, fixed 60 Hz) |
 | Limiter forced | outdoors only | **yes** | **yes** |
@@ -69,9 +70,15 @@ Typical defects of a €15 Bluetooth box, and the countermeasure:
 3. **Dull or harsh top end.** → broad-only boosts (1-octave median rule, same as
    outdoors) so missing treble can be lifted without chasing interference notches;
    the pre-selected Harman target adds a gentle downward tilt that forgives harshness.
-4. Boosts keep the user's limit on purpose: on a weak amp/driver, boost headroom is
-   paid for with distortion and total loudness (pre-gain). Cutting the boom lets the
-   user turn the speaker up instead – the better trade.
+   Above ~14 kHz the driver rolls off steeply and the measurement is unreliable –
+   correction is masked there (like DEVICE masks above 12 kHz). Above 6 kHz the
+   self-measurement is dominated by mic profile and driver hash: boosts are capped
+   at 2 dB to prevent phantom treble on cheap boxes.
+4. Boosts are capped at 4 dB (class cap, min of the user's 6 dB limit and the class's
+   4 dB): on a weak amp/driver, boost headroom is paid for with distortion and total
+   loudness (pre-gain). The Harman bass shelf (+4 dB) is the most a cheap driver should
+   ever be asked to boost. Cutting the boom lets the user turn the speaker up instead –
+   the better trade.
 
 Physics stays physics: no real bass extension appears. What appears is balance and
 clarity at higher usable volume.
