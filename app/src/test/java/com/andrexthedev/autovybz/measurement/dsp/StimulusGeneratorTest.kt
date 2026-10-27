@@ -63,6 +63,28 @@ class StimulusGeneratorTest {
     }
 
     @Test
+    fun everyRateTheCaptureLayerCanNegotiateBuildsAValidPlan() {
+        // 44.1 kHz is the fallback for devices whose mic cannot run at 48 kHz (CaptureRates).
+        for (fs in listOf(44100, 48000, 96000)) {
+            val s = StimulusGenerator.generate(fs)
+            val p = s.plan
+            assertEquals("duration at $fs", 10.0, p.durationSeconds, 1e-9)
+            assertTrue("period ${p.pinkPeriod} is a power of two", isPowerOfTwo(p.pinkPeriod))
+            // The noise-floor snapshot uses one full period inside the lead silence.
+            assertTrue("period ${p.pinkPeriod} fits the lead silence at $fs", p.pinkPeriod <= p.leadSilence)
+            assertTrue("period ${p.pinkPeriod} usable at $fs", p.pinkPeriod >= 8192)
+            // Still ~1.5 Hz / 2.7 Hz resolution where it matters.
+            assertTrue("bin ${fs.toDouble() / p.pinkPeriod} Hz at $fs", fs.toDouble() / p.pinkPeriod < 3.0)
+            assertTrue("sweep end ${p.sweepEndHz} at $fs", p.sweepEndHz <= fs * 0.45 + 1e-9)
+            assertEquals(fs.toDouble() * 10, s.signal.size.toDouble(), 1.0)
+            assertTrue(s.signal.maxOf { abs(it) } <= StimulusGenerator.PEAK_LEVEL + 1e-6)
+        }
+        // 48 kHz is unchanged by the rate-dependent window choice.
+        assertEquals(32768, StimulusGenerator.plan(48000).pinkPeriod)
+        assertEquals(16384, StimulusGenerator.plan(44100).pinkPeriod)
+    }
+
+    @Test
     fun phasesAreOrdered() {
         val p = stimulus.plan
         assertEquals(StimulusPlan.Phase.NOISE_FLOOR, p.phaseAt(0))

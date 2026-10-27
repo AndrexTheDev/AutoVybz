@@ -1182,6 +1182,7 @@ private fun warningText(w: MeasurementWarning, latencyMs: Double): String = when
     MeasurementWarning.LOW_SNR -> stringResource(R.string.avz_warn_low_snr)
     MeasurementWarning.SWEEP_NOISE_MISMATCH -> stringResource(R.string.avz_warn_mismatch)
     MeasurementWarning.HIGH_LATENCY -> stringResource(R.string.avz_warn_latency, latencyMs.roundToInt())
+    MeasurementWarning.LATENCY_OUT_OF_RANGE -> stringResource(R.string.avz_warn_latency_range)
     MeasurementWarning.LOW_FREQ_NOISE -> stringResource(R.string.avz_warn_lf_noise)
     MeasurementWarning.NOISE_UNSTEADY -> stringResource(R.string.avz_warn_unsteady)
     MeasurementWarning.DROPOUT -> stringResource(R.string.avz_warn_dropout)
@@ -1191,6 +1192,7 @@ private fun warningText(w: MeasurementWarning, latencyMs: Double): String = when
 /** Warnings that make the result questionable (highlighted in gold). */
 private val SEVERE_WARNINGS = setOf(
     MeasurementWarning.CLIPPING, MeasurementWarning.LOW_SNR, MeasurementWarning.DROPOUT, MeasurementWarning.AUDIO_GLITCH,
+    MeasurementWarning.LATENCY_OUT_OF_RANGE,
 )
 
 /** "41–320 Hz" / "3.0–8.0 kHz". */

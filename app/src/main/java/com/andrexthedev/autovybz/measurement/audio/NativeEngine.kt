@@ -37,6 +37,13 @@ object NativeEngine : FftEngine {
     const val PRESET_VOICE_RECOGNITION = 6
     const val PRESET_UNPROCESSED = 9
 
+    /**
+     * Prefix of the start error when a stream cannot run at the requested sample rate; the rest of the
+     * message is the rate the device offered (see `MeasurementEngine::start` in measurement_engine.cpp).
+     * Kept in sync with `avz::kRateMismatchPrefix`.
+     */
+    const val RATE_MISMATCH_PREFIX = "rate-mismatch:"
+
     @JvmStatic external fun nativeFft(re: DoubleArray, im: DoubleArray, inverse: Boolean): Boolean
     @JvmStatic external fun nativeCreate(): Long
     @JvmStatic external fun nativeDestroy(handle: Long)

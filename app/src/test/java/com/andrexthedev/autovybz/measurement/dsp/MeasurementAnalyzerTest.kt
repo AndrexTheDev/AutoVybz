@@ -114,6 +114,95 @@ class MeasurementAnalyzerTest {
         assertTrue("max error $err dB", err < 3.0)
     }
 
+    @Test
+    fun theWholePipelineAlsoWorksAtTheFallbackRate() {
+        // 44.1 kHz is what a device without 48 kHz capture runs at (see CaptureRates); the stimulus, the
+        // noise-floor window and the analysis grid all have to follow that rate.
+        val fs = 44100
+        val s44 = StimulusGenerator.generate(fs)
+        val sim = SpeakerSimulator(
+            sampleRate = fs,
+            bands = listOf(
+                PeqBand(PeqType.PEAK, 130.0, 6.0, 1.6),
+                PeqBand(PeqType.PEAK, 2600.0, -4.0, 1.5),
+            ),
+            highPassHz = 60.0,
+            latencySeconds = 0.18,
+            gain = 0.25,
+            noiseRms = 5e-4,
+            extraTailSeconds = 1.3,
+        )
+        val r = analyzer.analyze(sim.play(s44.signal), s44)
+        assertEquals(180.0, r.latencyMs, 0.5)
+        val err = maxErrorDb(r, sim, 60.0, 16000.0)
+        assertTrue("44.1 kHz max error $err dB", err < 2.0)
+        assertTrue("SNR ${r.medianSnrDb}", r.medianSnrDb > 20.0)
+        assertTrue("warnings ${r.warnings}", MeasurementWarning.LATENCY_OUT_OF_RANGE !in r.warnings)
+    }
+
+    @Test
+    fun dcOffsetIsRemovedBeforeTheAnalysis() {
+        // Phone mics (and USB-C dongles) can deliver a constant offset. It is not part of the room
+        // response: it would inflate the peak (fake clipping) and leak into DC/low-frequency bins.
+        val sim = SpeakerSimulator(gain = 0.3, latencySeconds = 0.012)
+        val clean = sim.play(stimulus.signal)
+        val offset = 0.25f
+        val withDc = FloatArray(clean.size) { clean[it] + offset }
+        val r = analyzer.analyze(withDc, stimulus)
+        val err = maxErrorDb(r, sim, 25.0, 18000.0)
+        assertTrue("DC offset error $err dB", err < 0.3)
+        assertEquals(12.0, r.latencyMs, 0.1)
+        assertTrue("warnings ${r.warnings}", MeasurementWarning.CLIPPING !in r.warnings)
+    }
+
+    @Test
+    fun aPureDcRecordingIsStillSilence() {
+        // After the offset is removed nothing is left - the recording has to be rejected, not analysed.
+        val silence = FloatArray(stimulus.signal.size) { 0.3f }
+        val error = runCatching { analyzer.analyze(silence, stimulus) }.exceptionOrNull()
+        assertTrue("expected MeasurementException, got $error", error is MeasurementException)
+        assertEquals(MeasurementException.Reason.NO_SIGNAL, (error as MeasurementException).reason)
+    }
+
+    @Test
+    fun sweepWeightRampsWithSnr() {
+        // Pure sweep where the pink noise is buried in the noise floor...
+        assertEquals(1.0, analyzer.blendWeight(0.0, 0.5), 0.0)
+        assertEquals(1.0, analyzer.blendWeight(3.0, 0.5), 0.0)
+        // ...the configured weight once the pink path is trustworthy...
+        assertEquals(0.5, analyzer.blendWeight(12.0, 0.5), 0.0)
+        assertEquals(0.5, analyzer.blendWeight(45.0, 0.5), 0.0)
+        // ...and a linear ramp in between (no step for the fitter to chase).
+        assertEquals(0.75, analyzer.blendWeight(7.5, 0.5), 1e-12)
+        assertEquals(1.0, analyzer.blendWeight(12.0, 1.0), 0.0)
+        assertEquals(1.0, analyzer.blendWeight(40.0, 1.5), 0.0) // out-of-range input is clamped
+        var previous = 1.1
+        for (i in 0..60) {
+            val w = analyzer.blendWeight(i / 2.0, 0.5)
+            assertTrue("weight rises with SNR at $i", w <= previous + 1e-12)
+            assertTrue("weight within [sweepWeight, 1]", w >= 0.5 - 1e-12 && w <= 1.0 + 1e-12)
+            previous = w
+        }
+    }
+
+    @Test
+    fun latencyAtTheSearchLimitIsFlagged() {
+        // 799 ms sits inside the latency window, but within the 2 ms edge margin: the curve then comes
+        // from a truncated response and must not be presented as trustworthy.
+        val sim = SpeakerSimulator(gain = 0.3, latencySeconds = 0.799, extraTailSeconds = 1.0)
+        val r = analyzer.analyze(sim.play(stimulus.signal), stimulus)
+        assertEquals(799.0, r.latencyMs, 2.0)
+        assertTrue("warnings ${r.warnings}", MeasurementWarning.LATENCY_OUT_OF_RANGE in r.warnings)
+        assertTrue("warnings ${r.warnings}", MeasurementWarning.HIGH_LATENCY in r.warnings)
+    }
+
+    @Test
+    fun normalLatencyIsNotFlagged() {
+        val sim = SpeakerSimulator(gain = 0.3, latencySeconds = 0.12)
+        val r = analyzer.analyze(sim.play(stimulus.signal), stimulus)
+        assertTrue("warnings ${r.warnings}", r.warnings.isEmpty())
+    }
+
     @Test(expected = MeasurementException::class)
     fun silenceThrows() {
         analyzer.analyze(FloatArray(stimulus.signal.size + 1000), stimulus)

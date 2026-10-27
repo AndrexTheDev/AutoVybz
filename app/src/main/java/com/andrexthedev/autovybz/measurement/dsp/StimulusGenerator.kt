@@ -89,9 +89,13 @@ object StimulusGenerator {
         val gap = s(GAP_S)
         val sweep = s(SWEEP_S)
         val tail = s(TAIL_S)
-        // ~0.68 s period -> 1.46 Hz resolution at 48 kHz; also must fit inside the lead silence.
-        val period = nextPowerOfTwo(s(0.66))
-        check(period + s(0.05) < lead) { "noise-floor window must fit in the lead silence" }
+        // One period of the pink noise is also the analysis window, so it has to fit into the lead
+        // silence (the noise-floor snapshot uses the same length). At 48 kHz that is 32768 samples
+        // (0.68 s, 1.46 Hz resolution) - unchanged. A 44.1 kHz device gets the next smaller power of
+        // two (16384 = 0.37 s, 2.7 Hz): coarser bass bins, but a valid measurement instead of a
+        // stimulus that cannot be built for the rate the capture path actually runs at.
+        val period = largestPowerOfTwoAtMost(lead - s(NOISE_WINDOW_MARGIN_S))
+        require(period >= 4096) { "lead silence too short for a noise-floor window at $sampleRate Hz" }
         val nyquistSafeEnd = minOf(SWEEP_END_HZ, sampleRate * 0.45)
         return StimulusPlan(
             sampleRate = sampleRate,
@@ -220,6 +224,16 @@ object StimulusGenerator {
 
     private const val CREST_CLIP_RATIO = 0.45
     private const val CREST_ITERATIONS = 20
+
+    /** Margin between the noise-floor window and the start of the pink-noise segment. */
+    private const val NOISE_WINDOW_MARGIN_S = 0.05
+
+    /** Largest power of two that still fits into [available] samples (at least 1). */
+    private fun largestPowerOfTwoAtMost(available: Int): Int {
+        var p = 1
+        while (p * 2 <= available) p *= 2
+        return p
+    }
 
     /** 0 -> 0, 1 -> 1 with a half-cosine shape. */
     private fun raisedCosine(x: Double): Double = 0.5 - 0.5 * cos(PI * x.coerceIn(0.0, 1.0))

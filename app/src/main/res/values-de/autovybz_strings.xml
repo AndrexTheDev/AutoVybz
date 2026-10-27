@@ -181,6 +181,7 @@
     <string name="avz_warn_low_snr">Signal im Verhältnis zum Störgeräusch leise – Lautstärke erhöhen oder Geräusche reduzieren.</string>
     <string name="avz_warn_mismatch">Sweep und Rauschen weichen voneinander ab – Störung während der Messung oder starker Lautsprecher-DSP.</string>
     <string name="avz_warn_latency">Hohe Latenz (%1$d ms) – normal bei Bluetooth, bereits ausgeglichen.</string>
+    <string name="avz_warn_latency_range">Der Lautsprecher antwortet später, als die Messung ausgleichen kann (sehr träge Strecke). Die Kurve ist unzuverlässig: geh näher an die Box, starte die Box neu oder miss erneut.</string>
     <string name="avz_result_details">Details</string>
     <string name="avz_detail_mic">Mikrofon: %1$s</string>
     <string name="avz_detail_engine">Engine: %1$s</string>

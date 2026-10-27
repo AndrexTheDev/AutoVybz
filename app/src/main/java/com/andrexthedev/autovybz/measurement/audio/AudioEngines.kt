@@ -20,12 +20,20 @@ import kotlin.math.abs
 import kotlin.math.max
 
 data class CaptureConfig(
+    /** Rate of the stimulus; the capture path must run at exactly this rate (see [CaptureRates]). */
     val sampleRate: Int,
     val source: InputSource,
     /** Input device to pin (external USB mic, or the built-in primary mic); null = system default route. */
     val inputDevice: AudioDeviceInfo? = null,
-    val extraRecordSeconds: Double = 1.0,
+    /** Tail recorded after the stimulus - derived from the analysis budget, see [CaptureTiming]. */
+    val extraRecordSeconds: Double = CaptureTiming.MIN_TAIL_SECONDS,
     val outputGain: Float = 1.0f,
+    /**
+     * Output device to pin. Known on API 33+ only (the platform then reports the *active* media device);
+     * pinning keeps the stimulus on the route that was classified and verified before the start, even if
+     * another device (headset, HDMI) shows up in the meantime. Both engines treat it as a preference.
+     */
+    val outputDevice: AudioDeviceInfo? = null,
 )
 
 data class CaptureResult(
@@ -43,6 +51,19 @@ open class CaptureException(message: String, cause: Throwable? = null) : Excepti
 class CaptureInterruptedException(val reason: Reason, message: String) : CaptureException(message) {
     enum class Reason { ROUTE_CHANGED, FOCUS_LOST }
 }
+
+/**
+ * The capture path does not run at the stimulus rate. The analysis depends on a sample-exact timeline, so
+ * this is not repaired inside the engine: the controller regenerates the stimulus for [actualRate] and
+ * retries once (see [CaptureRates]). [actualRate] is 0 when only the mismatch is known.
+ */
+class SampleRateMismatchException(
+    val requestedRate: Int,
+    val actualRate: Int,
+) : CaptureException(
+    "Microphone runs at ${if (actualRate > 0) "$actualRate Hz" else "a different rate"}, " +
+        "the measurement needs $requestedRate Hz",
+)
 
 /** Plays [stimulus] on the current media route while recording the mic. */
 interface MeasurementAudioEngine {
@@ -67,28 +88,34 @@ class OboeMeasurementEngine : MeasurementAudioEngine {
                 InputSource.MIC -> NativeEngine.PRESET_GENERIC
             }
             NativeEngine.nativeStart(
-                h, stimulus, config.sampleRate, preset, config.inputDevice?.id ?: 0, 0,
+                h, stimulus, config.sampleRate, preset,
+                config.inputDevice?.id ?: 0, config.outputDevice?.id ?: 0,
                 config.extraRecordSeconds, config.outputGain,
-            )?.let { throw CaptureException(it) }
+            )?.let { throw startFailure(it, config.sampleRate) }
 
-            val timeoutMs = ((stimulus.size.toDouble() / config.sampleRate + config.extraRecordSeconds) * 1000 + 4000).toLong()
+            val totalFrames = CaptureTiming.totalFrames(stimulus.size, config.sampleRate, config.extraRecordSeconds)
+            val timeoutMs = CaptureTiming.timeoutMillis(totalFrames, config.sampleRate)
             val t0 = System.currentTimeMillis()
             while (true) {
                 if (!coroutineContext.isActive) throw CancellationException()
                 when (NativeEngine.nativeState(h)) {
                     NativeEngine.STATE_FINISHED -> break
-                    NativeEngine.STATE_ERROR -> throw CaptureException(NativeEngine.nativeLastError(h) ?: "audio error")
+                    NativeEngine.STATE_ERROR -> throw startFailure(
+                        NativeEngine.nativeLastError(h) ?: "audio error", config.sampleRate,
+                    )
                 }
                 if (System.currentTimeMillis() - t0 > timeoutMs) throw CaptureException("recording timed out (no microphone data)")
                 onProgress(NativeEngine.nativeProgress(h), NativeEngine.nativeInputPeak(h))
                 delay(50)
             }
+            // Read the counters and the buffer while the streams are still open; the native engine keeps
+            // them valid until stop(), and stop() is idempotent (finally).
             val xruns = NativeEngine.nativeXruns(h)
             val actual = NativeEngine.nativeActualPreset(h)
-            NativeEngine.nativeStop(h)
+            val recording = NativeEngine.nativeRecording(h)
             onProgress(1f, NativeEngine.nativeInputPeak(h))
             CaptureResult(
-                recording = NativeEngine.nativeRecording(h),
+                recording = recording,
                 sampleRate = config.sampleRate,
                 engineName = name,
                 sourceUsed = when {
@@ -103,6 +130,15 @@ class OboeMeasurementEngine : MeasurementAudioEngine {
             NativeEngine.nativeStop(h)
             NativeEngine.nativeDestroy(h)
         }
+    }
+
+    /** Maps the native engine's rate-mismatch marker to the typed exception the controller can act on. */
+    private fun startFailure(message: String, requestedRate: Int): CaptureException {
+        if (message.startsWith(NativeEngine.RATE_MISMATCH_PREFIX)) {
+            val actual = message.removePrefix(NativeEngine.RATE_MISMATCH_PREFIX).trim().toIntOrNull() ?: 0
+            return SampleRateMismatchException(requestedRate, actual)
+        }
+        return CaptureException(message)
     }
 }
 
@@ -136,11 +172,19 @@ class JavaMeasurementEngine : MeasurementAudioEngine {
             .setBufferSizeInBytes(max(outMin, fs / 4 * 8)) // ~0.25 s: no underruns over UI hiccups
             .setTransferMode(AudioTrack.MODE_STREAM)
             .build()
+        if (track.state != AudioTrack.STATE_INITIALIZED) {
+            runCatching { record.release() }
+            runCatching { track.release() }
+            throw CaptureException("speaker output unavailable at $fs Hz")
+        }
+        // Keep the stimulus on the route that was verified before the start (preference, see CaptureConfig).
+        config.outputDevice?.let { runCatching { track.setPreferredDevice(it) } }
 
-        val total = stimulus.size + (config.extraRecordSeconds * fs).toInt()
+        val total = CaptureTiming.totalFrames(stimulus.size, fs, config.extraRecordSeconds)
         val rec = FloatArray(total)
         val recPos = AtomicInteger(0)
         val peakBits = AtomicInteger(0f.toRawBits())
+        val inputStalls = AtomicInteger(0)
         val failure = AtomicReference<Throwable?>(null)
 
         val recorder = Thread({
@@ -149,7 +193,10 @@ class JavaMeasurementEngine : MeasurementAudioEngine {
                 var pos = 0
                 var peak = 0f
                 while (pos < total && failure.get() == null) {
-                    val n = record.read(chunk, 0, minOf(chunk.size, total - pos), AudioRecord.READ_BLOCKING)
+                    val want = minOf(chunk.size, total - pos)
+                    val t0 = System.nanoTime()
+                    val n = record.read(chunk, 0, want, AudioRecord.READ_BLOCKING)
+                    val elapsedMs = (System.nanoTime() - t0) / 1_000_000.0
                     if (n < 0) throw CaptureException("AudioRecord.read error $n")
                     for (i in 0 until n) {
                         rec[pos + i] = chunk[i]
@@ -158,6 +205,14 @@ class JavaMeasurementEngine : MeasurementAudioEngine {
                     pos += n
                     peakBits.set(peak.toRawBits())
                     recPos.set(pos)
+                    // AudioRecord has no xrun counter. A blocking read that returns *far* later than the
+                    // frames it delivered mean the capture thread was stalled; the ring buffer (0.5 s) has
+                    // then overflowed and audio was dropped. Deliberately conservative (3x + 40 ms) so a
+                    // normal scheduling hiccup does not get reported as a glitch.
+                    if (n > 0) {
+                        val expectedMs = n * 1000.0 / fs
+                        if (elapsedMs > 3.0 * expectedMs + INPUT_STALL_MS) inputStalls.incrementAndGet()
+                    }
                 }
             } catch (t: Throwable) {
                 failure.compareAndSet(null, t)
@@ -189,7 +244,7 @@ class JavaMeasurementEngine : MeasurementAudioEngine {
             recorder.start()
             track.play()
             player.start()
-            val timeoutMs = (total * 1000L / fs) + 4000
+            val timeoutMs = CaptureTiming.timeoutMillis(total, fs)
             val t0 = System.currentTimeMillis()
             while (recPos.get() < total) {
                 failure.get()?.let { throw it as? CaptureException ?: CaptureException(it.message ?: "audio error", it) }
@@ -199,7 +254,7 @@ class JavaMeasurementEngine : MeasurementAudioEngine {
                 delay(50)
             }
             onProgress(1f, Float.fromBits(peakBits.get()))
-            CaptureResult(rec, fs, name, sourceUsed, xruns = track.underrunCount)
+            CaptureResult(rec, fs, name, sourceUsed, xruns = track.underrunCount + inputStalls.get())
         } finally {
             failure.compareAndSet(null, CancellationException("capture finished"))
             runCatching { track.pause(); track.flush(); track.stop() }
@@ -220,6 +275,7 @@ class JavaMeasurementEngine : MeasurementAudioEngine {
         val fs = config.sampleRate
         val minBuf = AudioRecord.getMinBufferSize(fs, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_FLOAT)
         var lastError: Throwable? = null
+        var observedRate = 0
         for (src in chain) {
             try {
                 val r = AudioRecord.Builder()
@@ -230,7 +286,14 @@ class JavaMeasurementEngine : MeasurementAudioEngine {
                     )
                     .setBufferSizeInBytes(max(minBuf, fs / 2 * 4))
                     .build()
-                if (r.state != AudioRecord.STATE_INITIALIZED || r.sampleRate != fs) {
+                if (r.state != AudioRecord.STATE_INITIALIZED) {
+                    r.release(); continue
+                }
+                // A HAL that cannot record at the stimulus rate silently returns another rate. Never
+                // resample here: the whole analysis is sample-exact. Report the rate instead so the
+                // controller can regenerate the stimulus for it.
+                if (r.sampleRate != fs) {
+                    if (observedRate == 0) observedRate = r.sampleRate
                     r.release(); continue
                 }
                 // Pin the requested input (USB measurement mic or the built-in primary mic) - a
@@ -241,6 +304,7 @@ class JavaMeasurementEngine : MeasurementAudioEngine {
                 lastError = t
             }
         }
+        if (observedRate > 0) throw SampleRateMismatchException(fs, observedRate)
         throw CaptureException("Cannot open microphone at $fs Hz", lastError)
     }
 
@@ -248,6 +312,11 @@ class JavaMeasurementEngine : MeasurementAudioEngine {
         InputSource.UNPROCESSED, InputSource.USB -> MediaRecorder.AudioSource.UNPROCESSED
         InputSource.VOICE_RECOGNITION -> MediaRecorder.AudioSource.VOICE_RECOGNITION
         InputSource.MIC -> MediaRecorder.AudioSource.MIC
+    }
+
+    private companion object {
+        /** Extra read latency (ms) tolerated on top of 3x the delivered frames before counting a stall. */
+        const val INPUT_STALL_MS = 40.0
     }
 }
 
@@ -261,10 +330,18 @@ class FallbackMeasurementEngine(
     override suspend fun capture(stimulus: FloatArray, config: CaptureConfig, onProgress: (Float, Float) -> Unit): CaptureResult =
         try {
             primary.capture(stimulus, config, onProgress)
-        } catch (c: CancellationException) {
-            throw c
-        } catch (e: CaptureException) {
-            android.util.Log.w("AutoVybz", "Oboe capture failed (${e.message}), falling back to Java engine")
+        } catch (t: Throwable) {
+            // Not just CaptureException: a broken native library surfaces as LinkageError
+            // (UnsatisfiedLinkError / NoClassDefFoundError) from the JNI layer, and that must not cost the
+            // user the measurement. Cancellation and JVM-level failures are not recoverable, so they are
+            // rethrown; everything else gets the Java engine.
+            if (t is CancellationException || t is VirtualMachineError) throw t
+            android.util.Log.w(
+                "AutoVybz",
+                "native capture failed (${t::class.java.simpleName}: ${t.message}), falling back to the Java engine",
+                t,
+            )
+            onProgress(0f, 0f) // reset the progress bar for the second attempt
             fallback.capture(stimulus, config, onProgress)
         }
 }

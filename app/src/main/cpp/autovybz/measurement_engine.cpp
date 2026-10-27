@@ -14,7 +14,8 @@ namespace avz {
 
 MeasurementEngine::~MeasurementEngine() { closeStreams(); }
 
-oboe::Result MeasurementEngine::openInput(const EngineConfig& cfg, oboe::InputPreset preset) {
+oboe::Result MeasurementEngine::openInput(const EngineConfig& cfg, oboe::InputPreset preset,
+                                          int32_t deviceId) {
     oboe::AudioStreamBuilder b;
     // No PerformanceMode::LowLatency: the stimulus/response alignment is
     // recovered from the impulse-response peak, so latency does not matter -
@@ -28,55 +29,25 @@ oboe::Result MeasurementEngine::openInput(const EngineConfig& cfg, oboe::InputPr
         ->setChannelCount(oboe::ChannelCount::Mono)
         ->setChannelConversionAllowed(true)
         ->setSampleRate(cfg.sampleRate)
+        // Conversion stays enabled as a last resort, but the Kotlin side negotiates the device's native
+        // rate up front (CaptureRates), so in the normal case neither direction is resampled.
         ->setSampleRateConversionQuality(oboe::SampleRateConversionQuality::High)
         ->setInputPreset(preset)
         ->setDataCallback(this)
         ->setErrorCallback(this);
-    if (cfg.inputDeviceId > 0) b.setDeviceId(cfg.inputDeviceId);
+    if (deviceId > 0) b.setDeviceId(deviceId);
     const oboe::Result r = b.openStream(input_);
     if (r == oboe::Result::OK) {
         // Use the whole ring buffer - with the large default frames-per-burst of
         // the non-low-latency path this absorbs seconds of scheduling jitter.
         input_->setBufferSizeInFrames(input_->getBufferCapacityInFrames());
+    } else {
+        input_.reset();
     }
     return r;
 }
 
-std::string MeasurementEngine::start(const float* stimulus, int32_t frames, const EngineConfig& cfg) {
-    closeStreams();
-    if (frames <= 0) return "empty stimulus";
-    stimulus_.assign(stimulus, stimulus + frames);
-    const auto recFrames = static_cast<int32_t>(frames + std::lround(cfg.extraRecordSeconds * cfg.sampleRate));
-    recording_.assign(static_cast<size_t>(recFrames), 0.0f);
-    playPos_ = 0;
-    recPos_ = 0;
-    inputPeak_ = 0.0f;
-    gain_ = cfg.outputGain;
-    {
-        std::lock_guard<std::mutex> lk(errMutex_);
-        error_.clear();
-    }
-
-    // --- input (preferred preset, then VoiceRecognition, then Generic) ---
-    const oboe::InputPreset chain[] = {static_cast<oboe::InputPreset>(cfg.inputPreset),
-                                       oboe::InputPreset::VoiceRecognition, oboe::InputPreset::Generic};
-    oboe::Result r = oboe::Result::ErrorInternal;
-    for (auto p : chain) {
-        r = openInput(cfg, p);
-        if (r == oboe::Result::OK) {
-            actualPreset_ = static_cast<int32_t>(p);
-            break;
-        }
-        LOGW("input preset %d failed: %s", static_cast<int>(p), oboe::convertToText(r));
-    }
-    if (r != oboe::Result::OK) return std::string("Cannot open microphone: ") + oboe::convertToText(r);
-    inChannels_ = input_->getChannelCount();
-    if (input_->getSampleRate() != cfg.sampleRate) {
-        closeStreams();
-        return "Microphone does not run at the requested sample rate";
-    }
-
-    // --- output ---
+oboe::Result MeasurementEngine::openOutput(const EngineConfig& cfg, int32_t deviceId) {
     oboe::AudioStreamBuilder ob;
     ob.setDirection(oboe::Direction::Output)
         ->setPerformanceMode(oboe::PerformanceMode::None)
@@ -91,17 +62,85 @@ std::string MeasurementEngine::start(const float* stimulus, int32_t frames, cons
         ->setContentType(oboe::ContentType::Music)
         ->setDataCallback(this)
         ->setErrorCallback(this);
-    if (cfg.outputDeviceId > 0) ob.setDeviceId(cfg.outputDeviceId);
-    r = ob.openStream(output_);
-    if (r != oboe::Result::OK) {
+    if (deviceId > 0) ob.setDeviceId(deviceId);
+    const oboe::Result r = ob.openStream(output_);
+    if (r == oboe::Result::OK) {
+        output_->setBufferSizeInFrames(output_->getBufferCapacityInFrames());
+    } else {
+        output_.reset();
+    }
+    return r;
+}
+
+std::string MeasurementEngine::start(const float* stimulus, int32_t frames, const EngineConfig& cfg) {
+    closeStreams();
+    if (frames <= 0) return "empty stimulus";
+    stimulus_.assign(stimulus, stimulus + frames);
+    const auto recFrames = static_cast<int32_t>(frames + std::lround(cfg.extraRecordSeconds * cfg.sampleRate));
+    recording_.assign(static_cast<size_t>(recFrames), 0.0f);
+    playPos_ = 0;
+    recPos_ = 0;
+    inputPeak_ = 0.0f;
+    xruns_ = 0;
+    actualPreset_ = 0;
+    actualInputDeviceId_ = 0;
+    {
+        std::lock_guard<std::mutex> lk(errMutex_);
+        error_.clear();
+    }
+
+    // --- input (preferred preset, then VoiceRecognition, then Generic) ---
+    // Each preset is tried on the pinned device first and then on the default route: a device that
+    // vanished between the route check and here must not cost the measurement.
+    const oboe::InputPreset presets[] = {static_cast<oboe::InputPreset>(cfg.inputPreset),
+                                        oboe::InputPreset::VoiceRecognition, oboe::InputPreset::Generic};
+    int32_t devices[2] = {cfg.inputDeviceId, 0};
+    const int32_t deviceCount = cfg.inputDeviceId > 0 ? 2 : 1;
+    oboe::Result r = oboe::Result::ErrorInternal;
+    bool inputOpen = false;
+    for (auto p : presets) {
+        for (int32_t i = 0; i < deviceCount && !inputOpen; ++i) {
+            r = openInput(cfg, p, devices[i]);
+            if (r == oboe::Result::OK) {
+                actualPreset_ = static_cast<int32_t>(p);
+                actualInputDeviceId_ = devices[i];
+                inputOpen = true;
+            } else {
+                LOGW("input preset %d / device %d failed: %s", static_cast<int>(p), devices[i],
+                     oboe::convertToText(r));
+            }
+        }
+        if (inputOpen) break;
+    }
+    if (!inputOpen) return std::string("Cannot open microphone: ") + oboe::convertToText(r);
+    inChannels_ = input_->getChannelCount();
+    if (input_->getSampleRate() != cfg.sampleRate) {
+        const int32_t actual = input_->getSampleRate();
+        closeStreams();
+        return std::string(kRateMismatchPrefix) + std::to_string(actual);
+    }
+
+    // --- output ---
+    const int32_t outputDevices[2] = {cfg.outputDeviceId, 0};
+    const int32_t outputDeviceCount = cfg.outputDeviceId > 0 ? 2 : 1;
+    bool outputOpen = false;
+    for (int32_t i = 0; i < outputDeviceCount && !outputOpen; ++i) {
+        r = openOutput(cfg, outputDevices[i]);
+        if (r == oboe::Result::OK) {
+            outputOpen = true;
+        } else {
+            LOGW("output on device %d failed: %s", outputDevices[i], oboe::convertToText(r));
+        }
+    }
+    if (!outputOpen) {
         closeStreams();
         return std::string("Cannot open speaker output: ") + oboe::convertToText(r);
     }
-    output_->setBufferSizeInFrames(output_->getBufferCapacityInFrames());
     outChannels_ = output_->getChannelCount();
     if (output_->getSampleRate() != cfg.sampleRate) {
+        const int32_t actual = output_->getSampleRate();
         closeStreams();
-        return "Speaker output does not run at the requested sample rate";
+        return std::string(kRateMismatchPrefix) + std::to_string(actual);
     }
 
     state_ = EngineState::Running;
@@ -113,9 +152,10 @@ std::string MeasurementEngine::start(const float* stimulus, int32_t frames, cons
         closeStreams();
         return std::string("Cannot start audio: ") + oboe::convertToText(r);
     }
-    LOGI("started: preset=%d in=%s out=%s inBurst=%d outBurst=%d", actualPreset_,
-         oboe::convertToText(input_->getAudioApi()), oboe::convertToText(output_->getAudioApi()),
-         input_->getFramesPerBurst(), output_->getFramesPerBurst());
+    LOGI("started: preset=%d inDevice=%d in=%s out=%s inBurst=%d outBurst=%d", actualPreset_,
+         actualInputDeviceId_, oboe::convertToText(input_->getAudioApi()),
+         oboe::convertToText(output_->getAudioApi()), input_->getFramesPerBurst(),
+         output_->getFramesPerBurst());
     return {};
 }
 
@@ -174,12 +214,35 @@ void MeasurementEngine::fail(const std::string& msg) {
 }
 
 void MeasurementEngine::stop() {
-    closeStreams();
     EngineState expected = EngineState::Running;
     state_.compare_exchange_strong(expected, EngineState::Idle);
+    closeStreams();
+}
+
+int32_t MeasurementEngine::liveXrunsLocked() const {
+    int32_t n = 0;
+    if (input_) {
+        auto x = input_->getXRunCount();
+        if (x) n += x.value();
+    }
+    if (output_) {
+        auto x = output_->getXRunCount();
+        if (x) n += x.value();
+    }
+    return n;
+}
+
+int32_t MeasurementEngine::xruns() const {
+    std::lock_guard<std::mutex> lk(streamMutex_);
+    if (!input_ && !output_) return xruns_;
+    return liveXrunsLocked();
 }
 
 void MeasurementEngine::closeStreams() {
+    std::lock_guard<std::mutex> lk(streamMutex_);
+    // Snapshot before closing: a closed stream no longer reports its xruns, and the Kotlin side may read
+    // the counter after the run for its glitch warning.
+    if (input_ || output_) xruns_ = liveXrunsLocked();
     if (output_) {
         output_->stop();
         output_->close();
@@ -195,19 +258,6 @@ void MeasurementEngine::closeStreams() {
 float MeasurementEngine::progress() const {
     if (recording_.empty()) return 0.0f;
     return static_cast<float>(recPos_.load()) / static_cast<float>(recording_.size());
-}
-
-int32_t MeasurementEngine::xruns() const {
-    int32_t n = 0;
-    if (input_) {
-        auto x = input_->getXRunCount();
-        if (x) n += x.value();
-    }
-    if (output_) {
-        auto x = output_->getXRunCount();
-        if (x) n += x.value();
-    }
-    return n;
 }
 
 std::string MeasurementEngine::lastError() const {

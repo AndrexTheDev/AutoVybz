@@ -5,7 +5,9 @@ import android.content.Context
 import android.content.Intent
 import android.media.AudioAttributes
 import android.media.AudioDeviceInfo
+import android.media.AudioFormat
 import android.media.AudioManager
+import android.media.AudioRecord
 import android.os.Build
 import android.util.Log
 import com.andrexthedev.autovybz.measurement.mic.InputSource
@@ -30,7 +32,53 @@ object RouteInspector {
         return RouteClassifier.decide(active, connected)
     }
 
+    /**
+     * The device Android currently uses for media playback, when the platform reports it (API 33+).
+     * Used to pin the measurement output: the capture guard aborts on route changes, but between the
+     * check and the stream start another device (headset, HDMI, a second speaker) can become active -
+     * the stimulus would then be played somewhere else and the measured curve would be wrong.
+     *
+     * Returns null below API 33 (no reliable query) or when the platform gives no answer; the engines
+     * then keep the system default route.
+     */
+    @SuppressLint("NewApi") // guarded by the SDK_INT check
+    fun activeOutputDevice(context: Context): AudioDeviceInfo? {
+        if (Build.VERSION.SDK_INT < 33) return null
+        val am = context.applicationContext.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        return runCatching {
+            val attrs = AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA)
+                .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build()
+            am.getAudioDevicesForAttributes(attrs).firstOrNull()
+        }.getOrNull()
+    }
+
     private fun AudioDeviceInfo.toRoute() = RouteClassifier.Route(type, productName?.toString() ?: "")
+}
+
+/**
+ * Queries what the device can actually do, so the stimulus is generated for the rate the capture path
+ * really runs at (see [CaptureRates]) instead of assuming 48 kHz.
+ */
+object AudioCapabilities {
+
+    /** The platform's preferred output rate, in Hz, or null if the property is missing/garbled. */
+    fun nativeOutputRate(context: Context): Int? {
+        val am = context.applicationContext.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        return am.getProperty(AudioManager.PROPERTY_OUTPUT_SAMPLE_RATE)?.trim()?.toIntOrNull()?.takeIf { it > 0 }
+    }
+
+    /**
+     * Whether the capture HAL plausibly accepts [rate]. `AudioRecord.getMinBufferSize` is the cheapest
+     * probe that does not open a stream (and thus never triggers a microphone permission prompt); a
+     * negative result means the format combination is unsupported.
+     */
+    fun supportsCapture(rate: Int): Boolean = runCatching {
+        AudioRecord.getMinBufferSize(rate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_FLOAT) > 0
+    }.getOrDefault(false)
+
+    /** Rate the stimulus should be generated at for this device. */
+    fun preferredCaptureRate(context: Context, planRate: Int = CaptureRates.PRIMARY): Int =
+        CaptureRates.choose(planRate, nativeOutputRate(context)) { supportsCapture(it) }
 }
 
 /** Chooses the capture path: UNPROCESSED if the HAL advertises it, else VOICE_RECOGNITION. */

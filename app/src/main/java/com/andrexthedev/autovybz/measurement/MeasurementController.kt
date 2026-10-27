@@ -2,21 +2,28 @@ package com.andrexthedev.autovybz.measurement
 
 import android.content.Context
 import android.os.Build
+import android.util.Log
 import com.andrexthedev.autovybz.AutoVybzServices
+import com.andrexthedev.autovybz.measurement.audio.AudioCapabilities
+import com.andrexthedev.autovybz.measurement.audio.CaptureAudit
 import com.andrexthedev.autovybz.measurement.audio.CaptureConfig
 import com.andrexthedev.autovybz.measurement.audio.CaptureGuard
 import com.andrexthedev.autovybz.measurement.audio.CaptureInterruptedException
+import com.andrexthedev.autovybz.measurement.audio.CaptureRates
 import com.andrexthedev.autovybz.measurement.audio.CaptureResult
+import com.andrexthedev.autovybz.measurement.audio.CaptureTiming
 import com.andrexthedev.autovybz.measurement.audio.EqBypass
 import com.andrexthedev.autovybz.measurement.audio.InputSourceResolver
 import com.andrexthedev.autovybz.measurement.audio.MeasurementAudioEngine
 import com.andrexthedev.autovybz.measurement.audio.NativeEngine
+import com.andrexthedev.autovybz.measurement.audio.RouteInspector
+import com.andrexthedev.autovybz.measurement.audio.SampleRateMismatchException
 import com.andrexthedev.autovybz.measurement.dsp.AnalyzerConfig
 import com.andrexthedev.autovybz.measurement.dsp.MeasurementAnalyzer
 import com.andrexthedev.autovybz.measurement.dsp.MeasurementResult
-import com.andrexthedev.autovybz.measurement.dsp.MeasurementWarning
 import com.andrexthedev.autovybz.measurement.dsp.SmoothingProfile
 import com.andrexthedev.autovybz.measurement.dsp.SpatialAverager
+import com.andrexthedev.autovybz.measurement.dsp.Stimulus
 import com.andrexthedev.autovybz.measurement.dsp.StimulusGenerator
 import com.andrexthedev.autovybz.measurement.eq.AutoEqRenderer
 import com.andrexthedev.autovybz.measurement.eq.AutoEqResult
@@ -103,55 +110,106 @@ class MeasurementController(
 
     suspend fun run(request: MeasurementRequest, onProgress: (MeasurementProgress) -> Unit): MeasurementOutcome {
         onProgress(MeasurementProgress.Preparing)
-        val stimulus = withContext(Dispatchers.Default) { StimulusGenerator.generate() }
-        val plan = stimulus.plan
+        val tuning = request.tuning
+        // The analysis parameters are known before the capture - the recording tail is derived from them,
+        // so the response (latency + IR window) always fits into the capture.
+        val config = AnalyzerConfig(
+            smoothing = CorrectionPlanner.smoothing(request.smoothing, tuning, request.classTuning),
+            sweepWeight = tuning.sweepWeight,
+        )
+        val tailSeconds = CaptureTiming.tailSeconds(config.maxLatencySeconds, config.irPostSeconds)
+        val (captured, stimulus) = captureStimulus(request, tailSeconds, onProgress)
+
+        onProgress(MeasurementProgress.Analyzing)
+        return withContext(Dispatchers.Default) {
+            val (profile, comp) = compensation(request, captured.sourceUsed)
+            val analyzer = MeasurementAnalyzer(NativeEngine)
+            val analyzed = analyzer.analyze(captured.recording, stimulus, comp, config)
+            // Capture-level problems (gaps from xruns, full-scale samples) that the analysis cannot see
+            // reliably; clipping is counted on the raw samples, i.e. before the analyzer removes DC.
+            val extra = CaptureAudit.warnings(
+                xruns = captured.xruns,
+                clipped = CaptureAudit.isClipped(captured.recording),
+            )
+            val result = if (extra.isEmpty()) analyzed else analyzed.withExtraWarnings(extra)
+            val autoEq = render(result, request)
+            MeasurementOutcome(request, result, autoEq, captured, profile, comp.description, NativeEngine.name)
+        }
+    }
+
+    /**
+     * Plays and records the stimulus, returning the capture together with the stimulus that was actually
+     * used (its sample rate can differ from [StimulusGenerator.DEFAULT_SAMPLE_RATE], see [CaptureRates]).
+     *
+     * Retry policy: exactly one retry, and only when the HAL reported that it cannot record at the
+     * requested rate - then the stimulus is regenerated for the rate the device offered. Everything else
+     * (microphone busy, focus loss, route change, timeout) is surfaced to the wizard, which knows how to
+     * offer a repeat.
+     */
+    private suspend fun captureStimulus(
+        request: MeasurementRequest,
+        tailSeconds: Double,
+        onProgress: (MeasurementProgress) -> Unit,
+    ): Pair<CaptureResult, Stimulus> {
         val usbMic = if (request.useUsbMic) InputSourceResolver.findUsbMic(app) else null
         val source = InputSourceResolver.preferred(app, usbMic)
         // Without a USB mic, pin the built-in primary microphone: that is the device the
         // compensation profiles describe, and the system default could otherwise hand the
         // capture to an attached accessory mic (processed, wrong response).
         val inputDevice = usbMic ?: InputSourceResolver.findBuiltInMic(app)
+        // Pin the output to the active media device (API 33+), so the stimulus cannot wander off between
+        // the route check and the stream start.
+        val outputDevice = RouteInspector.activeOutputDevice(app)
+        val rate = AudioCapabilities.preferredCaptureRate(app)
 
         val eqWasRunning = EqBypass.pauseIfRunning(app)
         val guard = CaptureGuard(app)
-        val capture = try {
+        try {
             if (eqWasRunning) delay(400) // let DynamicsProcessing detach
             // Other players pause now (audio focus); a call / route change from here on aborts the run.
             guard.start()
-            guardedCapture(guard) {
-                engine.capture(
-                    stimulus.signal,
-                    CaptureConfig(plan.sampleRate, source, inputDevice, extraRecordSeconds = 1.0),
-                ) { fraction, peak ->
-                    val sample = (fraction * (plan.totalLength + plan.sampleRate)).toInt()
-                    val phase = when {
-                        sample < plan.pinkStart -> MeasurementProgress.Phase.SILENCE
-                        sample < plan.sweepStart -> MeasurementProgress.Phase.PINK_NOISE
-                        sample < plan.sweepStart + plan.sweepLength -> MeasurementProgress.Phase.SWEEP
-                        else -> MeasurementProgress.Phase.DECAY
+            var attemptRate = rate
+            while (true) {
+                val stimulus = withContext(Dispatchers.Default) { StimulusGenerator.generate(attemptRate) }
+                val plan = stimulus.plan
+                try {
+                    val result = guardedCapture(guard) {
+                        engine.capture(
+                            stimulus.signal,
+                            CaptureConfig(
+                                sampleRate = plan.sampleRate,
+                                source = source,
+                                inputDevice = inputDevice,
+                                extraRecordSeconds = tailSeconds,
+                                outputDevice = outputDevice,
+                            ),
+                        ) { fraction, peak ->
+                            val totalFrames = CaptureTiming.totalFrames(plan.totalLength, plan.sampleRate, tailSeconds)
+                            val sample = (fraction * totalFrames).toInt()
+                            val phase = when {
+                                sample < plan.pinkStart -> MeasurementProgress.Phase.SILENCE
+                                sample < plan.sweepStart -> MeasurementProgress.Phase.PINK_NOISE
+                                sample < plan.sweepStart + plan.sweepLength -> MeasurementProgress.Phase.SWEEP
+                                else -> MeasurementProgress.Phase.DECAY
+                            }
+                            onProgress(MeasurementProgress.Measuring(fraction, peak, phase))
+                        }
                     }
-                    onProgress(MeasurementProgress.Measuring(fraction, peak, phase))
+                    return result to stimulus
+                } catch (e: SampleRateMismatchException) {
+                    // The HAL runs at another rate than the one we planned for. Regenerate the stimulus
+                    // for the rate it actually offered - once.
+                    val offered = e.actualRate
+                    if (!CaptureRates.isUsable(offered) || offered == attemptRate) throw e
+                    Log.w("AutoVybz", "capture rate ${attemptRate}Hz unsupported, retrying at ${offered}Hz")
+                    // Do not retry into a route change that happened while the first attempt failed.
+                    guard.interruption?.let { throw interrupted(it) }
+                    attemptRate = offered
                 }
             }
         } finally {
             guard.stop()
             if (eqWasRunning) EqBypass.resume(app)
-        }
-
-        onProgress(MeasurementProgress.Analyzing)
-        return withContext(Dispatchers.Default) {
-            val (profile, comp) = compensation(request, capture.sourceUsed)
-            val analyzer = MeasurementAnalyzer(NativeEngine)
-            val tuning = request.tuning
-            val config = AnalyzerConfig(
-                smoothing = CorrectionPlanner.smoothing(request.smoothing, tuning, request.classTuning),
-                sweepWeight = tuning.sweepWeight,
-            )
-            val analyzed = analyzer.analyze(capture.recording, stimulus, comp, config)
-            // Buffer under-/overruns leave gaps the analysis cannot see reliably -> flag for a repeat.
-            val result = if (capture.xruns > XRUN_TOLERANCE) analyzed.withExtraWarnings(listOf(MeasurementWarning.AUDIO_GLITCH)) else analyzed
-            val autoEq = render(result, request)
-            MeasurementOutcome(request, result, autoEq, capture, profile, comp.description, NativeEngine.name)
         }
     }
 
@@ -232,8 +290,8 @@ class MeasurementController(
     }
 
     companion object {
-        /** A couple of xruns at stream start are normal; more mean audible gaps. */
-        const val XRUN_TOLERANCE = 2
+        /** Xrun tolerance / clipping rules live with the capture layer, see [CaptureAudit]. */
+        const val XRUN_TOLERANCE = CaptureAudit.XRUN_TOLERANCE
 
         fun buildPreset(name: String, outcome: MeasurementOutcome): AutoVybzPreset {
             val r = outcome.result

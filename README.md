@@ -49,6 +49,10 @@ The permanent bottom banner in this build is an in-app placeholder and Pro entry
 - **Measurement**: exactly 10 s stimulus = room-noise capture + periodic pink noise + logarithmic sine sweep
   20 Hz – 20 kHz; Kirkeby-regularised deconvolution, automatic latency detection (Bluetooth-safe),
   sweep/noise cross-check, SNR per 1/3 octave, clipping / low-signal warnings.
+  The capture path negotiates its sample rate with the device (48 kHz, else 44.1 kHz – no hidden
+  resampling), derives the recording tail from the latency budget instead of guessing it, removes the
+  microphone's DC offset, crossfades sweep and pink-noise results by SNR and flags a response whose latency
+  exceeds the search window. Stage by stage: [docs/AUDIO_PIPELINE.md](docs/AUDIO_PIPELINE.md).
 - **Capture path**: Oboe (C++, AAudio/OpenSL) full-duplex with `UNPROCESSED` input, fallback
   `VOICE_RECOGNITION` → `MIC`; Java `AudioRecord/AudioTrack` fallback if the native engine fails.
   Native C++ FFT via JNI, Kotlin FFT fallback.

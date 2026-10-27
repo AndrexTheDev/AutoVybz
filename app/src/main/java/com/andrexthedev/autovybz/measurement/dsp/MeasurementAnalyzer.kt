@@ -26,6 +26,12 @@ enum class MeasurementWarning {
     DROPOUT,
     /** The audio engine reported buffer under-/overruns (device overloaded) - gaps in playback or recording. */
     AUDIO_GLITCH,
+    /**
+     * The impulse response was found at the far edge of the latency search window, so the real delay is
+     * longer than what is compensated for: the sweep has been cut off and the response is unreliable.
+     * Typical for a very laggy route (party speaker behind a repeater, TV with a big DSP buffer).
+     */
+    LATENCY_OUT_OF_RANGE,
 }
 
 class MeasurementException(val reason: Reason, message: String) : Exception(message) {
@@ -102,8 +108,17 @@ class MeasurementAnalyzer(private val fft: FftEngine = KotlinFft) {
                 "Recording has ${recording.size} samples, need at least ${plan.sweepStart + plan.sweepLength}",
             )
         }
+
+        // ---- 0. DC offset ----
+        // Phone microphones (and some USB-C mics after a converter) deliver a constant offset. It is not
+        // part of the room response, but it inflates the peak (fake clipping), biases the noise floor
+        // towards 0 Hz and leaks into the sweep deconvolution at DC. Remove it once, up front. Below the
+        // threshold the mean is measurement noise and the buffer is used as-is (no extra allocation).
+        val dc = meanOf(recording)
+        val signal = if (abs(dc) > DC_REMOVAL_THRESHOLD) FloatArray(recording.size) { (recording[it] - dc).toFloat() } else recording
+
         var peak = 0.0
-        for (v in recording) peak = max(peak, abs(v.toDouble()))
+        for (v in signal) peak = max(peak, abs(v.toDouble()))
         if (peak < 1e-4) {
             throw MeasurementException(MeasurementException.Reason.NO_SIGNAL, "Microphone recorded silence")
         }
@@ -111,7 +126,7 @@ class MeasurementAnalyzer(private val fft: FftEngine = KotlinFft) {
         val grid = FrequencyGrid.log(pointsPerOctave = config.pointsPerOctave)
 
         // ---- 1. Sweep: regularised spectral division -> impulse response ----
-        val ir = deconvolveSweep(recording, stimulus)
+        val ir = deconvolveSweep(signal, stimulus)
         val maxLag = (config.maxLatencySeconds * fs).roundToInt().coerceAtMost(ir.size - 1)
         val latency = locateIrPeak(ir, maxLag, fs)
         val sweepPower = windowedIrPower(ir, latency, fs, config)
@@ -125,7 +140,7 @@ class MeasurementAnalyzer(private val fft: FftEngine = KotlinFft) {
         val periods = ((analysisEnd - analysisStart) / period).coerceAtLeast(1)
         val signalPower = DoubleArray(period / 2 + 1)
         for (p in 0 until periods) {
-            val ps = fft.powerSpectrum(recording, analysisStart + p * period, period, period)
+            val ps = fft.powerSpectrum(signal, analysisStart + p * period, period, period)
             for (k in ps.indices) signalPower[k] += ps[k] / periods
         }
         // Noise floor: one snapshot in the lead silence and - if the recording is long enough - one at the
@@ -133,10 +148,10 @@ class MeasurementAnalyzer(private val fft: FftEngine = KotlinFft) {
         // stationary (gusts, traffic), so the SNR uses the louder of the two (conservative) and the noise
         // subtraction their mean.
         val noiseStart = (0.05 * fs).roundToInt()
-        val noiseHead = fft.powerSpectrum(recording, noiseStart, period, period)
+        val noiseHead = fft.powerSpectrum(signal, noiseStart, period, period)
         val tailStart = recording.size - period
         val tailEarliest = plan.sweepStart + plan.sweepLength + latency + (config.irPostSeconds * fs).roundToInt()
-        val noiseTail = if (tailStart >= tailEarliest) fft.powerSpectrum(recording, tailStart, period, period) else null
+        val noiseTail = if (tailStart >= tailEarliest) fft.powerSpectrum(signal, tailStart, period, period) else null
         val noisePower = if (noiseTail == null) noiseHead else DoubleArray(noiseHead.size) { (noiseHead[it] + noiseTail[it]) / 2 }
         val pinkTransfer = DoubleArray(signalPower.size) { k ->
             val ref = stimulus.pinkPeriodPower[k]
@@ -164,13 +179,9 @@ class MeasurementAnalyzer(private val fft: FftEngine = KotlinFft) {
         val snr = DoubleArray(grid.size) { powerToDb(sigThird[it]) - noiseDb[it] }
 
         // ---- 4. Combine (dB domain); fall back to sweep where pink SNR is poor ----
-        fun combine(sweep: DoubleArray, pink: DoubleArray) = DoubleArray(grid.size) { i ->
-            val w = if (snr[i] < 6.0) 1.0 else config.sweepWeight
-            w * sweep[i] + (1 - w) * pink[i]
-        }
-        val rawDb = combine(sweepRawDb, pinkRawDb)
-        val smoothDb = combine(sweepSmoothDb, pinkSmoothDb)
-        val thirdDb = combine(sweepThirdDb, pinkThirdDb)
+        val rawDb = combine(sweepRawDb, pinkRawDb, snr, config.sweepWeight)
+        val smoothDb = combine(sweepSmoothDb, pinkSmoothDb, snr, config.sweepWeight)
+        val thirdDb = combine(sweepThirdDb, pinkThirdDb, snr, config.sweepWeight)
 
         // ---- 5. Microphone compensation + normalisation ----
         val mic = DoubleArray(grid.size) { micCompensationDb(grid[it]) }
@@ -192,13 +203,19 @@ class MeasurementAnalyzer(private val fft: FftEngine = KotlinFft) {
         if (mismatch > 3.0) warnings += MeasurementWarning.SWEEP_NOISE_MISMATCH
         val latencyMs = latency * 1000.0 / fs
         if (latencyMs > 400.0) warnings += MeasurementWarning.HIGH_LATENCY
+        // The peak sits at the far edge of the search window: the real delay is longer than the analysis
+        // compensates for, so the recording ends inside the response. Nothing after this point is
+        // trustworthy (the pink-noise window is shifted by a wrong latency, too).
+        if (latency >= maxLag - (LATENCY_EDGE_SECONDS * fs).roundToInt()) {
+            warnings += MeasurementWarning.LATENCY_OUT_OF_RANGE
+        }
         if (NoiseChecks.isLowFrequencyNoise(grid, noiseDb, snr)) warnings += MeasurementWarning.LOW_FREQ_NOISE
         if (noiseTailDb != null && NoiseChecks.isUnsteady(grid, noiseHeadDb, noiseTailDb, medianSnr)) {
             warnings += MeasurementWarning.NOISE_UNSTEADY
         }
         val dropStart = plan.pinkStart + latency + plan.fadeInSamples
         val dropEnd = minOf(plan.pinkStart + plan.pinkLength - plan.fadeInSamples + latency, recording.size)
-        if (NoiseChecks.hasDropout(recording, dropStart, dropEnd, fs)) warnings += MeasurementWarning.DROPOUT
+        if (NoiseChecks.hasDropout(signal, dropStart, dropEnd, fs)) warnings += MeasurementWarning.DROPOUT
 
         return MeasurementResult(
             sampleRate = fs,
@@ -215,6 +232,37 @@ class MeasurementAnalyzer(private val fft: FftEngine = KotlinFft) {
             warnings = warnings,
             normalizationDb = norm,
         )
+    }
+
+    /**
+     * Weight of the sweep result vs. the pink-noise result at a given SNR (0..1).
+     *
+     * The previous rule was a hard switch at 6 dB (below: sweep only, above: [sweepWeight]). With
+     * [SmoothingProfile.DYNAMIC] neighbouring grid points can land on either side of that threshold, which puts a
+     * step of up to `1 - sweepWeight` into a curve that is then fitted with parametric filters - the fitter
+     * sees a small ledge and spends a filter on it. The weight now ramps linearly over
+     * [BLEND_START_SNR_DB]..[BLEND_FULL_SNR_DB]: the pink-noise path fades in as it becomes trustworthy,
+     * and the curve stays continuous.
+     */
+    internal fun blendWeight(snrDb: Double, sweepWeight: Double): Double {
+        val w = sweepWeight.coerceIn(0.0, 1.0)
+        if (snrDb <= BLEND_START_SNR_DB) return 1.0
+        if (snrDb >= BLEND_FULL_SNR_DB) return w
+        val t = (snrDb - BLEND_START_SNR_DB) / (BLEND_FULL_SNR_DB - BLEND_START_SNR_DB)
+        return 1.0 + t * (w - 1.0)
+    }
+
+    private fun combine(sweep: DoubleArray, pink: DoubleArray, snr: DoubleArray, sweepWeight: Double): DoubleArray =
+        DoubleArray(sweep.size) { i ->
+            val w = blendWeight(snr[i], sweepWeight)
+            if (w >= 1.0) sweep[i] else w * sweep[i] + (1.0 - w) * pink[i]
+        }
+
+    private fun meanOf(signal: FloatArray): Double {
+        if (signal.isEmpty()) return 0.0
+        var sum = 0.0
+        for (v in signal) sum += v
+        return sum / signal.size
     }
 
     /**
@@ -314,5 +362,19 @@ class MeasurementAnalyzer(private val fft: FftEngine = KotlinFft) {
         }
         fft.transform(re, im, false)
         return DoubleArray(n / 2 + 1) { k -> re[k] * re[k] + im[k] * im[k] }
+    }
+
+    private companion object {
+        /** Mean magnitude above which the DC offset is removed (≈ -100 dBFS: below that it is noise). */
+        const val DC_REMOVAL_THRESHOLD = 1e-5
+
+        /** SNR below which only the sweep is trusted. */
+        const val BLEND_START_SNR_DB = 3.0
+
+        /** SNR above which the configured [AnalyzerConfig.sweepWeight] applies unchanged. */
+        const val BLEND_FULL_SNR_DB = 12.0
+
+        /** The peak counts as "at the search edge" inside this many seconds of the maximum latency. */
+        const val LATENCY_EDGE_SECONDS = 0.002
     }
 }

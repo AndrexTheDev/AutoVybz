@@ -181,6 +181,7 @@
     <string name="avz_warn_low_snr">Signal is quiet compared to background noise – raise the volume or reduce noise.</string>
     <string name="avz_warn_mismatch">Sweep and noise results differ – something disturbed the measurement, or the speaker uses strong DSP.</string>
     <string name="avz_warn_latency">High latency (%1$d ms) – normal for Bluetooth, already compensated.</string>
+    <string name="avz_warn_latency_range">The speaker answered later than the measurement can compensate for (very laggy route). The curve is unreliable: move closer to the speaker, restart the speaker/box or measure again.</string>
     <string name="avz_result_details">Details</string>
     <string name="avz_detail_mic">Microphone: %1$s</string>
     <string name="avz_detail_engine">Engine: %1$s</string>

@@ -182,6 +182,7 @@
     <string name="avz_warn_low_snr">La señal es débil frente al ruido de fondo: sube el volumen o reduce el ruido.</string>
     <string name="avz_warn_mismatch">Los resultados del barrido y del ruido difieren: algo perturbó la medición o el altavoz usa un DSP fuerte.</string>
     <string name="avz_warn_latency">Latencia alta (%1$d ms): normal en Bluetooth, ya compensada.</string>
+    <string name="avz_warn_latency_range">El altavoz responde más tarde de lo que la medición puede compensar (ruta con mucha latencia). La curva no es fiable: acércate al altavoz, reinícialo o vuelve a medir.</string>
     <string name="avz_result_details">Detalles</string>
     <string name="avz_detail_mic">Micrófono: %1$s</string>
     <string name="avz_detail_engine">Motor: %1$s</string>

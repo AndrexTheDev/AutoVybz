@@ -51,7 +51,9 @@ class CaptureGuard(context: Context) {
         // Registering immediately reports all existing devices; checkOutputs() compares against the baseline, so that is a no-op.
         runCatching { am.registerAudioDeviceCallback(deviceCallback, handler) }
             .onFailure { Log.w(TAG, "route watcher unavailable", it) }
-        val granted = run {
+        // A throwing focus request (audio policy edge cases, e.g. during an emergency call) must not kill
+        // the run: it then simply behaves like a denied request.
+        val granted = runCatching {
             val req = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE)
                 .setAudioAttributes(
                     AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA)
@@ -62,6 +64,9 @@ class CaptureGuard(context: Context) {
                 .build()
             focusRequest = req
             am.requestAudioFocus(req) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+        }.getOrElse {
+            Log.w(TAG, "audio focus request failed", it)
+            false
         }
         if (!granted) interrupt(CaptureInterruptedException.Reason.FOCUS_LOST)
         return granted
