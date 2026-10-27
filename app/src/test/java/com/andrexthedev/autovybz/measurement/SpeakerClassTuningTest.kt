@@ -47,6 +47,7 @@ class SpeakerClassTuningTest {
         assertEquals(16.0, s.maxCutDb, 0.0)
         assertEquals(6.0, s.maxBoostDb, 0.0) // user boost limit untouched
         assertEquals(2.0, s.highBoostCapDb ?: -1.0, 0.0) // HF boost capped to avoid phantom boost
+        assertEquals(14000.0, s.highLimitHz ?: -1.0, 0.0) // mask correction in steep roll-off
         assertEquals(1.0, s.broadBoostOctaves)
         assertEquals(1.5, s.excursionGuardOctaves, 0.0)
         assertEquals(400.0, s.lowLimitScanHz, 0.0)

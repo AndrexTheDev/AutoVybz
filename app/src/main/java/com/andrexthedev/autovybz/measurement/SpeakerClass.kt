@@ -107,6 +107,9 @@ data class SpeakerClassTuning(
             // Above ~6 kHz the self-measurement is dominated by the mic profile and the driver's
             // own hash: a large "correction" there is mostly phantom boost. Cap it like DEVICE.
             highBoostCapDb = 2.0,
+            // Cheap drivers roll off steeply above ~14 kHz; mask correction there (like DEVICE
+            // masks above 12 kHz) so the fitter does not chase noise in the unreliable region.
+            highLimitHz = 14000.0,
             // Bass shelf + downward tilt forgives the typical midrange shout / harsh treble.
             suggestedTarget = TargetType.HARMAN,
         )
