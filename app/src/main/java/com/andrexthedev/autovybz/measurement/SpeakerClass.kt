@@ -96,6 +96,9 @@ data class SpeakerClassTuning(
             // Boom / honk / enclosure resonances of cheap boxes are 6-12 dB tall - allow deep cuts.
             // Boosts keep the user's limit: they cost distortion and loudness on a weak amp.
             maxCutDb = 16.0,
+            // Additional boost cap on top of the user's limit: weak speakers distort easily, and the
+            // HARMAN bass shelf (+4 dB) is the most a cheap driver should ever be asked to boost.
+            maxBoostCapDb = 4.0,
             broadBoostOctaves = 1.0,
             excursionGuardOctaves = 1.5,
             // Budget speakers often roll off at 150-300 Hz; the standard scan/clamp would miss it.
