@@ -49,6 +49,9 @@ object CaptureRates {
     /**
      * Rate for the second attempt after [failedRate] turned out to be unsupported, or null when no other
      * supported rate is left (the caller then surfaces the original error).
+     *
+     * A [failedRate] outside [SUPPORTED] (e.g. a rate invented by a broken HAL report) yields [PRIMARY]:
+     * there is nothing to exclude, and retrying at the plan rate is the meaningful second attempt.
      */
     fun alternativeTo(failedRate: Int): Int? = SUPPORTED.firstOrNull { it != failedRate }
 }

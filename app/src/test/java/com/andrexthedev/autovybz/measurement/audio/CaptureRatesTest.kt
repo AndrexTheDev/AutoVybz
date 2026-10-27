@@ -2,7 +2,6 @@ package com.andrexthedev.autovybz.measurement.audio
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -49,7 +48,8 @@ class CaptureRatesTest {
         assertFalse(CaptureRates.isUsable(0))
         assertEquals(44100, CaptureRates.alternativeTo(48000))
         assertEquals(48000, CaptureRates.alternativeTo(44100))
-        assertNull(CaptureRates.alternativeTo(22050))
+        // A rate outside SUPPORTED was never ours: the retry simply takes the primary rate.
+        assertEquals(CaptureRates.PRIMARY, CaptureRates.alternativeTo(22050))
         assertEquals(2, CaptureRates.SUPPORTED.size)
     }
 }
