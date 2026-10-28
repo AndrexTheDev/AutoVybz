@@ -334,13 +334,11 @@ class AutoEqRendererTest {
         )
         // The correction alone costs perceived level: the presence cut sits where the ear is most sensitive.
         assertTrue("correction costs ${r.loudnessDeltaDb} dB", r.loudnessDeltaDb < -0.5)
-        // The make-up gives exactly that back (capped at MAX_MAKE_UP_DB) - not more, not less.
-        assertEquals(
-            "make-up vs loudness delta",
-            min(PreampPlanner.MAX_MAKE_UP_DB, -r.loudnessDeltaDb),
-            r.makeUpDb,
-            0.11,
-        )
+        // The pre-gain now lands on the loudness-neutral value itself (bounded by the allowance and by
+        // the headroom the correction's own cuts create - see PreampPlanner.ceiling).
+        assertEquals("pre-gain vs loudness delta", -r.loudnessDeltaDb, r.preampDb, 0.3)
+        val residual = r.loudnessDeltaDb + r.preampDb
+        assertTrue("residual level change $residual dB", abs(residual) < 0.5)
         // Same correction, old policy: the volume drops. New policy: it does not.
         assertTrue("preamp ${r.preampDb} vs legacy ${legacy.preampDb}", r.preampDb > legacy.preampDb)
         assertEquals("make-up = preamp - clipping-safe", r.makeUpDb, r.preampDb - r.clippingSafeDb, 0.11)

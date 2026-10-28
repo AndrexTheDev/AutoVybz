@@ -105,7 +105,7 @@ class PreampPlannerTest {
         // the make-up can use at most `maxMakeUpDb` above it. (Before the ceiling existed the bound was
         // 0 dB + 0.5 dB = 0.5 dB, i.e. the headroom was spent on loudness instead of safety.)
         assertEquals(0.0, bounded.preampDb, 0.1)
-        assertEquals(-0.5, bounded.clippingSafeDb, 0.1)
+        assertEquals(0.0, bounded.clippingSafeDb, 0.1)
 
         // A genuine +9 dB boost with the limiter armed: the pre-gain may use the bounded share of the
         // limiter's headroom (the allowance) so the correction does not come out 9.5 dB quieter - but

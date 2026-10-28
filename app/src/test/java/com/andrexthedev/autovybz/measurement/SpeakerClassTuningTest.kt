@@ -117,7 +117,7 @@ class SpeakerClassTuningTest {
     fun requestDefaultsToStandardClass() {
         val r = MeasurementRequest()
         assertEquals(SpeakerClass.STANDARD, r.speakerClass)
-        assertEquals(SpeakerClassTuning(), r.classTuning)
+        assertEquals(SpeakerClassTuning.of(SpeakerClass.STANDARD), r.classTuning)
         assertFalse(r.forceLimiter)
         assertTrue(MeasurementRequest(speakerClass = SpeakerClass.DEVICE).forceLimiter)
         assertTrue(MeasurementRequest(environment = ListeningEnvironment.OUTDOOR).forceLimiter)
