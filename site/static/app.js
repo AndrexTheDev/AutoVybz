@@ -145,7 +145,7 @@
   function bassMode() {
     document.body.classList.remove("bass"); void document.body.offsetWidth; document.body.classList.add("bass");
     confetti(220); toast(T.bass_mode);
-    if (demo.ctx) demo.bassDrop();
+    if (demo.ctx && demo.playing) bassDrop();
   }
 
   /* ========================================================== DEMO ENGINE */
@@ -166,7 +166,12 @@
   ];
   const TARGET = [{ type: "lowshelf", f: 105, q: 0, g: 3.5 }];
 
-  const demo = { ctx: null, on: false, playing: false };
+  // The demo plays a real recording (site/static/audio/demosong.mp3 – the demo song, not a synth loop:
+  // square-wave "instruments" sound nothing like music and made the A/B comparison meaningless). The
+  // file is routed through the modelled speaker + correction chain, so switching A/B changes exactly
+  // what it changes in the app. `preload="none"`: nothing is downloaded until the visitor presses play.
+  const demo = { ctx: null, on: false, playing: false, src: null, wobble: null, fallback: false };
+  const audioEl = $("#demo-audio");
   const canvas = $("#demo-canvas");
   const NPTS = 240, FREQS = new Float32Array(NPTS);
   for (let i = 0; i < NPTS; i++) FREQS[i] = 20 * Math.pow(1000, i / (NPTS - 1));
@@ -242,17 +247,41 @@
     SPEAKER.forEach(s => { const b = ctx.createBiquadFilter(); b.type = s.type; b.frequency.value = s.f; b.Q.value = s.q; b.gain.value = s.g; node.connect(b); node = b; });
     demo.fixNodes = FIX.map(s => { const b = ctx.createBiquadFilter(); b.type = s.type; b.frequency.value = s.f; b.Q.value = s.q; b.gain.value = 0; node.connect(b); node = b; return b; });
     demo.trim = ctx.createGain(); node.connect(demo.trim);
-    demo.vol = ctx.createGain(); demo.trim.connect(demo.vol);
+    // Easter-egg "wobble": a short low-shelf lift on the *real* recording (the old synth dropped a kick).
+    demo.wobble = ctx.createBiquadFilter(); demo.wobble.type = "lowshelf";
+    demo.wobble.frequency.value = 90; demo.wobble.gain.value = 0; demo.trim.connect(demo.wobble);
+    demo.vol = ctx.createGain(); demo.wobble.connect(demo.vol);
     const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -6; comp.ratio.value = 8; comp.attack.value = .003; comp.release.value = .2;
     demo.vol.connect(comp);
     demo.an = ctx.createAnalyser(); demo.an.fftSize = 4096; demo.an.smoothingTimeConstant = .82;
     comp.connect(demo.an); demo.an.connect(ctx.destination);
-    demo.noise = (() => { const b = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate), d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; return b; })();
+    if (audioEl) {
+      try {
+        demo.src = ctx.createMediaElementSource(audioEl);
+        demo.src.connect(demo.bus);
+      } catch {
+        // Some browsers refuse a media-element source (older iOS/Safari, restricted contexts). The demo
+        // then plays the raw element - audible, but without the simulated speaker: never silently broken.
+        demo.src = null;
+        demo.fallback = true;
+      }
+    }
     setVolume(); applyAB(true);
-    demo.bassDrop = () => playKick(ctx.currentTime + .02, 1.4, 38);
     return true;
   }
-  function setVolume() { if (demo.vol) { const v = +$("#demo-vol").value / 100; demo.vol.gain.setTargetAtTime(v * v * 1.6, demo.ctx.currentTime, .03); } }
+  function setVolume() {
+    const v = +$("#demo-vol").value / 100;
+    if (demo.fallback && audioEl) { audioEl.volume = Math.min(1, v * v * 1.2); return; }
+    if (demo.vol) demo.vol.gain.setTargetAtTime(v * v * 1.6, demo.ctx.currentTime, .03);
+  }
+  function bassDrop() {
+    if (!demo.wobble) return;
+    const t = demo.ctx.currentTime;
+    demo.wobble.gain.cancelScheduledValues(t);
+    demo.wobble.gain.setValueAtTime(0, t);
+    demo.wobble.gain.linearRampToValueAtTime(14, t + .05);
+    demo.wobble.gain.setTargetAtTime(0, t + .35, .25);
+  }
   function applyAB(instant) {
     $("#ab-off")?.setAttribute("aria-pressed", String(!demo.on));
     $("#ab-on")?.setAttribute("aria-pressed", String(demo.on));
@@ -264,81 +293,39 @@
     if (!demo.playing) draw();
   }
 
-  // ---- instruments
-  const midi = m => 440 * Math.pow(2, (m - 69) / 12);
-  function env(g, t, a, peak, d) { g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(peak, t + a); g.gain.exponentialRampToValueAtTime(.0001, t + a + d); }
-  function playKick(t, amp = 1, low = 46) {
-    const ctx = demo.ctx, o = ctx.createOscillator(), g = ctx.createGain();
-    o.frequency.setValueAtTime(130, t); o.frequency.exponentialRampToValueAtTime(low, t + .14);
-    env(g, t, .004, .9 * amp, .42); o.connect(g).connect(demo.bus); o.start(t); o.stop(t + .5);
-  }
-  function playNoise(t, type, freq, q, amp, dur) {
-    const ctx = demo.ctx, s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
-    s.buffer = demo.noise; f.type = type; f.frequency.value = freq; f.Q.value = q;
-    env(g, t, .002, amp, dur); s.connect(f).connect(g).connect(demo.bus); s.start(t, Math.random() * .5); s.stop(t + dur + .05);
-  }
-  function playRim(t) {
-    playNoise(t, "bandpass", 1900, 1.2, .5, .09);
-    const ctx = demo.ctx, o = ctx.createOscillator(), g = ctx.createGain(); o.type = "triangle"; o.frequency.value = 340;
-    env(g, t, .001, .25, .06); o.connect(g).connect(demo.bus); o.start(t); o.stop(t + .1);
-  }
-  function playSkank(t, notes) {
-    const ctx = demo.ctx, f = ctx.createBiquadFilter(), g = ctx.createGain();
-    f.type = "bandpass"; f.frequency.value = 1400; f.Q.value = .7; env(g, t, .004, .16, .16); f.connect(g).connect(demo.bus);
-    notes.forEach(m => { [0, 12].forEach(oct => { const o = ctx.createOscillator(); o.type = "square"; o.frequency.value = midi(m + oct); o.detune.value = (Math.random() - .5) * 8; o.connect(f); o.start(t); o.stop(t + .22); }); });
-  }
-  function playBass(t, m, dur) {
-    const ctx = demo.ctx, o = ctx.createOscillator(), o2 = ctx.createOscillator(), lp = ctx.createBiquadFilter(), g = ctx.createGain();
-    o.type = "sine"; o2.type = "triangle"; o.frequency.value = midi(m); o2.frequency.value = midi(m + 12);
-    lp.type = "lowpass"; lp.frequency.value = 600;
-    const g2 = ctx.createGain(); g2.gain.value = .25;
-    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.62, t + .015); g.gain.setTargetAtTime(.0001, t + dur * .85, .05);
-    o.connect(g); o2.connect(g2).connect(g); g.connect(lp).connect(demo.bus);
-    o.start(t); o2.start(t); o.stop(t + dur + .3); o2.stop(t + dur + .3);
-  }
-  function playLead(t, m, dur) {
-    const ctx = demo.ctx, o = ctx.createOscillator(), lp = ctx.createBiquadFilter(), g = ctx.createGain(), lfo = ctx.createOscillator(), lg = ctx.createGain();
-    o.type = "sawtooth"; o.frequency.value = midi(m); lfo.frequency.value = 5.5; lg.gain.value = 6; lfo.connect(lg).connect(o.detune);
-    lp.type = "lowpass"; lp.frequency.value = 3400; lp.Q.value = 2;
-    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.09, t + .05); g.gain.setTargetAtTime(.0001, t + dur, .08);
-    o.connect(lp).connect(g).connect(demo.bus); o.start(t); lfo.start(t); o.stop(t + dur + .5); lfo.stop(t + dur + .5);
-  }
-
-  // ---- one-drop riddim @ 76 BPM, 16 steps per bar, 4 bars
-  const BPM = 76, STEP = 60 / BPM / 4;
-  const CHORDS = [[57, 60, 64], [55, 59, 62], [53, 57, 60], [55, 59, 62]]; // Am G F G
-  const ROOTS = [33, 31, 29, 31];
-  const BASS = [[0, 0, 3], [3, 0, 1], [6, 7, 2], [10, 12, 1], [12, 10, 2], [14, 7, 2]];
-  const LEAD = { 2: [[0, 76, 3], [4, 74, 2], [6, 72, 2], [8, 69, 6]], 3: [[0, 67, 2], [2, 69, 2], [4, 72, 4], [10, 71, 4]] };
-  let step = 0, nextT = 0, timer = null, loops = 0;
-  function schedule() {
-    const ctx = demo.ctx;
-    while (nextT < ctx.currentTime + .12) {
-      const bar = Math.floor(step / 16) % 4, s = step % 16;
-      if (s === 8) { playKick(nextT); playRim(nextT); }
-      if (s === 0 && bar === 0 && loops % 2 === 1) playKick(nextT, .6);
-      if (s === 4 || s === 12) playSkank(nextT, CHORDS[bar]);
-      if (s % 2 === 0) playNoise(nextT, "highpass", 7500, .7, s % 4 === 2 ? .2 : .1, s % 4 === 2 ? .09 : .03);
-      BASS.forEach(([st, off, d]) => { if (st === s) playBass(nextT, ROOTS[bar] + off, d * STEP); });
-      if (loops % 2 === 1 && LEAD[bar]) LEAD[bar].forEach(([st, m, d]) => { if (st === s) playLead(nextT, m, d * STEP); });
-      nextT += STEP; step++;
-      if (step % 64 === 0) loops++;
-    }
-  }
+  // ---- transport: the real recording through the model
   function frame() {
-    if (!demo.playing) return;
+    if (!demo.playing || !demo.an) return;
     const data = new Float32Array(demo.an.frequencyBinCount); demo.an.getFloatFrequencyData(data);
     draw(data); requestAnimationFrame(frame);
   }
-  async function togglePlay() {
+  function setPlayUI(playing) {
     const btn = $("#demo-play");
+    demo.playing = playing;
+    if (!btn) return;
+    btn.querySelector(".ico").textContent = playing ? "❚❚" : "▶";
+    btn.querySelector(".lbl").textContent = playing ? btn.dataset.pause : btn.dataset.play;
+    btn.setAttribute("aria-pressed", String(playing));
+  }
+  async function togglePlay() {
+    if (!audioEl) return toast(T.audio_fail);
     if (!demo.ctx && !initAudio()) return toast(T.audio_fail);
-    try { await demo.ctx.resume(); } catch { return toast(T.audio_fail); }
-    demo.playing = !demo.playing;
-    btn.querySelector(".ico").textContent = demo.playing ? "❚❚" : "▶";
-    btn.querySelector(".lbl").textContent = demo.playing ? btn.dataset.pause : btn.dataset.play;
-    if (demo.playing) { nextT = demo.ctx.currentTime + .05; timer = setInterval(schedule, 25); frame(); }
-    else { clearInterval(timer); setTimeout(() => demo.ctx.suspend(), 400); draw(); }
+    if (demo.ctx.state !== "running") { try { await demo.ctx.resume(); } catch { return toast(T.audio_fail); } }
+    if (demo.playing) {
+      audioEl.pause();
+      setPlayUI(false);
+      draw();
+      return;
+    }
+    try {
+      await audioEl.play();
+    } catch {
+      // Autoplay policy, missing codec or a 404 on the file - tell the visitor instead of a silent button.
+      return toast(audioEl.dataset.error || T.audio_fail);
+    }
+    setPlayUI(true);
+    applyAB(true);
+    frame();
   }
   if (canvas) {
     // phones: fewer, larger pixels so the axis labels stay readable
@@ -349,6 +336,9 @@
     $("#ab-off")?.addEventListener("click", () => { demo.on = false; applyAB(); });
     $("#ab-on")?.addEventListener("click", () => { demo.on = true; applyAB(); if (!demo.flipped) { demo.flipped = true; confetti(70); } });
     $("#demo-vol")?.addEventListener("input", setVolume);
+    audioEl?.addEventListener("play", () => setPlayUI(true));
+    audioEl?.addEventListener("pause", () => { setPlayUI(false); draw(); });
+    audioEl?.addEventListener("error", () => toast(audioEl.dataset.error || T.audio_fail));
     // key "A" flips A/B while playing – instant comparison
     addEventListener("keydown", e => { if (e.code === "KeyA" && demo.playing && !e.target.closest("input,textarea")) { demo.on = !demo.on; applyAB(); } });
   }

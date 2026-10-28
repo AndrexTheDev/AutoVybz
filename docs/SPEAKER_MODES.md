@@ -164,7 +164,7 @@ perceived loudness. Measured with the model used by the tests, a typical phone c
      percussive transient passes almost unattenuated for the length of the attack. Round 8 measured
      the result on live-programme material through the modelled chain: +0.14 dBFS output peak with
      13 clipped samples. The allowance is therefore 4 dB *and* the limiter is now a peak limiter
-     (−2 dB, 20:1, 0.2 ms – `AntiClipping.DEFAULT_LIMITER`), which every probed case kept at or
+     (−2 dB, 20:1, 0.01 ms – `AntiClipping.DEFAULT_LIMITER`), which every probed case kept at or
      below −1.42 dBFS with zero clipped samples.
    * The static bound itself (`−(peak + headroom)`) is always applied and now also *credits* a
      correction that only cuts – a 3 dB cut really leaves 3 dB of headroom, which is where a

@@ -83,7 +83,7 @@
     "kicker": "Interactive demo",
     "title": "Hear it. Right now. In your browser.",
     "sub": "Press play and flip the switch. This simulates a typical small speaker in a typical room – boomy bass, boxy mids, harsh highs – and what an AutoVybz correction does to it.",
-    "play": "Play demo riddim",
+    "play": "Play demo song",
     "pause": "Pause",
     "off": "Raw speaker",
     "on": "AutoVybz ON",
@@ -92,7 +92,9 @@
     "legend_raw": "Speaker in room (simulated)",
     "legend_fix": "With AutoVybz",
     "legend_target": "Target",
-    "disclaimer": "Simulation for illustration, level-matched for a fair comparison. Real results depend on your speaker, room and phone. Music is generated live in your browser – nothing is uploaded."
+    "disclaimer": "Simulation for illustration, level-matched for a fair comparison. Real results depend on your speaker, room and phone. The demo song is decoded locally in your browser – nothing is uploaded.",
+    "credit": "Demo track: “Demo song” – from the AutoVybz project, used with the artist’s permission.",
+    "audio_error": "The demo audio could not be loaded. Please try again later."
   },
   "how": {
     "kicker": "How it works",

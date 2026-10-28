@@ -76,6 +76,7 @@
         <span class="lg tgt">{{demo.legend_target}}</span>
       </div>
       <div class="demo-controls">
+        <audio id="demo-audio" preload="none" loop src="{{base}}assets/audio/demosong.mp3" data-error="{{a:demo.audio_error}}"></audio>
         <button class="btn btn-gold btn-play" id="demo-play" data-play="{{a:demo.play}}" data-pause="{{a:demo.pause}}"><span class="ico">▶</span> <span class="lbl">{{demo.play}}</span></button>
         <div class="ab-switch" role="group" aria-label="A/B">
           <button class="ab" id="ab-off" aria-pressed="true">{{demo.off}}</button>
@@ -85,6 +86,7 @@
       </div>
       <p class="hint">{{demo.hint}}</p>
       <p class="fine">{{demo.disclaimer}}</p>
+      <p class="fine credit">{{demo.credit}}</p>
     </div>
   </div>
 </section>

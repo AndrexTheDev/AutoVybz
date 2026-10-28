@@ -80,7 +80,7 @@ Seven configurations, each running `ScreenshotTourE2ETest` + `LegacyScreensE2ETe
 ## 5. What can be verified without a device
 
 ```bash
-python3 tools/probe/check_parity.py                     # 27 self-checks: Python port vs. Kotlin goldens
+python3 tools/probe/check_parity.py                     # 29 self-checks: Python port vs. Kotlin goldens
 python3 tools/probe/live_probe.py --music <recording>   # real programme material through the whole chain
 python3 tools/i18n/check_strings.py                     # string parity en/de/es
 python3 tools/audit/secret_scan.py .                    # 0 findings
@@ -94,7 +94,14 @@ bash tools/native/host_check.sh                          # FFT vs DFT + Oboe/JNI
 modelled measurement chain (minimum-phase speaker + room + mic, sweep + noise) and scores tonal error,
 loudness, peaks and clipping. `check_parity.py` guards the port against the Kotlin golden values and runs in
 CI; `live_probe.py` needs programme material and `ffmpeg`/`imageio-ffmpeg`, so it stays a manual/probing
-tool (see `tools/probe/README.md`). Its round-8 findings are listed there.
+tool (see `tools/probe/README.md`). Its round-8 and round-9 findings are listed there.
+
+Round 9 added the author's own recording as the second reference clip: `Demosong.mp3` (repo root, 174 s,
+**5.9 dB crest** – a loudness-war master, the opposite corner from the 8.2 dB-crest `Intro1.mp4`). Both
+pass 6/6. Note that the upload is a **Matroska/Opus container with an `.mp3` name**; the probe decodes it
+with `ffmpeg`, and the landing page deliberately ships a real 128 kb/s MP3 re-encode
+(`site/static/audio/demosong.mp3`), because browsers refuse the original container. `pages.yml` checks the
+deployed file's ID3 header before publishing the site.
 
 Everything else (Kotlin compile, unit tests, lint, instrumented suites) needs the Gradle toolchain and is
 therefore proven only by CI. That is deliberate: the sandbox has no JDK, so "it compiles" is never claimed

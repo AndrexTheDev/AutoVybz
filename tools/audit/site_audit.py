@@ -36,7 +36,7 @@ class Page(HTMLParser):
         self.lang = None; self.title = ""; self.in_title = False; self.meta = {}; self.links = []
         self.ids = []; self.headings = []; self.imgs = []; self.anchors = []; self.buttons = []
         self.alternates = {}; self.canonical = None; self._a = None; self._btn = None; self.text = []
-        self.scripts = []; self.styles = []
+        self.scripts = []; self.styles = []; self.media = []
 
     def handle_starttag(self, tag, attrs):
         a = dict(attrs)
@@ -55,6 +55,10 @@ class Page(HTMLParser):
             self.links.append(("script", a["src"], a)); self.scripts.append(a["src"])
         elif tag == "img":
             self.imgs.append(a); self.links.append(("img", a.get("src", ""), a))
+        elif tag in ("audio", "video", "source") and a.get("src"):
+            # Media is checked like any other local asset: a typo in the demo-song path used to be
+            # invisible to this audit because only img/script/link were collected.
+            self.media.append((tag, a)); self.links.append((tag, a["src"], a))
         elif tag == "a":
             self._a = {"attrs": a, "text": ""}
             if a.get("href"): self.links.append(("a", a["href"], a))
@@ -149,6 +153,20 @@ def audit(site):
             if u.fragment and target.endswith(".html"):
                 tp = pages.get(os.path.relpath(target, site))
                 if tp and u.fragment not in tp.ids: errors.append(f"{where}: anchor {href} not found in target")
+        for tag, attrs in p.media:
+            src = attrs["src"]
+            u = urlparse(src)
+            if u.scheme or src.startswith("//"):
+                continue
+            path = os.path.normpath(os.path.join(os.path.dirname(os.path.join(site, rel)), u.path)
+                                    if not u.path.startswith("/")
+                                    else os.path.join(site, re.sub(r"^/(AutoVybz/)?", "", u.path)))
+            if not os.path.exists(path):
+                continue  # already reported as a broken link above
+            size = os.path.getsize(path)
+            # Media never counted as page weight (it streams on demand) - but only if it is lazy.
+            if attrs.get("preload") != "none" and size > 500_000:
+                warnings.append(f"{where}: {tag} {src} is {size/1024:.0f} KB without preload=\"none\"")
         (errors if weight > 1_000_000 else warnings if weight > 500_000 else info).append(f"{where}: page weight {weight/1024:.0f} KB")
         if rel.endswith("index.html"):
             for addr in ADDRESSES:

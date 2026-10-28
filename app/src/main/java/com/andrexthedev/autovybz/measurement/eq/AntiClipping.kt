@@ -28,16 +28,18 @@ object AntiClipping {
      * Settings for Equalizer314's limiter stage.
      *
      * These are peak-protection values, not a mastering limiter - the engine's stage has **no
-     * look-ahead**, so the attack time is the whole game: at 1 ms a percussive transient passed almost
-     * unattenuated and a corrected programme peaked at +0.14 dBFS with 13 clipped samples (live probe,
-     * round 8). -2 dB / 20:1 / 0.2 ms keeps every tested peak at or below -1.42 dBFS with zero clipped
-     * samples, at the cost of a little more gain movement on the loudest hits - the right trade for a
-     * safety net.
+     * look-ahead**, so the attack time is the whole game. Measured on real programme material:
+     * at 1 ms a percussive transient passed almost unattenuated (+0.14 dBFS, 13 clipped samples), at
+     * 0.2 ms a *dense* master (5.9 dB crest) still reached +1.08 dBFS with 30 clipped samples, because
+     * the gain needs ~10 samples to approach its target. At the engine's fastest attack (0.01 ms, one
+     * sample) every tested case stayed below -1.44 dBFS with zero clipped samples. The 60 ms release
+     * keeps the gain constant on steady tones, so the fast attack costs no audible distortion - only
+     * the gain *jumps* on the first transient are audible, which is what a safety net is for.
      */
     data class LimiterSettings(
         val thresholdDb: Float = -2.0f,
         val ratio: Float = 20f,
-        val attackMs: Float = 0.2f,
+        val attackMs: Float = 0.01f,
         val releaseMs: Float = 60f,
         val postGainDb: Float = 0f,
     )

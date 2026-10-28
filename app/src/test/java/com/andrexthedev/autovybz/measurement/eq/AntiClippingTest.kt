@@ -8,9 +8,10 @@ import org.junit.Test
  * Locks the *measured* limiter configuration (round 8, live probe on real programme material).
  *
  * Equalizer314's DynamicsProcessing stage has no look-ahead, so the attack time decides whether a
- * percussive transient is caught at all. With the old -1 dB / 10:1 / 1 ms setting a corrected party-box
- * preset peaked at **+0.14 dBFS with 13 clipped samples**; -2 dB / 20:1 / 0.2 ms kept every probed case at
- * or below -1.42 dBFS with zero clipped samples. These are safety values, not a sound design choice.
+ * percussive transient is caught at all. Measured on real programme material: -1 dB / 10:1 / 1 ms peaked at
+ * **+0.14 dBFS with 13 clipped samples**, 0.2 ms still reached **+1.08 dBFS with 30 clipped samples** on a
+ * dense master (5.9 dB crest). -2 dB / 20:1 / 0.01 ms (the engine's fastest attack) keeps every probed case
+ * below -1.44 dBFS with zero clipped samples. These are safety values, not a sound design choice.
  */
 class AntiClippingTest {
 
@@ -19,7 +20,7 @@ class AntiClippingTest {
         val limiter = AntiClipping.DEFAULT_LIMITER
         assertEquals(-2.0f, limiter.thresholdDb, 0f)
         assertEquals(20f, limiter.ratio, 0f)
-        assertEquals(0.2f, limiter.attackMs, 0f)
+        assertEquals(0.01f, limiter.attackMs, 0f)
         assertEquals(60f, limiter.releaseMs, 0f)
         assertEquals(0f, limiter.postGainDb, 0f)
     }

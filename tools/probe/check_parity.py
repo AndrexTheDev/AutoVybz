@@ -138,7 +138,7 @@ def main() -> int:
     defaults = inspect.signature(lim).parameters
     ok &= check("limiter defaults are the measured ones",
                 (defaults["threshold_db"].default, defaults["ratio"].default, defaults["attack_ms"].default)
-                == (-2.0, 20.0, 0.2),
+                == (-2.0, 20.0, 0.01),
                 f"{defaults['threshold_db'].default} dB / {defaults['ratio'].default}:1 / "
                 f"{defaults['attack_ms'].default} ms")
     # a steady over-threshold tone settles a defined amount above the threshold (ratio, not attack)
@@ -151,6 +151,19 @@ def main() -> int:
     # it entered with (and, with no look-ahead, the attack only delays it).
     ok &= check("limiter settles a +6 dB over-shoot below full scale",
                 -3.0 <= settled_db <= -1.0, f"{settled_db:+.2f} dBFS")
+
+    # `audio.limiter_demand_db` is the probe's limiter-work metric. It is only worth printing if it
+    # returns the textbook static curve: 0 dB below the threshold, and (1 - 1/ratio) of the over-shoot
+    # above it. The settled gain above is attack-smoothed; this is the instant the statistics are
+    # computed from, so test it directly instead of trusting the near-zero values real cases print.
+    demand = audio.limiter_demand_db(tone, threshold_db=-2.0, ratio=20.0)
+    expect_db = -(20.0 * math.log10(np.max(np.abs(tone))) + 2.0) * (1.0 - 1.0 / 20.0)
+    peak_idx = int(np.argmax(np.abs(tone)))  # the statistic is per sample - look at the crest, not at t=0.5 s
+    ok &= check("limiter demand follows the static curve",
+                abs(float(demand[peak_idx]) - expect_db) < 1e-3,
+                f"{float(demand[peak_idx]):.3f} vs {expect_db:.3f} dB")
+    quiet = audio.limiter_demand_db(0.1 * tone, threshold_db=-2.0, ratio=20.0)
+    ok &= check("limiter demand is 0 dB under the threshold", float(np.max(np.abs(quiet))) == 0.0)
 
     print("\nparity:", "OK" if ok else "FAILED")
     return 0 if ok else 1

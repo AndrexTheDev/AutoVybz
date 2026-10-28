@@ -30,13 +30,15 @@ import kotlin.math.sqrt
  *    makes the sound louder is never pulled back down.
  * 3. **Headroom allowance** (`headroomAllowanceDb`): the make-up may go *this far above the static bound*
  *    when the DynamicProcessing limiter is armed ([AntiClipping.DEFAULT_LIMITER]: -2 dB threshold, 20:1,
- *    0.2 ms attack - AutoVybz arms it for device / rescue / outdoor presets). Without a limiter it is 0.
+ *    0.01 ms attack - AutoVybz arms it for device / rescue / outdoor presets). Without a limiter it is 0.
  *
  * The allowance is a *measured* number, not a guess. The previous 6 dB assumed the limiter would absorb a
  * 6 dB static overshoot; the live probe (tools/probe/live_probe.py, real programme through the modelled
  * device) showed the opposite: a 1 ms attack cannot catch a percussive transient, so the output peaked at
- * **+0.14 dBFS with 13 clipped samples**. With -2 dB / 20:1 / 0.2 ms and a 4 dB allowance every tested
- * case stayed at or below **-1.42 dBFS with zero clipped samples** while remaining loudness-neutral.
+ * **+0.14 dBFS with 13 clipped samples**. With -2 dB / 20:1 / 0.01 ms and a 4 dB allowance every tested
+ * case stayed at or below **-1.42 dBFS with zero clipped samples** while remaining loudness-neutral - and
+ * a dense master (5.9 dB crest, the user's own demo song) that clipped at 0.2 ms now ends at -1.44 dBFS
+ * with zero clipped samples as well.
  *
  * The static bound itself (`-(peak + headroom)`, always applied - even when the correction only cuts)
  * is what keeps a full-scale input safe; the allowance only buys loudness that the limiter then has to
@@ -61,7 +63,7 @@ object PreampPlanner {
 
     /**
      * Overshoot the *static* pre-gain may leave when the DynamicProcessing limiter is armed. Measured on
-     * real programme material (see the class doc): 4 dB is what -2 dB / 20:1 / 0.2 ms absorbs with zero
+     * real programme material (see the class doc): 4 dB is what -2 dB / 20:1 / 0.01 ms absorbs with zero
      * clipped samples and >= 1.4 dB of remaining peak margin.
      */
     const val LIMITER_HEADROOM_ALLOWANCE_DB = 4.0

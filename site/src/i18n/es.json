@@ -39,7 +39,7 @@
     "kicker": "Demo interactiva",
     "title": "Escúchalo. Ahora mismo. En tu navegador.",
     "sub": "Pulsa play y cambia el interruptor. Simula un altavoz pequeño típico en una habitación típica – bajo retumbante, medios encajonados, agudos ásperos – y lo que hace una corrección de AutoVybz.",
-    "play": "Reproducir riddim demo",
+    "play": "Reproducir canción demo",
     "pause": "Pausa",
     "off": "Altavoz sin corregir",
     "on": "AutoVybz ON",
@@ -48,7 +48,9 @@
     "legend_raw": "Altavoz en la sala (simulado)",
     "legend_fix": "Con AutoVybz",
     "legend_target": "Objetivo",
-    "disclaimer": "Simulación ilustrativa, con el volumen igualado para una comparación justa. Los resultados reales dependen de tu altavoz, tu sala y tu móvil. La música se genera en directo en tu navegador – no se sube nada."
+    "disclaimer": "Simulación ilustrativa, con el volumen igualado para una comparación justa. Los resultados reales dependen de tu altavoz, tu sala y tu móvil. La canción demo se decodifica localmente en tu navegador – no se sube nada.",
+    "credit": "Canción demo: «Demo Song» – del proyecto AutoVybz, con permiso del artista.",
+    "audio_error": "No se pudo cargar el audio de la demo. Inténtalo más tarde."
   },
   "how": {
     "kicker": "Cómo funciona",

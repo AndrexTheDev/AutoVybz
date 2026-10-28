@@ -6,7 +6,7 @@ judges the *result*. It exists because the Kotlin unit tests can only check the 
 assumptions; the probe checks it against physics and against music the user would actually play.
 
 ```
-python3 tools/probe/check_parity.py      # 27 self-checks against the Kotlin golden values
+python3 tools/probe/check_parity.py      # 29 self-checks against the Kotlin golden values
 python3 tools/probe/live_probe.py --music <file[:file…]> [--json out.json] [--markdown out.md]
 ```
 
@@ -38,6 +38,7 @@ profiles, each judged on the programme material the user supplied:
 |---|---|---|
 | `fit_rms_db` / `fit_max_db` | did the fitted biquads realise the *plan*? | 0.75 / 2.0 dB |
 | `tonal_rms` / `tonal_p95` | weighted tonal error after vs. before, inside the full-authority band | ≤ 1.0 dB or 0.25 dB better; p95 ≤ 3.0 dB |
+| `limiter_mean_gr_db` / `limiter_max_gr_db` / `limiter_stress_pct` | how hard the limiter works (safety net vs. compressor) | ≤ 2.0 dB mean; ≤ 5 % of the programme > 6 dB |
 | `loudness_delta_db` | perceived level (A-weighted, music-weighted) before vs. after | ±1.5 dB (limiter classes) |
 | `peak_dbfs`, `clipped_samples` | real peaks after the limiter | ≤ −0.1 dBFS, 0 clipped |
 | `protect_boost_db` | boost below half the detected bass limit | ≤ 1.0 dB |
@@ -97,3 +98,59 @@ only within the 4 dB the limiter can actually absorb.
 a constant offset would cancel in the 300 Hz-3 kHz normalisation and hide itself). With ±3 dB, 5/6 cases
 still pass; the one failure is the mini box with HARMAN under street noise (p95 3.91 dB instead of 2.48 dB).
 That is the honest limit of the concept, not a bug: no EQ can undo a measurement error it cannot see.
+
+## Round-9 findings (2026-10) – a real, dense master
+
+The probe had only ever run on `Intro1.mp4` (15.9 s, 8.2 dB crest, peak-normalised). Round 9 ran it on the
+user's own recording (`Demosong.mp3`, 174 s, **5.9 dB crest**, source peak +1.0 dBFS, −11.5 LUFS): a
+loudness-war master, i.e. the opposite corner of the signal space. Two harness bugs and one real defect
+surfaced; `Demosong.mp3` is now the reference clip for anything peak- or loudness-related.
+
+1. **The loudness check applied the room a second time.** `in_room_after` was added to a signal that had
+   already been rendered through the correction, so the comparison measured "correction + room" against
+   "room" twice and reported a −3.29 dB level loss on the phone speaker that did not exist (measured:
+   −0.95 dB). Both sides now use `in_room_before`.
+2. **The free-level offset was taken with a different band than the one judged** (see the judging rules
+   above). On a bass-heavy master this alone flipped the party box from "worse" to "better".
+3. **The limiter release was too slow for a 5.9 dB-crest master.** With the round-8 defaults
+   (−2 dB / 20:1 / **0.2 ms**) the dense material left the correction at **+1.08 dBFS with 30 clipped
+   samples** (phone speaker, preamp +2.1 dB) and +0.84 dBFS / 49 clips (BASS_BOOST). A sweep gave:
+
+   | attack | phone speaker | BASS_BOOST |
+   |---|---|---|
+   | 0.2 ms | +1.08 dBFS, 30 clips | +0.84 dBFS, 49 clips |
+   | 0.05 ms | +0.26 dBFS, 3 clips | +0.04 dBFS, 1 clip |
+   | **0.01 ms** | **−1.44 dBFS, 0 clips** | **−1.52 dBFS, 0 clips** |
+
+   0.01 ms is fast enough because the limiter has no look-ahead: the overshoot it has to catch is one
+   sample wide. Below-first-audibility pumping is not a concern at 20:1 with a −2 dB threshold; the
+   stress test (+0…+5 dB of extra make-up) shows mean gain reduction of −0.09…−1.86 dB and ≤ 3.2 % of the
+   programme needing more than 6 dB – i.e. the limiter stays a safety net. Both values are checked in
+   Kotlin (`AntiClippingTest`) and here.
+4. **New metric: how hard the limiter has to work.** A static over-shoot is inaudible; a limiter that
+   clamps a large share of the programme is a compressor. `audio.limiter_demand_db()` computes the static
+   demand curve sample-wise (vectorised: ten million samples per case) and the probe reports
+   `limiter_mean_gr_db` (≤ 2.0 dB) and `limiter_stress_pct` (≤ 5 % of the programme needing > 6 dB), plus
+   the deepest single reduction `limiter_max_gr_db` for context. `check_parity.py` asserts the demand curve
+   against the textbook `(1 − 1/ratio)` curve: on the current material the *mean* is ~0.00 dB while the
+   *max* is 2.8…3.5 dB, i.e. the limiter touches a handful of transients and never rides the programme –
+   without the max column that would read like a metric that never fires.
+
+Result on `Demosong.mp3` (same six scenarios):
+
+| Scenario | Class | Env | Target | Noise | Tonal before | after | p95 | Loudness | Peak | Preamp | Bands |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| bt-minibox | STANDARD | INDOOR | SMART | quiet-room | 2.50 dB | **0.57 dB** | 1.06 dB | −7.08 dB | −4.72 dBFS | −6.9 dB | 10 |
+| bt-minibox | STANDARD | INDOOR | HARMAN | street | 3.46 dB | **1.24 dB** | 2.61 dB | −7.04 dB | −4.81 dBFS | −6.8 dB | 10 |
+| party-box | RESCUE | OUTDOOR | HARMAN | party | 0.91 dB | **0.79 dB** | 1.67 dB | +0.27 dB | −1.70 dBFS | +0.3 dB | 9 |
+| phone-speaker | DEVICE | INDOOR | HARMAN | quiet-room | 1.27 dB | **0.39 dB** | 0.58 dB | −0.95 dB | −1.44 dBFS | +2.1 dB | 7 |
+| laptop | STANDARD | INDOOR | SMART | quiet-room | 1.19 dB | **0.34 dB** | 0.63 dB | −5.17 dB | −3.82 dBFS | −5.2 dB | 5 |
+| party-box | STANDARD | OUTDOOR | BASS_BOOST | street | 0.89 dB | **0.64 dB** | 1.33 dB | +0.17 dB | −1.52 dBFS | +0.3 dB | 10 |
+
+**6/6**, worst tonal error 1.24 dB, worst p95 2.61 dB, worst peak −1.44 dBFS, 0 clipped samples.
+`Intro1.mp4` still passes 6/6 with the same settings (tonal 2.03→0.54, 2.69→0.85, 1.77→0.88, 0.73→0.32,
+0.88→0.38, 1.79→0.80) – the sharper limiter changes peaks, not tonal balance.
+
+Note: `Demosong.mp3` is a **Matroska/WebM container with Opus audio** despite the extension. The probe
+decodes it with `ffmpeg` (`imageio-ffmpeg` fallback), so it does not care, but browsers do – the landing
+page therefore uses a real 128 kb/s MP3 re-encode (`site/static/audio/demosong.mp3`).

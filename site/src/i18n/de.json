@@ -39,7 +39,7 @@
     "kicker": "Interaktive Demo",
     "title": "Hör's dir an. Jetzt. Im Browser.",
     "sub": "Drück Play und leg den Schalter um. Simuliert wird ein typischer kleiner Lautsprecher in einem typischen Raum – dröhnender Bass, mumpfige Mitten, scharfe Höhen – und was eine AutoVybz-Korrektur daraus macht.",
-    "play": "Demo-Riddim abspielen",
+    "play": "Demo-Song abspielen",
     "pause": "Pause",
     "off": "Roher Lautsprecher",
     "on": "AutoVybz AN",
@@ -48,7 +48,9 @@
     "legend_raw": "Lautsprecher im Raum (simuliert)",
     "legend_fix": "Mit AutoVybz",
     "legend_target": "Zielkurve",
-    "disclaimer": "Simulation zur Veranschaulichung, für einen fairen Vergleich lautheitsangeglichen. Echte Ergebnisse hängen von Lautsprecher, Raum und Handy ab. Die Musik wird live in deinem Browser erzeugt – nichts wird hochgeladen."
+    "disclaimer": "Simulation zur Veranschaulichung, für einen fairen Vergleich lautheitsangeglichen. Echte Ergebnisse hängen von Lautsprecher, Raum und Handy ab. Das Demo-Lied wird lokal in deinem Browser dekodiert – nichts wird hochgeladen.",
+    "credit": "Demo-Track: „Demo Song“ – aus dem AutoVybz-Projekt, mit Erlaubnis des Künstlers.",
+    "audio_error": "Das Demo-Audio konnte nicht geladen werden. Bitte später erneut versuchen."
   },
   "how": {
     "kicker": "So geht's",

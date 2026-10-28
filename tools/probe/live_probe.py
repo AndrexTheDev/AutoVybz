@@ -46,6 +46,9 @@ THRESHOLDS = {
     "protect_boost_db": 1.0,   # no boost below half the detected bass limit (the app's own boundary)
     "above_range_db": 3.0,     # no large boost in the untrusted region above the correction range
     "bass_regression_db": 0.5, # below the full-authority edge the error may not grow
+    # 4) The limiter is a safety net, not a compressor: it may not clamp a large share of the programme.
+    "limiter_mean_gr_db": 2.0,
+    "limiter_stress_pct": 5.0,
 }
 
 
@@ -80,6 +83,13 @@ class CaseResult:
     raw_peak_dbfs: float
     limiter_armed: bool
     bass_regression_db: float
+    # How hard the limiter has to work to hold the peaks: a static over-shoot only becomes audible when
+    # the limiter has to clamp a large share of the programme (pumping, pumping-like level dips).
+    limiter_mean_gr_db: float
+    limiter_stress_pct: float   # share of the programme needing more than 6 dB of gain reduction
+    # Deepest single sample of gain reduction: the mean is near 0 whenever the peaks only just cross the
+    # threshold (a safety net that works *rarely*), so the mean alone reads like "never engaged".
+    limiter_max_gr_db: float
     failures: list[str] = field(default_factory=list)
 
     @property
@@ -142,6 +152,9 @@ def _smooth_to_grid(values_db: np.ndarray, freqs: np.ndarray, grid: np.ndarray, 
 
 # `AutoEqRenderer.rangeWeight` fades over 0.5 octave; expressed as a frequency factor for the judge.
 LOW_FADE_OCTAVES_SCALE = 2.0 ** 0.5
+
+# Gain reduction beyond which the limiter stops being a safety net and starts shaping the sound.
+LIMITER_STRESS_GR_DB = 6.0
 
 
 def audit_freqs(size: int) -> np.ndarray:
@@ -242,11 +255,6 @@ def run_case(
 
     err_before = in_room_before - target_grid
     err_after = in_room_after - target_grid
-    # a constant level difference is free (it is just volume) - remove it energy-weighted
-    def free_offset(err: np.ndarray) -> float:
-        mask = _judge_mask(grid, correction)
-        w = music_power[mask]
-        return float(np.sum(w * err[mask]) / max(float(np.sum(w)), 1e-12))
 
     # Judged where the app is in charge: the correction range. Below the speaker's roll-off and above
     # the (mic-trustworthy) high limit no EQ can or should do anything - that is physics, not quality.
@@ -257,6 +265,17 @@ def run_case(
     # penalises the documented design: measured on the mini box it contributed 9.7 dB at 73 Hz - the
     # limit itself - although no filter in the plan is allowed to act there.
     lo, hi = correction.low_limit_hz * LOW_FADE_OCTAVES_SCALE, correction.high_limit_hz
+
+    # A constant level difference is free (it is just volume) - remove it energy-weighted. It has to be
+    # removed over *the same band that is judged*: with the offset taken down to the nominal limit but
+    # the error scored from the fade edge, the huge roll-off error below the edge pulled the offset
+    # down and inflated the residual (party box on a bass-heavy track: 1.29 dB reported instead of
+    # 0.91 dB, i.e. a correction that improved the tonal balance looked like it made it worse).
+    def free_offset(err: np.ndarray) -> float:
+        mask = (grid >= lo) & (grid <= hi)
+        w = music_power[mask]
+        return float(np.sum(w * err[mask]) / max(float(np.sum(w)), 1e-12))
+
     before_stats = weighted(err_before - free_offset(err_before), music_power, grid, lo=lo, hi=hi)
     after_stats = weighted(err_after - free_offset(err_after), music_power, grid, lo=lo, hi=hi)
     full_before = weighted(err_before - free_offset(err_before), music_power, grid)
@@ -274,16 +293,28 @@ def run_case(
     rendered = _apply_gain_db(rendered, correction.preamp_db)
     raw_peak = float(np.max(np.abs(rendered)))
     limiter_armed = eqfit.force_limiter(env_tuning, cls)
+    rendered_without_limiter = rendered
     if limiter_armed:
         rendered = audio.limiter(rendered, fs)
     peak = float(np.max(np.abs(rendered)))
     clipped = int(np.sum(np.abs(rendered) >= 0.999))
+    if limiter_armed:
+        gr = audio.limiter_demand_db(rendered_without_limiter, threshold_db=-2.0, ratio=20.0)
+        mean_gr = -float(np.mean(gr))
+        max_gr = -float(np.min(gr))
+        stress = 100.0 * float(np.mean(gr < -LIMITER_STRESS_GR_DB))
+    else:
+        mean_gr, max_gr, stress = 0.0, 0.0, 0.0
 
-    # perceived level: the same recording, in the room, with and without the calibration
+    # Perceived level: the same recording, in the room, with and without the calibration.
+    # The *rendered* signal already contains the correction, so only the speaker/room response may be
+    # added on top - adding `in_room_after` as well applied the EQ twice and doubled every level change
+    # (measured: the device case looked like -5.4 dB although the pre-gain planner's own model - which
+    # this check exists to validate - predicted -2.1 dB).
     before_music = audio.stats(music, fs)
     after_music = audio.stats(rendered, fs)
     loud_before = _a_weighted_level(before_music.spectrum_db + in_room_before, grid)
-    loud_after = _a_weighted_level(after_music.spectrum_db + in_room_after, grid)
+    loud_after = _a_weighted_level(after_music.spectrum_db + in_room_before, grid)
     loudness_delta = loud_after - loud_before
 
     # --- 4b. did the filters actually realise the requested correction? -------------------
@@ -327,6 +358,10 @@ def run_case(
         failures.append(f"{clipped} clipped samples")
     if max_boost_below > THRESHOLDS["protect_boost_db"]:
         failures.append(f"boost below half the bass limit {max_boost_below:+.1f} dB")
+    if limiter_armed and mean_gr > THRESHOLDS["limiter_mean_gr_db"]:
+        failures.append(f"limiter works hard: {mean_gr:.2f} dB mean reduction")
+    if limiter_armed and stress > THRESHOLDS["limiter_stress_pct"]:
+        failures.append(f"limiter clamps {stress:.1f} % of the programme by > {LIMITER_STRESS_GR_DB:.0f} dB")
     if bass_regression_db > THRESHOLDS["bass_regression_db"]:
         failures.append(f"bass degraded below the fade {bass_regression_db:+.2f} dB")
     if max_above > THRESHOLDS["above_range_db"]:
@@ -362,6 +397,9 @@ def run_case(
         raw_peak_dbfs=20.0 * math.log10(max(raw_peak, 1e-9)),
         limiter_armed=limiter_armed,
         bass_regression_db=bass_regression_db,
+        limiter_mean_gr_db=mean_gr,
+        limiter_stress_pct=stress,
+        limiter_max_gr_db=max_gr,
         failures=failures,
     )
 
@@ -408,6 +446,8 @@ def main(argv: list[str] | None = None) -> int:
                   f"tonal {res.tonal_rms_before_db:5.2f} -> {res.tonal_rms_after_db:5.2f} dB "
                   f"(p95 {res.tonal_p95_after_db:4.2f})  loud {res.loudness_delta_db:+5.2f} dB  "
                   f"peak {res.peak_dbfs:+5.2f} dBFS  preamp {res.preamp_db:+5.1f}  bands {len(res.bands):2d}"
+                  + (f"  limiter mean {res.limiter_mean_gr_db:4.2f} max {res.limiter_max_gr_db:5.2f} dB / "
+                     f"{res.limiter_stress_pct:4.1f} %" if res.limiter_armed else "")
                   + ("" if res.ok else "  <- " + "; ".join(res.failures)))
 
     failed = [r for r in results if not r.ok]
@@ -423,12 +463,14 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def _markdown(results: list[CaseResult]) -> str:
-    lines = ["| Scenario | Class | Env | Target | Noise | Tonal error before | after | p95 | Loudness | Peak | Preamp | Bands |", "|---|---|---|---|---|---|---|---|---|---|---|---|"]
+    lines = ["| Scenario | Class | Env | Target | Noise | Tonal error before | after | p95 | Loudness | Peak | Limiter (mean / max GR / stress) | Preamp | Bands |", "|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for r in results:
         lines.append(
             f"| {r.scenario} | {r.speaker_class} | {r.environment} | {r.target} | {r.noise} | "
             f"{r.tonal_rms_before_db:.2f} dB | **{r.tonal_rms_after_db:.2f} dB** | {r.tonal_p95_after_db:.2f} dB | "
-            f"{r.loudness_delta_db:+.2f} dB | {r.peak_dbfs:+.2f} dBFS | {r.preamp_db:+.1f} dB | {len(r.bands)} |"
+            f"{r.loudness_delta_db:+.2f} dB | {r.peak_dbfs:+.2f} dBFS | "
+            f"{(f'{r.limiter_mean_gr_db:.2f} / {r.limiter_max_gr_db:.2f} dB / {r.limiter_stress_pct:.1f} %' if r.limiter_armed else '-')} | "
+            f"{r.preamp_db:+.1f} dB | {len(r.bands)} |"
         )
     bad = [r for r in results if not r.ok]
     lines.append("")

@@ -97,7 +97,7 @@ def limiter(
     sample_rate: int = SAMPLE_RATE,
     threshold_db: float = -2.0,
     ratio: float = 20.0,
-    attack_ms: float = 0.2,
+    attack_ms: float = 0.01,
     release_ms: float = 60.0,
 ) -> np.ndarray:
     """The app's DynamicProcessing stage (`AntiClipping.DEFAULT_LIMITER`) as a peak limiter.
@@ -121,6 +121,21 @@ def limiter(
         g = coeff * g + (1.0 - coeff) * target
         out[i] = sample * 10.0 ** (g / 20.0)
     return out
+
+
+def limiter_demand_db(
+    x: np.ndarray,
+    threshold_db: float = -2.0,
+    ratio: float = 20.0,
+) -> np.ndarray:
+    """Instantaneous gain reduction the limiter *asks for* at each sample (<= 0 dB).
+
+    Vectorised on purpose: the probe measures this on ten million samples per case, and the smoothed,
+    attack-limited gain of [limiter] only differs from this demand for the length of the attack - a
+    detail that matters per transient, not for the long-term statistics computed here.
+    """
+    level_db = 20.0 * np.log10(np.maximum(np.abs(x), 1e-12))
+    return -np.maximum(level_db - threshold_db, 0.0) * (1.0 - 1.0 / ratio)
 
 
 # ------------------------------------------------------------------- measures --
