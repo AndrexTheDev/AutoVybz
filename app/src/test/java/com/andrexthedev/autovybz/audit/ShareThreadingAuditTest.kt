@@ -29,7 +29,10 @@ class ShareThreadingAuditTest {
         )
         // The remaining body (FileProvider uri, chooser intent) is cheap and must stay on the caller's thread,
         // otherwise startActivity would run off main.
-        val body = sharer.substringAfter("withContext(Dispatchers.IO) { writeCard(context, outcome, presetName) }")
+        // Only the rest of share(), not writeCard() further down the file (which is where the render call lives).
+        val body = sharer
+            .substringAfter("withContext(Dispatchers.IO) { writeCard(context, outcome, presetName) }")
+            .substringBefore("private fun writeCard")
         assertTrue("the chooser must still be started from the caller", "context.startActivity(chooser)" in body)
         assertFalse("no second, blocking encode", "ResultCardRenderer.render" in body)
     }
