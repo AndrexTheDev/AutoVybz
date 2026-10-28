@@ -57,9 +57,16 @@ class OutdoorScenarioTest {
         return analyzer.analyze(rec, stimulus, config = AnalyzerConfig(smoothing = t.smoothing, sweepWeight = t.sweepWeight))
     }
 
+    /**
+     * Fits [r] with the tuning of [env]. The *indoor* baseline is pinned to the profile the outdoor work
+     * was measured against (`broadBoostOctaves = null`): this file scores the outdoor profile against a
+     * fixed reference, so it must not move when the indoor policy changes (round 11 gave indoor its own
+     * 1-octave rule and three positions) - otherwise the comparison silently compares two moving targets.
+     */
     private fun fit(r: MeasurementResult, env: ListeningEnvironment): AutoEqResult {
         val t = EnvironmentTuning.of(env)
-        val settings = AutoEqSettings(maxBoostDb = t.maxBoostDb, broadBoostOctaves = t.broadBoostOctaves, excursionGuardOctaves = t.excursionGuardOctaves)
+        val broad = if (env == ListeningEnvironment.INDOOR) null else t.broadBoostOctaves
+        val settings = AutoEqSettings(maxBoostDb = t.maxBoostDb, broadBoostOctaves = broad, excursionGuardOctaves = t.excursionGuardOctaves)
         // Indoor = behaviour before the outdoor work (no SNR gating), to measure the improvement.
         val snr = if (env == ListeningEnvironment.OUTDOOR) r.snrDb else null
         return AutoEqRenderer.render(r.frequencies, r.smoothedDb, TargetCurve(TargetType.SMART), settings, r.thirdOctaveDb, snr)

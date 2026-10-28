@@ -22,10 +22,13 @@ import kotlin.math.sqrt
  * hand on the phone, the Bluetooth speaker auto-powering off and on. Without a rule, such a position
  * pulls the averaged curve towards a response nobody hears – and the user has no way to tell which
  * measurement was the bad one (the app only showed a "positions disagree" hint *after* the fact).
- * [analyse] therefore compares every position against the average of all of them and drops the ones
- * that are far outside the spread of the others ([average] returns just the curve, [analyse] the whole
- * story). With two positions nothing can be dropped: with two candidates there is no majority to say
- * which one is wrong.
+ * [analyse] therefore compares every position against the *median* curve of all of them and drops the
+ * ones that are far outside the spread of the others ([average] returns just the curve, [analyse] the
+ * whole story). The median matters: against the mean, one very different position pulls the reference
+ * towards itself, so all positions end up looking equally wrong (measured: a 20 dB suck-out at one of
+ * four positions gave deviations of 5.8/4.6/4.3/4.7 dB against the mean - indistinguishable - and
+ * 2.5/2.4/1.4/**8.5** dB against the median). With two positions nothing can be dropped either way:
+ * there is no majority to say which one is wrong.
  */
 object SpatialAverager {
 
@@ -62,7 +65,7 @@ object SpatialAverager {
             "measurements use different frequency grids"
         }
 
-        val deviations = deviationsFromAll(results)
+        val deviations = deviationsFromReference(results)
         val rejected = if (results.size < 3) emptyList() else outliers(deviations)
         val kept = results.filterIndexed { index, _ -> index !in rejected }
         val averaged = powerAverage(kept)
@@ -70,25 +73,42 @@ object SpatialAverager {
     }
 
     /**
-     * Deviation of each position from the average of all positions: level-aligned RMS over
-     * 100 Hz – 10 kHz. Level alignment matters because a position can be simply closer to the speaker.
+     * Deviation of each position from the *median* curve of all positions: level-aligned RMS over
+     * 100 Hz – 10 kHz. The median is per grid point (mean of the two middle values for an even count),
+     * i.e. a reference that a single disturbed position cannot move. Level alignment matters because a
+     * position can be simply closer to the speaker.
      */
-    private fun deviationsFromAll(results: List<MeasurementResult>): List<Double> {
-        val reference = powerAverage(results)
-        val f = reference.frequencies
+    private fun deviationsFromReference(results: List<MeasurementResult>): List<Double> {
+        val f = results[0].frequencies
+        val reference = medianCurve(results)
         return results.map { r ->
             val offset = FrequencyGrid.bandMean(f, r.smoothedDb, 300.0, 3000.0)
             var sum = 0.0
             var count = 0
             for (i in f.indices) {
                 if (f[i] < 100.0 || f[i] > 10_000.0) continue
-                val d = (r.smoothedDb[i] - offset) - reference.smoothedDb[i]
+                val d = (r.smoothedDb[i] - offset) - reference[i]
                 sum += d * d
                 count++
             }
             if (count == 0) 0.0 else sqrt(sum / count)
         }
     }
+
+    /** Per grid point the median across positions: the reference the outlier rule is built on. */
+    private fun medianCurve(results: List<MeasurementResult>): DoubleArray {
+        val n = results[0].frequencies.size
+        val column = DoubleArray(results.size)
+        return DoubleArray(n) { i ->
+            for (k in results.indices) column[k] = results[k].smoothedDb[i] - levelOffset(results[k])
+            column.sort()
+            if (results.size % 2 == 1) column[results.size / 2]
+            else 0.5 * (column[results.size / 2 - 1] + column[results.size / 2])
+        }
+    }
+
+    private fun levelOffset(r: MeasurementResult): Double =
+        FrequencyGrid.bandMean(r.frequencies, r.smoothedDb, 300.0, 3000.0)
 
     /**
      * Drop the positions whose deviation is more than [OUTLIER_FACTOR] × the median deviation, but never
@@ -165,5 +185,5 @@ object SpatialAverager {
 
     /** Convenience for tests and diagnostics: the largest deviation, 0 for a single position. */
     fun maxDeviationDb(results: List<MeasurementResult>): Double =
-        if (results.size < 2) 0.0 else deviationsFromAll(results).maxOrNull() ?: 0.0
+        if (results.size < 2) 0.0 else deviationsFromReference(results).maxOrNull() ?: 0.0
 }

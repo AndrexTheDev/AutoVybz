@@ -97,6 +97,7 @@ class CaseResult:
     # How many positions the correction was fitted to, how far they disagreed at the worst point, and
     # the largest boost inside a region where they disagree by more than NULL_SPREAD_DB.
     positions: int
+    positions_used: int
     position_spread_db: float
     null_boost_db: float
     # Deepest single sample of gain reduction: the mean is near 0 whenever the peaks only just cross the
@@ -192,12 +193,37 @@ def _spread_between(curves: list[np.ndarray]) -> np.ndarray:
     return np.max(stack, axis=0) - np.min(stack, axis=0)
 
 
-def _spatial_average(measurements: list):
-    """`SpatialAverager.average`: power mean per grid point, re-normalised to 0 dB at 300 Hz-3 kHz.
+# Outlier rule, mirrored from `SpatialAverager` (see its KDoc for the reasoning).
+OUTLIER_FACTOR = 3.0
+OUTLIER_FLOOR_DB = 1.5
 
-    The probe mirrors the app's *averaging rule*, not its outlier rejection (a disturbed position is a
-    separate scenario): this is about what the correction is fitted to when every position is good.
+
+def _level_offset(m) -> float:
+    return dsp.band_mean(m.frequencies, m.smoothed_db, 300.0, 3000.0)
+
+
+def _reject_outliers(measurements: list) -> tuple[list[int], list[float]]:
+    """`SpatialAverager.analyse`: drop positions that are far outside the spread of the others.
+
+    The reference is the *median* curve: against the mean, one very different position pulls the
+    reference towards itself and every position ends up looking equally wrong.
     """
+    if len(measurements) < 3:
+        return list(range(len(measurements))), [0.0] * len(measurements)
+    stack = np.vstack([m.smoothed_db - _level_offset(m) for m in measurements])
+    reference = np.median(stack, axis=0)
+    freq = measurements[0].frequencies
+    mask = (freq >= 100.0) & (freq <= 10000.0)
+    devs = [float(np.sqrt(np.mean(((row - reference)[mask]) ** 2))) for row in stack]
+    ordered = sorted(devs)
+    limit = max(OUTLIER_FACTOR * ordered[len(ordered) // 2], OUTLIER_FLOOR_DB)
+    candidates = sorted([i for i, d in enumerate(devs) if d > limit], key=lambda i: -devs[i])
+    candidates = candidates[:max(0, len(devs) - 2)]
+    return [i for i in range(len(measurements)) if i not in candidates], devs
+
+
+def _spatial_average(measurements: list):
+    """`SpatialAverager.average`: power mean per grid point, re-normalised to 0 dB at 300 Hz-3 kHz."""
     if len(measurements) == 1:
         return measurements[0]
     first = measurements[0]
@@ -294,8 +320,9 @@ def run_case(
         return dsp.analyze(rec, stim, mic_compensation_db=mic_correction, config=cfg)
 
     per_position = [measure_at(i) for i in range(len(variants))]
-    measurement = _spatial_average(per_position)
-    position_spread = float(np.max(_spread_between([m.smoothed_db for m in per_position])))
+    kept, position_deviations = _reject_outliers(per_position)
+    measurement = _spatial_average([per_position[i] for i in kept])
+    position_spread = float(np.max(_spread_between([per_position[i].smoothed_db for i in kept])))
 
     settings = eqfit.auto_eq_settings(band_count, env_tuning, cls)
     eq_env, eq_cls = env_tuning, cls
@@ -506,6 +533,7 @@ def run_case(
         limiter_stress_pct=stress,
         limiter_max_gr_db=max_gr,
         positions=positions,
+        positions_used=len(kept),
         position_spread_db=position_spread,
         null_boost_db=null_boost,
         failures=failures,
@@ -568,6 +596,7 @@ def main(argv: list[str] | None = None) -> int:
                   f"bands {len(res.bands):2d}"
                   + (f"  null-boost {res.null_boost_db:4.2f} dB  spread {res.position_spread_db:4.1f} dB"
                      if res.positions > 1 else "")
+                  + (f"  used {res.positions_used}/{res.positions}" if res.positions_used < res.positions else "")
                   + (f"  limiter mean {res.limiter_mean_gr_db:4.2f} max {res.limiter_max_gr_db:5.2f} dB / "
                      f"{res.limiter_stress_pct:4.1f} %" if res.limiter_armed else "")
                   + ("" if res.ok else "  <- " + "; ".join(res.failures)))

@@ -176,7 +176,9 @@ only one position has.
 * **spread** – RMS disagreement of the positions against their average over 100 Hz–10 kHz (each position
   level-aligned, so "closer to the speaker" is not an error). 1–3 dB is a normal room; > 6 dB means the
   phone moved a lot or one measurement was disturbed (`HIGH_POSITION_SPREAD_DB` in the wizard).
-* **outliers** – a position is dropped when its deviation exceeds `max(3 × median, 1.5 dB)`. Two limits
+* **outliers** – a position is dropped when its deviation from the *median* curve of all positions
+exceeds `max(3 × median deviation, 1.5 dB)` (the median, because against the mean a single disturbed
+position drags the reference towards itself and every position looks equally wrong). Two limits
   make this safe: with two positions nothing can be dropped (no majority says which one is wrong), and
   never fewer than two positions survive. A dropped position raises `POSITION_OUTLIER` with the wizard's
   "repeat this position" action instead of silently skewing the result.

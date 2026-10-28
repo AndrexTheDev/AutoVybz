@@ -242,9 +242,12 @@ must match the two clean ones within 0.2 dB; the wizard test drives the resume p
 entitlement limits reviewed.
 
 **Done (round 11).** `SpatialAverager.analyse()` returns `SpatialAverage(result, spreadDb, rejected,
-deviations)`; a position is dropped when its level-aligned RMS deviation (100 Hz–10 kHz, normalised
-300 Hz–3 kHz) exceeds `max(3 × median, 1.5 dB)`, never below three positions and never below two kept
-ones. `MeasurementController.combine()` averages the kept positions, adds `POSITION_OUTLIER` to the
+deviations)`; a position is dropped when its level-aligned RMS deviation from the *median* curve of all
+positions (100 Hz–10 kHz, normalised 300 Hz–3 kHz) exceeds `max(3 × median deviation, 1.5 dB)`, never
+below three positions and never below two kept ones. The median is not cosmetic – the first version used
+the mean, and the test showed why that cannot work: with one 20 dB suck-out among four positions the
+deviations read 5.8/4.6/4.3/4.7 dB (nothing stands out, nothing is rejected), against the median
+2.5/2.4/1.4/**8.5** dB. `live_probe` mirrors the rule, so its spread is measured on the kept positions. `MeasurementController.combine()` averages the kept positions, adds `POSITION_OUTLIER` to the
 warnings and reports `rejectedPositions`; the wizard has copy for it in en/de/es (the existing
 `resumePosition` path repeats exactly one position). Indoors, `recommendedPositions = 3` and
 `broadBoostOctaves = 1.0` (free tier still capped at one position by `EntitlementPolicy`).

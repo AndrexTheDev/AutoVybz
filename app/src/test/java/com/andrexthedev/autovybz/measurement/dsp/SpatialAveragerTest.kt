@@ -112,7 +112,8 @@ class SpatialAveragerTest {
         assertTrue(a.rejected.isEmpty())
         assertEquals(2, a.deviations.size)
         assertTrue("spread ${a.spreadDb}", a.spreadDb > 1.0)
-        // Both deviate equally from their common average: nothing singles one of them out.
+        // The reference is the median curve, i.e. for a pair exactly the mean of both: the two
+        // deviations are equally large and nothing singles one of them out.
         assertEquals(a.deviations[0], a.deviations[1], 1e-9)
     }
 
@@ -134,8 +135,9 @@ class SpatialAveragerTest {
         // The averaged curve is the clean average, not a compromise with the disturbed position.
         val clean = SpatialAverager.average(listOf(a, b, c))
         for (i in grid.indices) assertEquals(clean.smoothedDb[i], withBad.result.smoothedDb[i], 1e-9)
-        // ... and the spread is measured on the kept positions, so it stays small.
-        assertTrue("spread ${withBad.spreadDb}", withBad.spreadDb < 1.0)
+        // ... and the spread is measured on the kept positions only, so it is the clean spread.
+        assertEquals(SpatialAverager.spreadDb(listOf(a, b, c)), withBad.spreadDb, 1e-9)
+        assertTrue("spread ${withBad.spreadDb}", withBad.spreadDb < 3.0)
     }
 
     @Test
