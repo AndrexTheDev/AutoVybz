@@ -49,10 +49,24 @@ object E2e {
     }
 
     /** Runs a shell command as the shell user and waits for it. */
-    fun shell(cmd: String): String {
+    fun shell(cmd: String): String = try {
         val pfd = instrumentation.uiAutomation.executeShellCommand(cmd)
-        return ParcelFileDescriptor.AutoCloseInputStream(pfd).use { it.readBytes().toString(Charsets.UTF_8) }
+        ParcelFileDescriptor.AutoCloseInputStream(pfd).use { it.readBytes().toString(Charsets.UTF_8) }
+    } catch (e: Exception) {
+        ""
     }
+
+    /**
+     * Which window currently owns input focus ("mCurrentFocus=Window{…}"), straight from the system.
+     *
+     * Compose and Espresso only report "the root never had window focus". The culprit is usually a *system*
+     * window - a launcher ANR dialog or a permission sheet - that never belonged to this app, so naming it in
+     * the failure message is what separates an app bug from an emulator problem (beta campaign API 35).
+     */
+    fun focusedWindow(): String =
+        shell("dumpsys window").lineSequence()
+            .firstOrNull { it.contains("mCurrentFocus") }?.trim()?.takeIf { it.isNotEmpty() }
+            ?: "unknown"
 }
 
 /**

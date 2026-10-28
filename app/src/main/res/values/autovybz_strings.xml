@@ -12,7 +12,16 @@
     <string name="avz_premium_manage">Manage Pro</string>
     <string name="avz_premium_status_title">AutoVybz Pro and Free limits</string>
     <string name="avz_premium_subtitle">Free stays usable with strict limits. Pro removes the limits – paid only with SOL, BTC or ETH.</string>
-    <string name="avz_premium_free_status">Free: %1$d saved profile · %2$d measurement position</string>
+    <!-- Two counts in one sentence: <plurals> per count (lint PluralsCandidate), the line itself joins them. -->
+    <string name="avz_premium_free_status">Free: %1$s · %2$s</string>
+    <plurals name="avz_premium_free_profiles">
+        <item quantity="one">%1$d saved profile</item>
+        <item quantity="other">%1$d saved profiles</item>
+    </plurals>
+    <plurals name="avz_premium_free_positions">
+        <item quantity="one">%1$d measurement position</item>
+        <item quantity="other">%1$d measurement positions</item>
+    </plurals>
     <string name="avz_premium_trial_status">Pro trial active until %1$s</string>
     <string name="avz_premium_pro_status">Pro active until %1$s</string>
     <string name="avz_premium_lifetime_status">Pro Lifetime active</string>

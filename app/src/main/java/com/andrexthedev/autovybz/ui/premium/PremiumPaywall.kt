@@ -49,6 +49,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -246,7 +247,12 @@ fun premiumStatusText(entitlement: Entitlement): String {
     }
     val limits = EntitlementPolicy.limits(entitlement)
     return when (EntitlementPolicy.effectiveTier(entitlement)) {
-        EntitlementTier.FREE -> stringResource(R.string.avz_premium_free_status, limits.maxSavedProfiles, limits.maxPositions)
+        // Two separate counts -> <plurals> each (lint PluralsCandidate: "%d saved profile" is not one string).
+        EntitlementTier.FREE -> stringResource(
+            R.string.avz_premium_free_status,
+            pluralStringResource(R.plurals.avz_premium_free_profiles, limits.maxSavedProfiles, limits.maxSavedProfiles),
+            pluralStringResource(R.plurals.avz_premium_free_positions, limits.maxPositions, limits.maxPositions),
+        )
         EntitlementTier.TRIAL -> stringResource(R.string.avz_premium_trial_status, expiryText)
         EntitlementTier.PRO -> if (entitlement.plan == PremiumPlan.LIFETIME || expiry == null) {
             stringResource(R.string.avz_premium_lifetime_status)

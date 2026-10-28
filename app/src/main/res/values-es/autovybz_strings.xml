@@ -12,7 +12,17 @@
     <string name="avz_premium_manage">Gestionar Pro</string>
     <string name="avz_premium_status_title">AutoVybz Pro y límites gratis</string>
     <string name="avz_premium_subtitle">La versión gratis sigue siendo usable, pero con límites estrictos. Pro elimina los límites: pago solo con SOL, BTC o ETH.</string>
-    <string name="avz_premium_free_status">Gratis: %1$d perfil guardado · %2$d posición de medición</string>
+    <string name="avz_premium_free_status">Gratis: %1$s · %2$s</string>
+    <plurals name="avz_premium_free_profiles">
+        <item quantity="one">%1$d perfil guardado</item>
+        <item quantity="many">%1$d de perfiles guardados</item>
+        <item quantity="other">%1$d perfiles guardados</item>
+    </plurals>
+    <plurals name="avz_premium_free_positions">
+        <item quantity="one">%1$d posición de medición</item>
+        <item quantity="many">%1$d de posiciones de medición</item>
+        <item quantity="other">%1$d posiciones de medición</item>
+    </plurals>
     <string name="avz_premium_trial_status">Prueba Pro activa hasta el %1$s</string>
     <string name="avz_premium_pro_status">Pro activo hasta el %1$s</string>
     <string name="avz_premium_lifetime_status">Pro de por vida activo</string>

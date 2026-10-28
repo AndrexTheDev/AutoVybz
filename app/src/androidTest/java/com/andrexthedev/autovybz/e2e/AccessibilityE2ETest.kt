@@ -13,6 +13,8 @@ import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.andrexthedev.autovybz.e2e.SimulatedRoomEngine.Mode
+import com.andrexthedev.autovybz.sound.SoundStyle
+import com.andrexthedev.autovybz.sound.VybzSound
 import com.bearinmind.equalizer314.R
 import kotlinx.coroutines.CompletableDeferred
 import org.junit.Assert.assertTrue
@@ -137,6 +139,24 @@ class AccessibilityE2ETest : E2eTest() {
         return null
     }
 
+    /**
+     * Selects a style and proves it landed in the app state before waiting for the intensity card.
+     *
+     * Campaign 15 (API 28 emulator) failed here with only "'avz:home:intensity' did not appear within
+     * 60000 ms" - which reads like a missing UI element but can equally be a tap that never reached the chip.
+     * Checking `VybzSound.selection()` names the culprit, and one documented retry absorbs the slow-emulator
+     * case without weakening the audit.
+     */
+    private fun selectStyle(style: SoundStyle) {
+        compose.tap("avz:style:${style.name}")
+        val applied = runCatching { compose.waitUntil(5_000) { VybzSound.selection(E2e.app).style == style }; true }
+            .getOrDefault(false)
+        if (applied) return
+        android.util.Log.w("AvzE2E", "style ${style.name} was not selected by the first tap - retrying once")
+        compose.tap("avz:style:${style.name}")
+        compose.waitRobust("style ${style.name} selected", 10_000) { VybzSound.selection(E2e.app).style == style }
+    }
+
     private fun expandAllCards() {
         val collapsed = str(R.string.avz_a11y_collapsed)
         repeat(12) {
@@ -168,7 +188,8 @@ class AccessibilityE2ETest : E2eTest() {
         compose.savedToProTab()
         expandAllCards(); audit("studio (all cards expanded)")
         compose.tap("avz:tab:HOME"); compose.await("avz:screen:home"); audit("sound")
-        compose.tap("avz:style:LIVE"); compose.await("avz:home:intensity"); audit("sound (style selected)")
+        selectStyle(SoundStyle.LIVE)
+        compose.await("avz:home:intensity"); audit("sound (style selected)")
         compose.tap("avz:tab:HELP"); compose.await("avz:screen:help")
         expandAllCards(); audit("help (all expanded)")
         compose.tap("avz:tab:ABOUT"); compose.await("avz:screen:about"); audit("about")

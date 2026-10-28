@@ -20,6 +20,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.rule.GrantPermissionRule
 import com.andrexthedev.autovybz.ui.AutoVybzActivity
+import org.junit.Before
 import org.junit.Rule
 import org.junit.rules.RuleChain
 import org.junit.rules.TestRule
@@ -40,6 +41,33 @@ abstract class E2eTest(
 
     @get:Rule
     val rules: RuleChain = RuleChain.outerRule(permission).around(E2eRule(countdownSeconds, intro, premiumTrial)).around(compose)
+
+    /**
+     * Beta campaign API 35: one stuck *system* window (launcher ANR dialog) made every following test fail
+     * with "the root of the view hierarchy never had window focus" - eleven tests, one cause, and the message
+     * never named the window. This guard waits for the app window, dismisses system dialogs once, and if focus
+     * still does not come it fails *here* with the owning window in the message, so the next report says
+     * whether an app screen or a system window is at fault.
+     */
+    @Before
+    fun ensureTheAppWindowHasFocus() {
+        if (runCatching { waitForFocus(8_000) }.isSuccess) return
+        E2e.shell("am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS")
+        val owner = E2e.focusedWindow()
+        try {
+            waitForFocus(10_000)
+        } catch (e: Throwable) {
+            throw AssertionError("no window focus for the app; focus owner: $owner", e)
+        }
+    }
+
+    private fun waitForFocus(timeoutMs: Long) {
+        compose.waitUntil(timeoutMs) {
+            var focused = false
+            compose.activityRule.scenario.onActivity { focused = it.hasWindowFocus() }
+            focused
+        }
+    }
 
     fun str(@StringRes id: Int, vararg args: Any): String = E2e.app.getString(id, *args)
     fun shot(name: String) = Shots.take(compose, name)

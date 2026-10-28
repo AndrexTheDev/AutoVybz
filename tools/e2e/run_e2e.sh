@@ -53,10 +53,34 @@ done
 [ "$installed" = 1 ] || { note "- ❌ **install** failed 3×: \`$(tail -n 1 "$OUT/install.txt")\`"; echo "install failed"; exit 2; }
 [ "$attempt" = 1 ] || note "- ⚠️ install needed $attempt attempts (package manager not ready yet)"
 
+# Campaign 15 (API 35): a stuck system window (launcher ANR dialog) left the app without window focus and
+# every following instrumented test failed with "the root of the view hierarchy never had window focus".
+# Before each suite: dismiss system dialogs, and if the app still does not own the focus, bring it back.
+focus_line() { adb shell dumpsys window 2>/dev/null | grep -m1 "mCurrentFocus" | tr -d '\r' | sed 's/^ *//'; }
+
+ensure_app_focus() {
+  adb shell am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS >/dev/null 2>&1 || true
+  local f; f=$(focus_line)
+  case "$f" in
+    *$PKG*) return 0 ;;
+  esac
+  log "focus is not the app ($f) - relaunching"
+  echo "::warning title=Focus lost before $1 (API $API)::${f:-unknown}" >&2
+  adb shell am start -n $PKG/com.andrexthedev.autovybz.ui.AutoVybzActivity >/dev/null 2>&1 || true
+  sleep 3
+  f=$(focus_line)
+  log "focus after relaunch: $f"
+  case "$f" in
+    *$PKG*) return 0 ;;
+  esac
+  echo "::warning title=Focus still not the app before $1 (API $API)::${f:-unknown}" >&2
+}
+
 # run <name> <am instrument args...>
 run() {
   local name=$1; shift
   log "instrument: $name"
+  ensure_app_focus "$name"
   adb logcat -c
   adb shell am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS >/dev/null 2>&1 || true
   adb shell am instrument -w -r "$@" $RUNNER < /dev/null > "$OUT/$name.instrument.txt" 2>&1
@@ -71,6 +95,11 @@ focus_diag() {
   adb shell dumpsys window > "$OUT/$1.window.txt" 2>&1
   local f; f=$(grep -m1 -E "mCurrentFocus=" "$OUT/$1.window.txt" | tr -d '\r' | sed 's/^ *//')
   note "  - focus after $1: \`${f:-unknown}\`"
+  # Annotated as well: the summary only lives in the results bundle, the annotation is visible in the check run
+  # and therefore tells *which* window (ours or a system dialog) held the focus.
+  echo "::warning title=Focus after $1 (API $API)::${f:-unknown}" >&2
+  local top; top=$(adb shell dumpsys activity activities 2>/dev/null | grep -m1 -E "ResumedActivity|topResumedActivity" | tr -d '\r' | sed 's/^ *//')
+  [ -n "$top" ] && echo "::notice title=Top activity after $1 (API $API)::$top" >&2
 }
 
 pull_shots() {

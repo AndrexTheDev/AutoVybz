@@ -24,6 +24,7 @@ docs/*
 !docs/AUDIO_PIPELINE.md
 !docs/PRESETS_AND_LIMITS.md
 !docs/ERRORS_AND_MESSAGES.md
+!docs/TEST_MATRIX.md
 !docs/UPSTREAM_README.md
 !docs/upstream_changelogs/
 !docs/testing/
