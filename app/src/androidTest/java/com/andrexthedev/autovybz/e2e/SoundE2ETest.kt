@@ -99,9 +99,16 @@ class SoundE2ETest : E2eTest() {
     fun styleWithoutCalibration_isAudibleAndCannotClip() {
         compose.tap("avz:tab:HOME")
         compose.tap("avz:style:HIPHOP_RNB")
+        // Wait for the app's *own* model first: a tap the (slow, occasionally unfocused) emulator swallowed
+        // would otherwise be read off a stale engine, and the band count of a previous test can happen to
+        // match the style's count - the pre-gain then still carries the old value.
+        compose.waitRobust("style tap did not apply", 10_000) {
+            VybzSound.selection(E2e.app).style == SoundStyle.HIPHOP_RNB
+        }
         awaitBands(SoundStyle.HIPHOP_RNB.bandsAt(SoundStyle.DEFAULT_INTENSITY).size, "style only")
         assertEquals(SoundStyle.HIPHOP_RNB, VybzSound.selection(E2e.app).style)
-        assertTrue("bass boost needs negative pre-gain, was ${preamp()}", preamp() < 0f)
+        // Bands and pre-gain reach the engine in two steps, so the pre-gain is waited for as well.
+        compose.waitRobust("bass boost needs a negative pre-gain, was ${preamp()}", 15_000) { preamp() < 0f }
         compose.await("avz:home:intensity")
         compose.await("avz:home:curve")
     }
