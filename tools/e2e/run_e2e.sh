@@ -106,7 +106,7 @@ focus_diag() {
 # Only a crash / ANR of the app itself fails the job; a system-process ANR on an overloaded emulator is
 # reported as an environment finding, and a framework-only graphics stall is re-run with the same seed.
 monkey_run() {
-  local SEED=$1 PFX=$2 WHAT WHO KIND STACK FRAMEWORK_STALL T
+  local SEED=$1 PFX=$2 WHAT WHO KIND STACK STALL_KIND T
   adb logcat -c
   adb shell monkey -p $PKG -s "$SEED" --throttle 40 --pct-syskeys 0 --pct-appswitch 5 --ignore-security-exceptions -v 4000 > "$OUT/$PFX.txt" 2>&1
   adb logcat -d -v threadtime > "$OUT/$PFX.logcat.txt" 2>&1
@@ -119,33 +119,42 @@ monkey_run() {
   KIND=$(grep -m1 -oE "// (CRASH|NOT RESPONDING)" "$OUT/$PFX.txt" | awk '{print $2}')
   grep -B2 -A40 "// CRASH\|// NOT RESPONDING" "$OUT/$PFX.txt" | head -120 > "$OUT/${PFX}_problem.txt"
   # Main-thread stack of the ANR (what the UI thread was blocked on)
-  STACK=""; FRAMEWORK_STALL=0
+  STACK=""; STALL_KIND=""
   T=$(adb shell 'ls -t /data/anr/ 2>/dev/null | head -1' < /dev/null | tr -d '\r')
   if [ -n "$T" ]; then
     adb shell "cat /data/anr/$T" < /dev/null > "$OUT/${PFX}_anr_trace.txt" 2>/dev/null
     awk '/^Cmd line: '"$PKG"'$/{p=1} p&&/^"main"/{m=1} m{print} m&&/^$/{exit}' "$OUT/${PFX}_anr_trace.txt" > "$OUT/${PFX}_anr_main.txt"
     # Java frames tell which call blocked; native frames only show "binder transact".
     STACK=$( { grep -E "^\s+(- waiting|- locked|- sleeping)" "$OUT/${PFX}_anr_main.txt"; grep -E "^\s+at " "$OUT/${PFX}_anr_main.txt" | head -12; } | sed 's/^\s*//' | tr '\n' ' ' | cut -c1-1200)
-    # Framework-only graphics stall: no AutoVybz / Equalizer314 frame at all, blocked in hwui/EGL teardown or draw
-    # (campaign 6, API 30: Dialog.cancel -> ViewRootImpl.destroyHardwareRenderer while the emulator's software
-    # composer used 50 % kernel CPU).
-    if [ "$KIND" = "NOT" ] && [ -s "$OUT/${PFX}_anr_main.txt" ] && ! grep -qE "at com\.(andrexthedev|bearinmind)\." "$OUT/${PFX}_anr_main.txt" \
-       && grep -qE "HardwareRenderer\.n|ThreadedRenderer\.|eglSwapBuffers|nSyncAndDrawFrame" "$OUT/${PFX}_anr_main.txt"; then
-      FRAMEWORK_STALL=1
+    # Two kinds of "not responding" that the app cannot have caused, both requiring that the *main thread* of the
+    # app shows no AutoVybz / Equalizer314 frame at all:
+    #  a) graphics stall - blocked in hwui/EGL teardown or draw (campaign 6, API 30: Dialog.cancel ->
+    #     ViewRootImpl.destroyHardwareRenderer while the emulator's software composer used 50 % kernel CPU);
+    #  b) idle looper - the main thread sits in MessageQueue.next while Android reports "Input dispatching timed
+    #     out" (campaign of 3e7b61a, API 30: the launcher held window focus, the queued MOVE event was dispatched
+    #     to a window that never received a frame). An idle looper proves the app was not busy; it is confirmed by
+    #     re-running the same seed before it is reported as a finding.
+    if [ "$KIND" = "NOT" ] && [ -s "$OUT/${PFX}_anr_main.txt" ] && ! grep -qE "at com\.(andrexthedev|bearinmind)\." "$OUT/${PFX}_anr_main.txt"; then
+      if grep -qE "HardwareRenderer\.n|ThreadedRenderer\.|eglSwapBuffers|nSyncAndDrawFrame" "$OUT/${PFX}_anr_main.txt"; then
+        STALL_KIND="framework graphics stall"
+      elif grep -q "Input dispatching timed out" "$OUT/$PFX.txt" \
+         && grep -qE "MessageQueue\.next|nativePollOnce" "$OUT/${PFX}_anr_main.txt"; then
+        STALL_KIND="idle main thread"
+      fi
     fi
   fi
-  if [ "$WHO" = "$PKG" ] && [ "$FRAMEWORK_STALL" = 1 ]; then
+  if [ "$WHO" = "$PKG" ] && [ -n "$STALL_KIND" ]; then
     # Confirmation run with the SAME seed: a reproducible ANR fails, a transient emulator stall is a warning.
-    log "monkey (seed $SEED): framework-only graphics stall - confirmation run"
+    log "monkey (seed $SEED): $STALL_KIND - confirmation run"
     adb shell am force-stop $PKG < /dev/null
     adb shell monkey -p $PKG -s "$SEED" --throttle 40 --pct-syskeys 0 --pct-appswitch 5 --ignore-security-exceptions -v 4000 < /dev/null > "$OUT/${PFX}_rerun.txt" 2>&1
     if grep -qE "// (CRASH|NOT RESPONDING): $PKG" "$OUT/${PFX}_rerun.txt"; then
       note "- ❌ **Monkey** (seed $SEED): reproducible with the same seed: $WHAT"; echo "::error title=Monkey API $API (seed $SEED, reproducible)::$WHAT"; FAIL=1
       note "  - ANR main thread: $STACK"; echo "::error title=ANR main thread API $API::$STACK"
     else
-      note "- ⚠️ **Monkey** (seed $SEED): 4000 events; one framework-only graphics stall (no app frame on the main thread, not reproducible with the same seed) – $WHAT"
+      note "- ⚠️ **Monkey** (seed $SEED): 4000 events; one $STALL_KIND (no app frame on the main thread, not reproducible with the same seed) – $WHAT"
       note "  - main thread: $STACK"
-      echo "::warning title=Monkey API $API seed $SEED (framework graphics stall, not reproducible)::$STACK"
+      echo "::warning title=Monkey API $API seed $SEED ($STALL_KIND, not reproducible)::$STACK"
     fi
   elif [ "$WHO" = "$PKG" ]; then
     note "- ❌ **Monkey** (seed $SEED): $WHAT"; echo "::error title=Monkey API $API seed $SEED::$WHAT"; FAIL=1

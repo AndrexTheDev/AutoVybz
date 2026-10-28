@@ -64,6 +64,13 @@ walks, both reproducible), a **crash scan** over every logcat
 (`FATAL EXCEPTION` from the app), an **ANR scan** (`ANR in com.andrexthedev.autovybz`), cold-start timing (3
 runs, `am start -W`) and a `meminfo` snapshot.
 
+Monkey verdicts (why an "ANR" is not automatically an app bug): a crash or an ANR *with an app frame on the
+main thread* fails the job. Two shapes are re-run with the same seed first and only fail when they reproduce —
+a **framework graphics stall** (main thread in hwui/EGL, no app frame) and an **idle main thread** (looper in
+`MessageQueue.next` while Android reports *Input dispatching timed out*, i.e. an event was dispatched to a
+window that never got a frame). A system-process ANR is an environment finding. Every verdict names the seed,
+and the report keeps the monkey output, the ANR trace and the main-thread stack of both runs.
+
 ## 4. Screenshot + accessibility matrix (API 35)
 
 Seven configurations, each running `ScreenshotTourE2ETest` + `LegacyScreensE2ETest` and then
