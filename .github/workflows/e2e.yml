@@ -222,7 +222,9 @@ jobs:
             [ -d "$d" ] || continue
             n=$(basename "$d"); mkdir -p "bundle/$n"
             cp "$d"/*.json "$d"/*.instrument.txt "$d"/summary.md "bundle/$n/" 2>/dev/null
-            cp "$d"/monkey.txt "$d"/monkey_problem.txt "$d"/crashes.txt "$d"/coldstart.txt "$d"/meminfo.txt "$d"/anr_main.txt "$d"/anr_trace.txt "$d"/monkey_rerun.txt "bundle/$n/" 2>/dev/null
+            cp "$d"/crashes.txt "$d"/coldstart.txt "$d"/meminfo.txt "bundle/$n/" 2>/dev/null
+            # Two monkey seeds per device (monkey*), each with its own problem / ANR / re-run files.
+            cp "$d"/monkey*.txt "bundle/$n/" 2>/dev/null
             for l in "$d"/*.logcat.txt; do
               [ -f "$l" ] && grep -E "autovybz|AndroidRuntime|TestRunner|FATAL|StrictMode|ANR" "$l" | tail -4000 > "bundle/$n/$(basename "$l")"
             done

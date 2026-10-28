@@ -46,7 +46,7 @@ class PresetDisplayNameUsageAuditTest {
         // engine must remain the stored identifiers.
         val home = src("ui/home/SoundScreen.kt")
         assertTrue("speaker chips keep the stored name as test tag", "avz:home:speaker:\${p.name}" in home)
-        assertTrue("engine call keeps the stored name", "VybzSound.useProfile(context, p.name)" in home)
+        assertTrue("engine call keeps the stored name", "VybzSound.useProfile(context, p?.name)" in home)
 
         val pro = src("ui/pro/ProScreen.kt")
         assertTrue("apply keeps the stored name", "VybzSound.useProfile(context, p.name)" in pro)

@@ -59,7 +59,8 @@ native host tools (see §5).
 | `ScreenshotTourE2ETest` | 8 | every state once (also the screenshot source) |
 | `IntroE2ETest`, `PermissionDeniedE2ETest` | 4 / 1 | brand intro, permission denial |
 
-Plus, per device job: `monkey` (4000 events, seed 4711, reproducible), a **crash scan** over every logcat
+Plus, per device job: `monkey` twice (4000 events each, seeds 4711 and 20261028 — two independent random
+walks, both reproducible), a **crash scan** over every logcat
 (`FATAL EXCEPTION` from the app), an **ANR scan** (`ANR in com.andrexthedev.autovybz`), cold-start timing (3
 runs, `am start -W`) and a `meminfo` snapshot.
 
@@ -91,6 +92,6 @@ from here.
 * **Instrumented suites need an emulator**; they run on push, not on every PR from forks.
 * **Only API 28/30/35.** API 29/31/32/33/34 are untested; behaviour differences are covered by
   `Build.VERSION` branches, not by runs.
-* **Monkey uses one seed** (reproducible, but a single path through the state space per run).
+* **Monkey uses two fixed seeds** (reproducible, but still only two paths through the state space per run).
 * **Timing-sensitive results** (cold start, memory) are reported, not gated — they differ per runner.
 * **Screenshot review is manual**: the contact sheets are produced automatically, judging them is not.
