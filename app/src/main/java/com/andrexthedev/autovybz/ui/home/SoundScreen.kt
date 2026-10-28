@@ -54,6 +54,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.andrexthedev.autovybz.measurement.dsp.FrequencyGrid
 import com.andrexthedev.autovybz.measurement.eq.BiquadMath
@@ -184,7 +185,11 @@ private fun PowerHero(speaker: String?, style: SoundStyle) {
                 )
                 Text(
                     speaker?.let { stringResource(R.string.avz_home_speaker_value, it) } ?: stringResource(R.string.avz_home_speaker_none_value),
+                    // Measured profile names can be long (AutoVybz_<device>_<date>, device names from the
+                    // firmware are sometimes very long): two lines keep the hero card compact, and the name is
+                    // always readable in full in the speaker picker right below.
                     style = MaterialTheme.typography.bodyMedium, color = AutoVybzColors.OnDarkMuted,
+                    maxLines = 2, overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     stringResource(R.string.avz_home_style_value, stringResource(styleName(style))),
