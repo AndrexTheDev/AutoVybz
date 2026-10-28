@@ -90,7 +90,9 @@ class PeqFitter(
         val fixed = DoubleArray(n)
         var currentLoss = loss(fixed, null)
 
-        repeat(constraints.maxBands) {
+        // A real loop (not `repeat`) so an early stop can `break` - and still run the refinement.
+        var step = 0
+        while (step < constraints.maxBands) {
             val residual = DoubleArray(n) { desired[it] - fixed[it] }
             // A band must buy at least 1.5 % of the *remaining* error (or 0.005 dB^2) - otherwise it is
             // fitting measurement noise / reflection ripple, not the speaker. Measured: with the
@@ -110,6 +112,7 @@ class PeqFitter(
             bands += chosen
             grid.response(chosen, fixed, accumulate = true)
             currentLoss = bestLoss
+            step++
         }
 
         // Refinement passes: re-fit each band with all others fixed.
