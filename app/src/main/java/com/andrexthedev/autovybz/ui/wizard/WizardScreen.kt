@@ -74,6 +74,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -120,6 +121,7 @@ import com.andrexthedev.autovybz.premium.EntitlementPolicy
 import com.andrexthedev.autovybz.ui.share.ResultSharer
 import com.andrexthedev.autovybz.ui.theme.AutoVybzColors
 import com.bearinmind.equalizer314.R
+import kotlinx.coroutines.launch
 import java.util.Locale
 import kotlin.math.roundToInt
 
@@ -1051,8 +1053,10 @@ private fun SavedStep(step: WizardStep.Saved, onOpenProEq: () -> Unit, onOpenSou
 @Composable
 private fun ShareResultButton(outcome: com.andrexthedev.autovybz.measurement.MeasurementOutcome, presetName: String, modifier: Modifier = Modifier) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     OutlinedButton(
-        onClick = { ResultSharer.share(context, outcome, presetName) },
+        // The card is rendered on Dispatchers.IO (bitmap + PNG encode); the share sheet still opens on main.
+        onClick = { scope.launch { ResultSharer.share(context, outcome, presetName) } },
         border = BorderStroke(1.dp, AutoVybzColors.Gold),
         modifier = modifier,
     ) {

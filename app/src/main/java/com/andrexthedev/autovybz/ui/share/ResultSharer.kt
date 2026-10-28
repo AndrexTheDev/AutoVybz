@@ -10,6 +10,8 @@ import android.widget.Toast
 import androidx.core.content.FileProvider
 import com.andrexthedev.autovybz.measurement.MeasurementOutcome
 import com.bearinmind.equalizer314.R
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.File
 
 /** Shares the rendered result card (PNG) plus a short text through the Android share sheet. */
@@ -19,9 +21,15 @@ object ResultSharer {
     const val SITE_LABEL = "andrexthedev.github.io/AutoVybz"
     private const val SHARE_DIR = "share"
 
-    fun share(context: Context, outcome: MeasurementOutcome, presetName: String) {
+    /**
+     * Renders the card off the main thread first: a 1080 x 1350 PNG at quality 100 plus the cache clean-up took
+     * long enough to matter on a slow device - monkey ANRs on API 30 (campaigns of 139bea7 / d251336) showed
+     * "Input dispatching timed out" while the main thread was busy, and the share button was the only place that
+     * encoded a bitmap inside an onClick. Call from a main-dispatched scope; the chooser is started on main.
+     */
+    suspend fun share(context: Context, outcome: MeasurementOutcome, presetName: String) {
         try {
-            val file = writeCard(context, outcome, presetName)
+            val file = withContext(Dispatchers.IO) { writeCard(context, outcome, presetName) }
             val uri = FileProvider.getUriForFile(context, context.packageName + ".avzfiles", file)
             val send = Intent(Intent.ACTION_SEND).apply {
                 type = "image/png"
