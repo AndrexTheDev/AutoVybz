@@ -138,7 +138,11 @@ b { color: #fff; }
 /* demo */
 .demo { margin-top: 40px; background: #192025; border: 1px solid #333E49; border-radius: 26px; padding: clamp(14px, 3vw, 30px); box-shadow: 0 30px 80px -40px rgba(30,237,97,.5); }
 #demo-canvas { width: 100%; height: auto; display: block; border-radius: 14px; background: #161C21; }
-.demo audio { display: none; } /* transport lives in #demo-play; the element only feeds the audio graph */
+.demo audio {
+  /* Visually hidden, but not `display:none`: some WebKit builds are picky about playing a non-rendered
+     media element, and the transport lives in #demo-play anyway - the element only feeds the graph. */
+  position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none;
+}
 .demo .credit { opacity: .75; font-size: .78rem; }
 .demo-legend { display: flex; flex-wrap: wrap; gap: 18px; justify-content: center; margin: 14px 0 6px; font-size: .9rem; color: var(--muted); }
 .lg::before { content: ""; display: inline-block; width: 22px; height: 4px; border-radius: 2px; margin-right: 8px; vertical-align: middle; }
