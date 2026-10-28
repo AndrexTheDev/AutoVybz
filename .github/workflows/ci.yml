@@ -51,6 +51,12 @@ jobs:
           /tmp/probe-venv/bin/pip install --quiet numpy
           /tmp/probe-venv/bin/python tools/probe/check_parity.py | tee parity.log
 
+      # The numbers behind docs/AUDIO_ROADMAP.md (THD from the sweep, window vs. reverberation, band
+      # saturation, noise robustness). No music file needed, ~4 s - it fails when the port changes in a
+      # way that would invalidate the roadmap's reasoning.
+      - name: Probe findings (roadmap evidence)
+        run: /tmp/probe-venv/bin/python tools/probe/pipeline_findings.py
+
       - name: Mic profile DB is up to date
         run: |
           python3 tools/micdb/generate_mic_profiles.py

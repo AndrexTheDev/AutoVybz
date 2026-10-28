@@ -53,7 +53,9 @@ The permanent bottom banner in this build is an in-app placeholder and Pro entry
   The capture path negotiates its sample rate with the device (48 kHz, else 44.1 kHz – no hidden
   resampling), derives the recording tail from the latency budget instead of guessing it, removes the
   microphone's DC offset, crossfades sweep and pink-noise results by SNR and flags a response whose latency
-  exceeds the search window. Stage by stage: [docs/AUDIO_PIPELINE.md](docs/AUDIO_PIPELINE.md).
+  exceeds the search window. Stage by stage: [docs/AUDIO_PIPELINE.md](docs/AUDIO_PIPELINE.md);
+  what comes next (measured THD, true peak, room decay, a verification pass) with the numbers behind it:
+  [docs/AUDIO_ROADMAP.md](docs/AUDIO_ROADMAP.md).
 - **Capture path**: Oboe (C++, AAudio/OpenSL) full-duplex with `UNPROCESSED` input, fallback
   `VOICE_RECOGNITION` → `MIC`; Java `AudioRecord/AudioTrack` fallback if the native engine fails.
   Native C++ FFT via JNI, Kotlin FFT fallback.

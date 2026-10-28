@@ -8,6 +8,7 @@ assumptions; the probe checks it against physics and against music the user woul
 ```
 python3 tools/probe/check_parity.py      # 29 self-checks against the Kotlin golden values
 python3 tools/probe/live_probe.py --music <file[:file…]> [--json out.json] [--markdown out.md]
+python3 tools/probe/pipeline_findings.py --music <file>   # the numbers behind docs/AUDIO_ROADMAP.md
 ```
 
 Requirements: `numpy` (plus `ffmpeg` on `PATH`, or `imageio-ffmpeg`) for `live_probe.py`;

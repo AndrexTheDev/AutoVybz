@@ -82,6 +82,8 @@ Seven configurations, each running `ScreenshotTourE2ETest` + `LegacyScreensE2ETe
 ```bash
 python3 tools/probe/check_parity.py                     # 29 self-checks: Python port vs. Kotlin goldens
 python3 tools/probe/live_probe.py --music <recording>   # real programme material through the whole chain
+python3 tools/probe/pipeline_findings.py --music <recording>  # THD / true peak / RT60 / band saturation
+                                                         # (the evidence behind docs/AUDIO_ROADMAP.md)
 python3 tools/i18n/check_strings.py                     # string parity en/de/es
 python3 tools/audit/secret_scan.py .                    # 0 findings
 python3 site/build.py --out /tmp/site --stars 0 && python3 tools/audit/site_audit.py /tmp/site
