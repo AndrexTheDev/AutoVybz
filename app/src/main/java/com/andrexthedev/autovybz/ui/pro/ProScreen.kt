@@ -289,7 +289,6 @@ private fun CalibrationList(externalExportsEnabled: Boolean = true, onOpenPremiu
     val df = remember { DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT) }
     val active = VybzSound.activeCalibrationName(context)
     var toDelete by remember { mutableStateOf<String?>(null) }
-    val appliedMsg = stringResource(R.string.avz_applied_toast, "%s")
     for (p in items) {
         AvzCard(accent = if (p.name == active) AutoVybzColors.Green else null, modifier = Modifier.testTag("avz:pro:cal:${p.name}")) {
             Text(p.name, style = MaterialTheme.typography.titleMedium)
@@ -306,7 +305,7 @@ private fun CalibrationList(externalExportsEnabled: Boolean = true, onOpenPremiu
                     onClick = {
                         // style + Studio tone stay layered on top; outdoor / rescue / device calibrations always
                         // arm the limiter (PresetSafety, the same rule the wizard uses when saving)
-                        Toast.makeText(context, appliedMsg.replace("%s", p.name), Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.getString(R.string.avz_applied_toast, p.name), Toast.LENGTH_SHORT).show()
                         scope.launch {
                             withContext(Dispatchers.IO) { VybzSound.useProfile(context, p.name) }
                             reload++ // re-read the active marker once the engine has the new profile
@@ -454,13 +453,25 @@ private fun MicSettings(settings: AutoVybzSettings) {
 @Composable
 private fun CurveFileRow(title: String, settings: AutoVybzSettings, file: File) {
     val context = LocalContext.current
-    var points by remember(file) { mutableStateOf(settings.loadCurve(file)?.frequencies?.size) }
-    val invalidFmt = stringResource(R.string.avz_pro_file_invalid, "%s")
+    var points by remember(file) { mutableStateOf<Int?>(null) }
+    val scope = rememberCoroutineScope()
+    // Parsing the curve reads (and validates) a file of up to 1 MB - done once, off the main thread.
+    LaunchedEffect(file) {
+        points = withContext(Dispatchers.IO) { settings.loadCurve(file)?.frequencies?.size }
+    }
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
-        val result = runCatching { settings.storeCurve(file, readSmallText(context, uri) ?: "") }
-        result.onSuccess { points = it.frequencies.size }
-            .onFailure { Toast.makeText(context, invalidFmt.replace("%s", it.message ?: "?"), Toast.LENGTH_LONG).show() }
+        // Reading (up to 1 MB), parsing and fsyncing the file must not run on the main thread: the old
+        // synchronous version blocked the UI - measurably so since the write became atomic (tmp + fsync).
+        scope.launch {
+            val result = withContext(Dispatchers.IO) {
+                runCatching { settings.storeCurve(file, readSmallText(context, uri) ?: "") }
+            }
+            result.onSuccess { points = it.frequencies.size }
+                .onFailure {
+                    Toast.makeText(context, context.getString(R.string.avz_pro_file_invalid, it.message ?: "?"), Toast.LENGTH_LONG).show()
+                }
+        }
     }
     Text(title, style = MaterialTheme.typography.titleSmall)
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {

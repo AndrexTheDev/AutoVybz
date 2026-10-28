@@ -201,8 +201,13 @@
     <string name="avz_err_permission">AutoVybz needs microphone access to measure your speaker.</string>
     <string name="avz_err_permission_settings">Open settings</string>
     <string name="avz_err_no_signal">The test signal was not heard. Is the speaker on, connected and loud enough?</string>
-    <string name="avz_err_capture">Audio could not be started: %1$s</string>
-    <string name="avz_err_unknown">Something went wrong: %1$s</string>
+    <string name="avz_err_capture">Audio could not be started.</string>
+    <string name="avz_err_unknown">Something went wrong.</string>
+    <string name="avz_err_timeout">No sound arrived from the microphone. Close other apps that record audio (calls, voice notes, other equalizers) and try again.</string>
+    <string name="avz_err_mic_busy">Another app or a call is using the microphone. Close it and try again.</string>
+    <string name="avz_err_sample_rate">The microphone and the speaker do not support the same sample rate. Try a speaker cable or a different Bluetooth speaker.</string>
+    <string name="avz_err_speaker">The speaker is not accepting audio right now. Check the connection, raise the volume and try again.</string>
+    <string name="avz_err_details">Technical details: %1$s</string>
     <string name="avz_pro_title">Studio</string>
     <string name="avz_pro_intro">Fine-tune your sound, manage speaker profiles and open the expert tools.</string>
     <string name="avz_studio_tone_title">Fine-tuning</string>

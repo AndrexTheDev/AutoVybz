@@ -1072,18 +1072,31 @@ private fun ErrorStep(
             Spacer(Modifier.width(10.dp))
             Text(stringResource(R.string.avz_err_title), style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
         }
-        val detail = step.detail ?: "-"
+        // Every case reads as a complete, translated sentence; the engine's English message is only the
+        // technical detail underneath (it used to be spliced into the sentence in the middle of a German UI).
         Text(
             when (step.error) {
                 WizardError.PERMISSION_DENIED -> stringResource(R.string.avz_err_permission)
                 WizardError.NO_SIGNAL -> stringResource(R.string.avz_err_no_signal)
-                WizardError.CAPTURE_FAILED -> stringResource(R.string.avz_err_capture, detail)
+                WizardError.CAPTURE_FAILED -> stringResource(R.string.avz_err_capture)
+                WizardError.CAPTURE_TIMEOUT -> stringResource(R.string.avz_err_timeout)
+                WizardError.MIC_BUSY -> stringResource(R.string.avz_err_mic_busy)
+                WizardError.SAMPLE_RATE -> stringResource(R.string.avz_err_sample_rate)
+                WizardError.SPEAKER_UNAVAILABLE -> stringResource(R.string.avz_err_speaker)
                 WizardError.ROUTE_CHANGED -> stringResource(R.string.avz_err_route_changed)
                 WizardError.INTERRUPTED -> stringResource(R.string.avz_err_interrupted)
-                WizardError.UNKNOWN -> stringResource(R.string.avz_err_unknown, detail)
+                WizardError.UNKNOWN -> stringResource(R.string.avz_err_unknown)
             },
             modifier = Modifier.testTag("avz:error:${step.error.name}"),
         )
+        step.detail?.takeIf { it.isNotBlank() }?.let { detail ->
+            Text(
+                stringResource(R.string.avz_err_details, detail),
+                style = MaterialTheme.typography.bodySmall,
+                color = AutoVybzColors.OnDarkMuted,
+                modifier = Modifier.testTag("avz:error:details"),
+            )
+        }
         if (step.error == WizardError.PERMISSION_DENIED) {
             Text(stringResource(R.string.avz_permission_rationale), style = MaterialTheme.typography.bodySmall, color = AutoVybzColors.OnDarkMuted)
         }

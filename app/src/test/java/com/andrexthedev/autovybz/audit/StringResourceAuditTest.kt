@@ -198,6 +198,22 @@ class StringResourceAuditTest {
     }
 
     /**
+     * Error sentences must be complete translations. The engine reports failures with English technical
+     * messages ("Cannot open microphone at 48000 Hz"), and the error screen used to splice that into the
+     * translated sentence - a German UI with an English fragment in the middle. The raw message belongs in
+     * the dedicated technical-detail line, so the user-facing error strings must not take arguments.
+     */
+    @Test
+    fun userFacingErrorSentencesNeverEmbedEngineText() {
+        val withArgument = base.keys.filter { it.startsWith("avz_err_") && placeholder.containsMatchIn(base.getValue(it)) }
+        // Allowed: the technical-detail line (raw message) and the two counters of the resume flow
+        // ("positions measured so far", "repeat position n") - both insert our own, localized numbers.
+        val allowed = setOf("avz_err_details", "avz_err_resume_hint", "avz_err_resume_retry")
+        report("error strings with a format argument", withArgument.filterNot { it in allowed })
+        assertTrue("missing avz_err_details", "avz_err_details" in base)
+    }
+
+    /**
      * The inherited Equalizer314 screens (Pro area: 10-band EQ, compressor, limiter, presets) live in strings.xml.
      * Upstream shipped Spanish but no German, so German users saw English there (lint MissingTranslation x440).
      * Every translatable key must exist in de and es with the same placeholders, and German uses its own quotes.

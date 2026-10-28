@@ -45,10 +45,39 @@ data class CaptureResult(
     val xruns: Int,
 )
 
-open class CaptureException(message: String, cause: Throwable? = null) : Exception(message, cause)
+/**
+ * A capture failure. [kind] is machine-readable on purpose: the message is an English technical string for
+ * the log and the "technical details" line, while the *user-facing* text is chosen from [kind] and comes from
+ * the string resources (see `WizardError`). Matching on the message text instead would break on the first
+ * wording change and could never be translated.
+ */
+open class CaptureException(
+    message: String,
+    cause: Throwable? = null,
+    val kind: Kind = Kind.OTHER,
+) : Exception(message, cause) {
+    enum class Kind {
+        /** The native Oboe engine is missing (wrong ABI / build without the NDK module). */
+        NATIVE_UNAVAILABLE,
+        /** No microphone data arrived within the watchdog window (mic occupied, or a silent virtual device). */
+        RECORD_TIMEOUT,
+        /** The output device does not accept the stimulus sample rate. */
+        SPEAKER_UNAVAILABLE,
+        /** The microphone could not be opened at all. */
+        MIC_OPEN_FAILED,
+        /** Another app (or a call) holds the microphone. */
+        MIC_BUSY,
+        /** The capture path itself failed (negative read/write counts). */
+        AUDIO_IO,
+        /** The capture runs at a different sample rate than the stimulus (retried once by the controller). */
+        SAMPLE_RATE,
+        OTHER,
+    }
+}
 
 /** The measurement was interrupted from outside: output route changed or another app took the audio focus. */
-class CaptureInterruptedException(val reason: Reason, message: String) : CaptureException(message) {
+class CaptureInterruptedException(val reason: Reason, message: String) :
+    CaptureException(message, kind = Kind.OTHER) {
     enum class Reason { ROUTE_CHANGED, FOCUS_LOST }
 }
 
@@ -63,6 +92,7 @@ class SampleRateMismatchException(
 ) : CaptureException(
     "Microphone runs at ${if (actualRate > 0) "$actualRate Hz" else "a different rate"}, " +
         "the measurement needs $requestedRate Hz",
+    kind = CaptureException.Kind.SAMPLE_RATE,
 )
 
 /** Plays [stimulus] on the current media route while recording the mic. */
@@ -79,7 +109,7 @@ class OboeMeasurementEngine : MeasurementAudioEngine {
     override suspend fun capture(
         stimulus: FloatArray, config: CaptureConfig, onProgress: (Float, Float) -> Unit,
     ): CaptureResult = withContext(Dispatchers.Default) {
-        if (!NativeEngine.isAvailable) throw CaptureException("native engine unavailable")
+        if (!NativeEngine.isAvailable) throw CaptureException("native engine unavailable", kind = CaptureException.Kind.NATIVE_UNAVAILABLE)
         val h = NativeEngine.nativeCreate()
         try {
             val preset = when (config.source) {
@@ -104,7 +134,10 @@ class OboeMeasurementEngine : MeasurementAudioEngine {
                         NativeEngine.nativeLastError(h) ?: "audio error", config.sampleRate,
                     )
                 }
-                if (System.currentTimeMillis() - t0 > timeoutMs) throw CaptureException("recording timed out (no microphone data)")
+                if (System.currentTimeMillis() - t0 > timeoutMs) throw CaptureException(
+                    "recording timed out (no microphone data)",
+                    kind = CaptureException.Kind.RECORD_TIMEOUT,
+                )
                 onProgress(NativeEngine.nativeProgress(h), NativeEngine.nativeInputPeak(h))
                 delay(50)
             }
@@ -138,6 +171,7 @@ class OboeMeasurementEngine : MeasurementAudioEngine {
             val actual = message.removePrefix(NativeEngine.RATE_MISMATCH_PREFIX).trim().toIntOrNull() ?: 0
             return SampleRateMismatchException(requestedRate, actual)
         }
+        // The native side reports everything else as a free-form string; the UI keeps it as technical detail.
         return CaptureException(message)
     }
 }
@@ -175,7 +209,7 @@ class JavaMeasurementEngine : MeasurementAudioEngine {
         if (track.state != AudioTrack.STATE_INITIALIZED) {
             runCatching { record.release() }
             runCatching { track.release() }
-            throw CaptureException("speaker output unavailable at $fs Hz")
+            throw CaptureException("speaker output unavailable at $fs Hz", kind = CaptureException.Kind.SPEAKER_UNAVAILABLE)
         }
         // Keep the stimulus on the route that was verified before the start (preference, see CaptureConfig).
         config.outputDevice?.let { runCatching { track.setPreferredDevice(it) } }
@@ -197,7 +231,7 @@ class JavaMeasurementEngine : MeasurementAudioEngine {
                     val t0 = System.nanoTime()
                     val n = record.read(chunk, 0, want, AudioRecord.READ_BLOCKING)
                     val elapsedMs = (System.nanoTime() - t0) / 1_000_000.0
-                    if (n < 0) throw CaptureException("AudioRecord.read error $n")
+                    if (n < 0) throw CaptureException("AudioRecord.read error $n", kind = CaptureException.Kind.AUDIO_IO)
                     for (i in 0 until n) {
                         rec[pos + i] = chunk[i]
                         peak = max(peak, abs(chunk[i]))
@@ -230,7 +264,7 @@ class JavaMeasurementEngine : MeasurementAudioEngine {
                         chunk[2 * i] = s; chunk[2 * i + 1] = s
                     }
                     val w = track.write(chunk, 0, frames * 2, AudioTrack.WRITE_BLOCKING)
-                    if (w < 0) throw CaptureException("AudioTrack.write error $w")
+                    if (w < 0) throw CaptureException("AudioTrack.write error $w", kind = CaptureException.Kind.AUDIO_IO)
                     pos += frames
                 }
             } catch (t: Throwable) {
@@ -240,7 +274,7 @@ class JavaMeasurementEngine : MeasurementAudioEngine {
 
         try {
             record.startRecording()
-            if (record.recordingState != AudioRecord.RECORDSTATE_RECORDING) throw CaptureException("microphone busy (another app is recording?)")
+            if (record.recordingState != AudioRecord.RECORDSTATE_RECORDING) throw CaptureException("microphone busy (another app is recording?)", kind = CaptureException.Kind.MIC_BUSY)
             recorder.start()
             track.play()
             player.start()
@@ -249,7 +283,7 @@ class JavaMeasurementEngine : MeasurementAudioEngine {
             while (recPos.get() < total) {
                 failure.get()?.let { throw it as? CaptureException ?: CaptureException(it.message ?: "audio error", it) }
                 if (!coroutineContext.isActive) throw CancellationException()
-                if (System.currentTimeMillis() - t0 > timeoutMs) throw CaptureException("recording timed out")
+                if (System.currentTimeMillis() - t0 > timeoutMs) throw CaptureException("recording timed out", kind = CaptureException.Kind.RECORD_TIMEOUT)
                 onProgress(recPos.get().toFloat() / total, Float.fromBits(peakBits.get()))
                 delay(50)
             }
@@ -305,7 +339,7 @@ class JavaMeasurementEngine : MeasurementAudioEngine {
             }
         }
         if (observedRate > 0) throw SampleRateMismatchException(fs, observedRate)
-        throw CaptureException("Cannot open microphone at $fs Hz", lastError)
+        throw CaptureException("Cannot open microphone at $fs Hz", lastError, CaptureException.Kind.MIC_OPEN_FAILED)
     }
 
     private fun androidSource(src: InputSource) = when (src) {

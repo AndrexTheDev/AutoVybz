@@ -202,8 +202,13 @@
     <string name="avz_err_permission">AutoVybz necesita acceso al micrófono para medir tu altavoz.</string>
     <string name="avz_err_permission_settings">Abrir ajustes</string>
     <string name="avz_err_no_signal">No se oyó la señal de prueba. ¿Está el altavoz encendido, conectado y con suficiente volumen?</string>
-    <string name="avz_err_capture">No se pudo iniciar el audio: %1$s</string>
-    <string name="avz_err_unknown">Algo salió mal: %1$s</string>
+    <string name="avz_err_capture">No se pudo iniciar el audio.</string>
+    <string name="avz_err_unknown">Algo salió mal.</string>
+    <string name="avz_err_timeout">No ha llegado sonido del micrófono. Cierra otras aplicaciones que graben audio (llamadas, notas de voz, otros ecualizadores) y vuelve a intentarlo.</string>
+    <string name="avz_err_mic_busy">Otra aplicación o una llamada está usando el micrófono. Ciérrala y vuelve a intentarlo.</string>
+    <string name="avz_err_sample_rate">El micrófono y el altavoz no admiten la misma frecuencia de muestreo. Prueba con un cable de altavoz u otro altavoz Bluetooth.</string>
+    <string name="avz_err_speaker">El altavoz no acepta audio en este momento. Comprueba la conexión, sube el volumen y vuelve a intentarlo.</string>
+    <string name="avz_err_details">Detalles técnicos: %1$s</string>
     <string name="avz_pro_title">Estudio</string>
     <string name="avz_pro_intro">Ajusta tu sonido, gestiona los perfiles de altavoz y abre las herramientas expertas.</string>
     <string name="avz_studio_tone_title">Ajuste fino</string>

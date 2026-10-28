@@ -201,8 +201,13 @@
     <string name="avz_err_permission">AutoVybz braucht Zugriff auf das Mikrofon, um deinen Lautsprecher zu messen.</string>
     <string name="avz_err_permission_settings">Einstellungen öffnen</string>
     <string name="avz_err_no_signal">Das Testsignal kam nicht an. Ist der Lautsprecher an, verbunden und laut genug?</string>
-    <string name="avz_err_capture">Audio konnte nicht gestartet werden: %1$s</string>
-    <string name="avz_err_unknown">Etwas ist schiefgelaufen: %1$s</string>
+    <string name="avz_err_capture">Audio konnte nicht gestartet werden.</string>
+    <string name="avz_err_unknown">Es ist ein Fehler aufgetreten.</string>
+    <string name="avz_err_timeout">Vom Mikrofon ist kein Ton angekommen. Schließe andere Apps, die Audio aufnehmen (Anrufe, Sprachnachrichten, andere Equalizer), und versuche es erneut.</string>
+    <string name="avz_err_mic_busy">Eine andere App oder ein Anruf nutzt gerade das Mikrofon. Schließe sie und versuche es erneut.</string>
+    <string name="avz_err_sample_rate">Mikrofon und Lautsprecher unterstützen nicht dieselbe Abtastrate. Versuche ein Lautsprecherkabel oder einen anderen Bluetooth-Lautsprecher.</string>
+    <string name="avz_err_speaker">Der Lautsprecher nimmt gerade kein Audio an. Prüfe die Verbindung, erhöhe die Lautstärke und versuche es erneut.</string>
+    <string name="avz_err_details">Technische Details: %1$s</string>
     <string name="avz_pro_title">Studio</string>
     <string name="avz_pro_intro">Feinschliff für deinen Sound, Lautsprecher-Profile verwalten und Experten-Werkzeuge öffnen.</string>
     <string name="avz_studio_tone_title">Feinschliff</string>

@@ -43,8 +43,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-enum class WizardError { PERMISSION_DENIED, NO_SIGNAL, CAPTURE_FAILED, ROUTE_CHANGED, INTERRUPTED, UNKNOWN }
-
 sealed interface WizardStep {
     /** Start screen with the big "Calibrate speaker" button. */
     object Idle : WizardStep
@@ -399,7 +397,7 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
                 val error = if (e.reason == CaptureInterruptedException.Reason.ROUTE_CHANGED) WizardError.ROUTE_CHANGED else WizardError.INTERRUPTED
                 fail(error, e.message, position)
             } catch (e: CaptureException) {
-                fail(WizardError.CAPTURE_FAILED, e.message, position)
+                fail(WizardError.of(e), e.message, position)
             } catch (e: Exception) {
                 Log.e("AutoVybz", "measurement failed", e)
                 fail(WizardError.UNKNOWN, e.message, position)

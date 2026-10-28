@@ -70,7 +70,9 @@ The permanent bottom banner in this build is an in-app placeholder and Pro entry
   preset list, activated with one tap. A calibration keeps its full measurement, so it can be re-fitted,
   exported or re-applied later; sound styles are layered on top and the pre-amp is recomputed every time, so
   nothing clips. Storage scopes, plan rules and the limiter policy:
-  [docs/PRESETS_AND_LIMITS.md](docs/PRESETS_AND_LIMITS.md).
+  [docs/PRESETS_AND_LIMITS.md](docs/PRESETS_AND_LIMITS.md). Every failure the user can see is one complete,
+  translated sentence with the English engine message only as a labelled technical detail:
+  [docs/ERRORS_AND_MESSAGES.md](docs/ERRORS_AND_MESSAGES.md).
 - **Export**: Equalizer APO / Peace / AutoEq `ParametricEQ.txt`, parametric EQ JSON, REW-importable CSV,
   internal `.avz.json` (curves + filters + metadata).
 - **Expert tools** (from the Equalizer314 engine, restyled): 10-band PEQ graph, multiband compressor, limiter,
