@@ -115,6 +115,20 @@ Two failure modes are invisible to the analysis and are therefore decided on the
   a clipped recording with a DC offset can drop below full scale after the correction and would then slip
   through the analyzer's own peak check.
 
+## 5b. Stream volume: set for the measurement, and given back
+
+The measurement needs ≈70 % of `STREAM_MUSIC` (device-speaker calibration ≈50 %, stepping down after mic
+clipping). `VolumeGuard` remembers the user's value and restores it when the wizard finishes, fails or is
+cancelled.
+
+The in-memory value was not enough: a run killed mid-way (process death, force stop, low memory) left the
+media volume at the measurement level for good, with no indication to the user that the app had changed it.
+The guard therefore records `{saved, applied}` in `autovybz_volume` before touching the stream, and
+`VolumeGuard.restoreAbandoned()` (called once per cold start in `AutoVybzActivity.onCreate`) puts `saved`
+back **only if** the stream still holds exactly `applied` – a volume the user adjusted in the meantime is
+their decision and stays untouched (`VolumeMath.shouldRestoreAbandoned`, unit-tested). The record is cleared
+on every normal `restore()`, so nothing is ever restored twice.
+
 ## 6. DC offset removal
 
 Phone microphones – and USB-C dongles after a converter – can deliver a constant offset. It is not part of

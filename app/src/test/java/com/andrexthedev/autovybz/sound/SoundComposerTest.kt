@@ -77,6 +77,42 @@ class SoundComposerTest {
         assertEquals(composed.bands.size, composed.bandCount)
     }
 
+    /**
+     * The band budget used to be filled as "calibration + style + tone" and then cut: on a calibration with
+     * more than 12 filters the user's Bass/Höhen shelves were dropped *first* (they are appended last), so the
+     * Studio sliders showed +3 dB that never reached the engine. The tone shelves now win over the style.
+     */
+    @Test
+    fun toneShelvesSurviveAFullBandBudgetAndTheStyleIsCutInstead() {
+        val big = deviceCalibration.copy(
+            bands = List(13) { PeqBand(PeqType.PEAK, 100.0 * (it + 1), -1.0, 1.0) },
+            bandCount = 13,
+        )
+        val selection = SoundSelection(SoundStyle.HIPHOP_RNB, 100, bassDb = 4.0, trebleDb = 3.0)
+        val composed = SoundComposer.compose(big, selection)
+        assertEquals(SoundComposer.ENGINE_MAX_BANDS, composed.bands.size)
+        // 13 calibration filters leave room for the two tone shelves and exactly one style band.
+        val tone = SoundComposer.toneBands(selection)
+        assertEquals(2, tone.size)
+        assertTrue("tone shelves missing: ${composed.bands}", composed.bands.containsAll(tone))
+        val styleBands = SoundStyle.HIPHOP_RNB.bandsAt(100)
+        assertEquals(1, composed.bands.count { it in styleBands })
+        // The calibration itself is never cut in favour of a layer.
+        assertTrue(composed.bands.containsAll(big.bands))
+        assertEquals(composed.bands.size, composed.bandCount)
+    }
+
+    @Test
+    fun aFullBudgetStillKeepsEveryToneShelfWhenNoBaseBandsArePresent() {
+        // Style only: everything fits, order stays style -> tone.
+        val composed = SoundComposer.compose(
+            SoundComposer.styleOnlyBase(0L),
+            SoundSelection(SoundStyle.ROCK, 100, bassDb = 2.0, trebleDb = 1.0),
+        )
+        assertEquals(SoundStyle.ROCK.bandsAt(100).size + 2, composed.bands.size)
+        assertTrue(composed.bands.takeLast(2) == SoundComposer.toneBands(SoundSelection(bassDb = 2.0, trebleDb = 1.0)))
+    }
+
     @Test
     fun composedCurveNeverClipsWithoutAnAllowance() {
         // Style only, no calibration: the pre-gain is the plain clipping-safe value.

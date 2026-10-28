@@ -48,6 +48,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import com.andrexthedev.autovybz.measurement.ListeningEnvironment
 import com.andrexthedev.autovybz.measurement.audio.EqBypass
+import com.andrexthedev.autovybz.measurement.audio.VolumeGuard
 import com.andrexthedev.autovybz.premium.CryptoCoin
 import com.andrexthedev.autovybz.premium.Entitlement
 import com.andrexthedev.autovybz.premium.PremiumPlan
@@ -91,6 +92,9 @@ class AutoVybzActivity : ComponentActivity() {
             navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
         )
         super.onCreate(savedInstanceState)
+        // A measurement that was killed mid-run (process death, force stop) left the media volume at the
+        // measurement level: undo that before anything else touches the stream. Only on a cold start.
+        if (savedInstanceState == null) VolumeGuard.restoreAbandoned(this)
         // AutoVybz replaced MainActivity as launcher, so it takes over the "restore EQ on app open" fallback.
         if (savedInstanceState == null) EqBypass.startIfPersistedOn(this)
         // Cold start: brand intro (silent, skippable). Not after rotation / process restore.

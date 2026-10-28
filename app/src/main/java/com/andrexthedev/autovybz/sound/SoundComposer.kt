@@ -54,8 +54,9 @@ object SoundComposer {
 
     fun compose(base: AutoVybzPreset, selection: SoundSelection): AutoVybzPreset {
         if (selection.isIdentity) return base
-        val extra = selection.style.bandsAt(selection.intensity) + toneBands(selection)
-        val bands = (base.bands + extra).take(ENGINE_MAX_BANDS)
+        val style = selection.style.bandsAt(selection.intensity)
+        val tone = toneBands(selection)
+        val bands = fitLayers(base.bands, style, tone)
         // A style/tone layer must never undo the calibration's gain staging: only the clipping-safe part
         // is recomputed for the new peak, the calibration's own offset to it (loudness make-up, or the
         // extra safety margin of an imported/legacy preset) is carried over unchanged.
@@ -68,6 +69,24 @@ object SoundComposer {
             preampDb = floor(target * 10.0 + 1e-9) / 10.0,
             bandCount = bands.size,
         )
+    }
+
+    /**
+     * The engine has a fixed band budget ([ENGINE_MAX_BANDS]). It used to be filled as
+     * `calibration + style + tone` and then cut, so a calibration with more than 12 filters (an imported
+     * preset, or 10 bands on a device where the Pro area raised the engine limit) silently swallowed the
+     * user's Bass/Höhen shelves first, then the whole style - while the Sound screen still showed the style
+     * selected and the tone sliders at their values. Priority is now explicit: the calibration defines the
+     * speaker correction, the tone shelves are a direct user wish, the style is a flavour on top.
+     */
+    private fun fitLayers(base: List<PeqBand>, style: List<PeqBand>, tone: List<PeqBand>): List<PeqBand> {
+        val keptBase = base.take(ENGINE_MAX_BANDS)
+        val room = (ENGINE_MAX_BANDS - keptBase.size).coerceAtLeast(0)
+        val keptTone = tone.take(room)
+        val keptStyle = style.take((room - keptTone.size).coerceAtLeast(0))
+        // Order stays calibration -> style -> tone (the engine is order-agnostic; the tests and the curve
+        // preview read it that way).
+        return keptBase + keptStyle + keptTone
     }
 
     /**

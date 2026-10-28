@@ -132,4 +132,12 @@ object VolumeMath {
 
     fun fractionOf(index: Int, min: Int, max: Int): Float =
         if (max <= min) 0f else ((index - min).toFloat() / (max - min)).coerceIn(0f, 1f)
+
+    /**
+     * Should [VolumeGuard.restoreAbandoned] put [saved] back? Only when the stream still shows the value the
+     * measurement set ([current] == [applied]): a volume the user adjusted in the meantime is their own
+     * decision and must survive. Restoring a value the stream already has is pointless, hence `saved != current`.
+     */
+    fun shouldRestoreAbandoned(saved: Int, applied: Int, current: Int): Boolean =
+        saved != applied && current == applied && saved != current
 }

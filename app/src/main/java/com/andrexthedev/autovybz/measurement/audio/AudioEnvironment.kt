@@ -141,9 +141,17 @@ object InputSourceResolver {
 /**
  * Sets STREAM_MUSIC to the measurement level (~70 %) and restores the user's
  * volume afterwards. Fixed-volume devices (e.g. some TV boxes) are left alone.
+ *
+ * The remembered value is also written to preferences: a calibration that never finishes (process killed by
+ * the system while measuring, force stop, low memory) would otherwise leave the media volume at the
+ * measurement level for good - and the user never asked for that change. [restoreAbandoned] undoes it on the
+ * next app start, but only while the stream still shows exactly the value the measurement set (a volume the
+ * user changed afterwards is theirs and stays untouched).
  */
 class VolumeGuard(context: Context) {
-    private val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+    private val app = context.applicationContext
+    private val am = app.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+    private val prefs = app.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
     private var saved: Int? = null
 
     val min: Int get() = am.getStreamMinVolume(AudioManager.STREAM_MUSIC)
@@ -156,14 +164,49 @@ class VolumeGuard(context: Context) {
     fun setFraction(fraction: Float) {
         if (isFixed) return
         if (saved == null) saved = current
-        runCatching { am.setStreamVolume(AudioManager.STREAM_MUSIC, VolumeMath.indexFor(fraction, min, max), 0) }
+        val applied = VolumeMath.indexFor(fraction, min, max)
+        // Recorded *before* the change: if the process dies right after, the next start knows what to undo.
+        prefs.edit().putInt(KEY_SAVED, saved ?: current).putInt(KEY_APPLIED, applied).apply()
+        runCatching { am.setStreamVolume(AudioManager.STREAM_MUSIC, applied, 0) }
             .onFailure { Log.w("AutoVybz", "setStreamVolume failed (DND / policy?)", it) }
     }
 
     fun restore() {
-        val v = saved ?: return
+        val v = saved
+        if (v == null) {
+            prefs.edit().clear().apply()
+            return
+        }
         runCatching { am.setStreamVolume(AudioManager.STREAM_MUSIC, v, 0) }
         saved = null
+        prefs.edit().clear().apply()
+    }
+
+    companion object {
+        const val PREFS = "autovybz_volume"
+        internal const val KEY_SAVED = "saved_index"
+        internal const val KEY_APPLIED = "applied_index"
+        private const val NO_INDEX = Int.MIN_VALUE
+
+        /**
+         * Undoes a measurement volume that outlived its process. Called once per app start (before anything
+         * else touches the stream); a no-op when the last measurement was finished or cancelled normally.
+         */
+        fun restoreAbandoned(context: Context) {
+            val app = context.applicationContext
+            val prefs = app.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            if (!prefs.contains(KEY_APPLIED)) return
+            val saved = prefs.getInt(KEY_SAVED, NO_INDEX)
+            val applied = prefs.getInt(KEY_APPLIED, NO_INDEX)
+            prefs.edit().clear().apply() // never try twice, whatever happens below
+            if (saved == NO_INDEX || applied == NO_INDEX) return
+            val am = app.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            if (am.isVolumeFixed) return
+            val current = am.getStreamVolume(AudioManager.STREAM_MUSIC)
+            if (!VolumeMath.shouldRestoreAbandoned(saved, applied, current)) return
+            runCatching { am.setStreamVolume(AudioManager.STREAM_MUSIC, saved, 0) }
+                .onFailure { Log.w("AutoVybz", "restoring the media volume failed", it) }
+        }
     }
 }
 

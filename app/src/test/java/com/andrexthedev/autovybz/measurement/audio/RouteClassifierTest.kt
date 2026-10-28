@@ -63,4 +63,20 @@ class RouteClassifierTest {
         assertEquals(0.5f, VolumeMath.fractionOf(5, 0, 10), 1e-6f)
         assertEquals(0f, VolumeMath.fractionOf(3, 4, 4), 0f)
     }
+
+    /**
+     * A calibration that never finished leaves STREAM_MUSIC at the measurement level. The next start undoes
+     * that - but only while the stream still holds exactly what the measurement set: a volume the user changed
+     * afterwards must survive (it is their decision, not a leftover of ours).
+     */
+    @Test
+    fun abandonedMeasurementVolumeIsOnlyRestoredWhenUntouched() {
+        // Stream still at the measurement value (11/15 = 70 %) -> restore the user's 6/15.
+        assertTrue(VolumeMath.shouldRestoreAbandoned(saved = 6, applied = 11, current = 11))
+        // The user moved the slider after the crash -> leave it alone.
+        assertFalse(VolumeMath.shouldRestoreAbandoned(saved = 6, applied = 11, current = 9))
+        // Nothing to do when the measurement never actually changed the stream.
+        assertFalse(VolumeMath.shouldRestoreAbandoned(saved = 6, applied = 6, current = 6))
+        assertFalse(VolumeMath.shouldRestoreAbandoned(saved = 11, applied = 11, current = 11))
+    }
 }

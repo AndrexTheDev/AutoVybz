@@ -37,6 +37,10 @@ asymmetry is the whole reason for §3.
   metadata the result screen, the share card, exports and re-fitting use: mic profile, input source, engine,
   latency, median SNR, warnings, **environment** (`INDOOR`/`OUTDOOR`), **positions**, **speaker class**
   (`STANDARD`/`RESCUE`/`DEVICE`).
+* **Band budget (16 filters in the engine)**: the calibration bands stay, the two Studio tone shelves always
+  fit, and the style is cut last (`SoundComposer.fitLayers`). The order used to be "calibration + style +
+  tone, then truncate", which dropped the user's Bass/Höhen shelves first on a calibration with more than
+  12 filters – the sliders showed +3 dB that never reached the engine.
 * **Style + tone are *not* baked in.** They are layered on application time by `SoundComposer`, with the
   pre-amp recomputed for the new peak (and the calibration's own loudness make-up preserved), so switching a
   style never needs a re-measurement and never undoes the gain staging.
