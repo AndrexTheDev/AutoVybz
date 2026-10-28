@@ -27,7 +27,8 @@ import kotlin.math.sqrt
  * whole story). The median matters: against the mean, one very different position pulls the reference
  * towards itself, so all positions end up looking equally wrong (measured: a 20 dB suck-out at one of
  * four positions gave deviations of 5.8/4.6/4.3/4.7 dB against the mean - indistinguishable - and
- * 2.5/2.4/1.4/**8.5** dB against the median). With two positions nothing can be dropped either way:
+ * 2.5/2.4/1.4/8.5 dB against the median - and the 8.5 dB one is the position that gets dropped).
+ * With two positions nothing can be dropped either way:
  * there is no majority to say which one is wrong.
  */
 object SpatialAverager {
