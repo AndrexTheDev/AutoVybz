@@ -6,6 +6,7 @@ import kotlin.math.cos
 import kotlin.math.log10
 import kotlin.math.max
 import kotlin.math.sin
+import kotlin.math.sqrt
 
 /**
  * Inter-sample ("true") peak of a digital signal - the quantity that decides whether a DAC or a lossy
