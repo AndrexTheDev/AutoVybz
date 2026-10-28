@@ -19,7 +19,12 @@ class SpeakerClassTuningTest {
 
     @Test
     fun standardClassChangesNothing() {
-        assertEquals(SpeakerClassTuning(), standard)
+        // The only STANDARD-specific value is the treble boost cap: above 10 kHz the phone-mic profile
+        // is an estimate and programme material carries ~0 % of its energy there, so an uncapped 6 dB
+        // treble "correction" only costs master level (PreampPlanner). Everything else is untouched.
+        assertEquals(3.0, standard.highBoostCapDb ?: -1.0, 0.0)
+        assertEquals(10_000.0, standard.highBoostCapStartHz ?: -1.0, 0.0)
+        assertEquals(SpeakerClassTuning(highBoostCapDb = 3.0, highBoostCapStartHz = 10_000.0), standard)
         for (env in ListeningEnvironment.values()) {
             val tuning = EnvironmentTuning.of(env, SmoothingProfile.DYNAMIC, 6.0)
             assertEquals(
@@ -32,6 +37,8 @@ class SpeakerClassTuningTest {
                     // indoors the clipping-safe pre-gain stays untouched (allowance 0).
                     preampHeadroomAllowanceDb =
                         if (tuning.forceLimiter) PreampPlanner.LIMITER_HEADROOM_ALLOWANCE_DB else 0.0,
+                    highBoostCapDb = standard.highBoostCapDb,
+                    highBoostCapStartHz = standard.highBoostCapStartHz ?: HIGH_BOOST_CAP_START_HZ,
                 ),
                 CorrectionPlanner.autoEqSettings(10, tuning, standard),
             )

@@ -101,7 +101,11 @@ class PreampPlannerTest {
         val bounded = PreampPlanner.plan(
             grid, flat(0.0), cut, headroomAllowanceDb = 100.0, maxMakeUpDb = 0.5,
         )
-        assertEquals(0.5, bounded.preampDb, 0.1)
+        // A cut-only correction has no boost, so the static bound is the plain headroom (-0.5 dB) and
+        // the make-up can use at most `maxMakeUpDb` above it. (Before the ceiling existed the bound was
+        // 0 dB + 0.5 dB = 0.5 dB, i.e. the headroom was spent on loudness instead of safety.)
+        assertEquals(0.0, bounded.preampDb, 0.1)
+        assertEquals(-0.5, bounded.clippingSafeDb, 0.1)
 
         // A genuine +9 dB boost with the limiter armed: the pre-gain may use the bounded share of the
         // limiter's headroom (the allowance) so the correction does not come out 9.5 dB quieter - but
@@ -131,8 +135,9 @@ class PreampPlannerTest {
     @Test
     fun boostingCorrectionComesOutLoudnessNeutralWithTheLimiter() {
         // The device-speaker case: a presence cut (loudness cost) plus a treble boost (clipping-safe
-        // attenuation). With the limiter armed the corrected chain must come out as loud as the
-        // original - the legacy rule made it peak + headroom dB quieter.
+        // attenuation). With the limiter armed the corrected chain must come out close to as loud as
+        // the original - the legacy rule made it peak + headroom dB quieter. What remains is the part
+        // the measured limiter allowance does not cover (the probe measures that on real programme).
         val presenceCut = band(2000.0, -6.0)
         val trebleBoost = band(9000.0, 4.0, octaves = 0.5)
         val mixed = DoubleArray(grid.size) { presenceCut[it] + trebleBoost[it] }

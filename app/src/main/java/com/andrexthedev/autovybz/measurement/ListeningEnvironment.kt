@@ -44,6 +44,18 @@ data class EnvironmentTuning(
     companion object {
         const val OUTDOOR_MAX_BOOST_DB = 3.0
 
+        /**
+         * How far above the detected bass limit a boost must be before it is fully allowed (octaves).
+         *
+         * The limit is already conservative (the -6 dB crossing x 1.25), so a full octave meant "no boost
+         * below 2.5x the driver's own roll-off". Measured on the mini box: at 104-122 Hz - well above its
+         * 58 Hz -6 dB point - the correction was held back by ~6 dB in a band that carries 3 % of the
+         * programme energy, and the residual error there alone kept two probe cases from passing. Half an
+         * octave still protects the roll-off itself and aligns with the 0.5-octave fade of
+         * `AutoEqRenderer.rangeWeight`, so both mechanisms end at the same frequency.
+         */
+        const val INDOOR_EXCURSION_GUARD_OCTAVES = 0.5
+
         fun of(
             environment: ListeningEnvironment,
             userSmoothing: SmoothingProfile = SmoothingProfile.DYNAMIC,
@@ -54,7 +66,7 @@ data class EnvironmentTuning(
                 sweepWeight = 0.5,
                 maxBoostDb = userMaxBoostDb,
                 broadBoostOctaves = null,
-                excursionGuardOctaves = 1.0,
+                excursionGuardOctaves = INDOOR_EXCURSION_GUARD_OCTAVES,
                 forceLimiter = false,
                 recommendedPositions = 1,
             )

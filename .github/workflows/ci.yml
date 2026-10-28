@@ -42,6 +42,15 @@ jobs:
             exit 1
           fi
 
+      # The Python port of the DSP/Auto-EQ stack is what the offline live probe (tools/probe) judges the
+      # app with; if it drifts from the Kotlin golden values, every probe finding becomes meaningless.
+      - name: Probe parity (Python port vs. Kotlin golden values)
+        run: |
+          set -o pipefail
+          python3 -m venv /tmp/probe-venv
+          /tmp/probe-venv/bin/pip install --quiet numpy
+          /tmp/probe-venv/bin/python tools/probe/check_parity.py | tee parity.log
+
       - name: Mic profile DB is up to date
         run: |
           python3 tools/micdb/generate_mic_profiles.py

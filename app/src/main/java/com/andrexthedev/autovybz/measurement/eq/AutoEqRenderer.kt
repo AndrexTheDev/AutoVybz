@@ -165,9 +165,33 @@ object AutoEqRenderer {
     /** Butterworth, 12 dB/oct. */
     const val PROTECTIVE_HP_Q = 0.707
 
+    /**
+     * Largest part of the protective pass' slope the fitter is asked to compensate (dB). Deeper than this
+     * the pass is protection; see [render].
+     */
+    const val HP_COMPENSATION_LIMIT_DB = 6.0
+
     /** Protective-pass corner for a detected [lowLimitHz] (the -6 dB point), or null if pointless. */
     internal fun protectiveHighPassHz(lowLimitHz: Double): Double? =
         (lowLimitHz / LOW_LIMIT_SAFETY).takeIf { it >= MIN_PROTECTIVE_HP_HZ }?.coerceAtMost(MAX_PROTECTIVE_HP_HZ)
+
+    /**
+     * The corner of the protective pass actually used, or null when no pass should be added.
+     *
+     * [AutoEqSettings.protectiveHighPassHz] is a per-class *cap*, not a
+     * target: the speaker classes are picked by the user ("weak speaker"), but only the measurement knows
+     * where the driver really stops playing. The fixed 150 Hz of [com.andrexthedev.autovybz.measurement.SpeakerClass.RESCUE]
+     * is right for a cheap box that rolls off at 200 Hz - and catastrophic for a party box that was
+     * (wrongly) calibrated in that class while measuring down to 55 Hz: the pass then removes 1.5 octaves
+     * of working bass (-17 dB at 40 Hz in the live-music probe, tools/probe/). Clamping the cap to the measured
+     * -6 dB point keeps the protection where the driver really cannot play, and drops the pass entirely
+     * when the speaker plays down to [MIN_PROTECTIVE_HP_HZ].
+     */
+    internal fun protectivePassFor(lowLimitHz: Double, classCornerHz: Double?): Double? {
+        val rollOff = lowLimitHz / LOW_LIMIT_SAFETY
+        val corner = if (classCornerHz == null) protectiveHighPassHz(lowLimitHz) else minOf(classCornerHz, rollOff)
+        return corner?.takeIf { it >= MIN_PROTECTIVE_HP_HZ }?.coerceAtMost(MAX_PROTECTIVE_HP_HZ)
+    }
 
     fun render(
         frequencies: DoubleArray,
@@ -193,7 +217,7 @@ object AutoEqRenderer {
         } else settings.manualLowLimitHz.coerceIn(20.0, 500.0)
         val highLimit = settings.highLimitHz.coerceIn(2000.0, 20000.0)
         val highPassHz = if (settings.protectiveHighPass) {
-            (settings.protectiveHighPassHz ?: protectiveHighPassHz(lowLimit))?.coerceIn(35.0, 1000.0)
+            protectivePassFor(lowLimit, settings.protectiveHighPassHz)
         } else null
 
         val inRange = DoubleArray(frequencies.size) { rangeWeight(frequencies[it], lowLimit, highLimit) }
@@ -257,7 +281,13 @@ object AutoEqRenderer {
         // what the guard budgeted.
         val fitDesired = if (highPass != null) {
             val hp = DoubleArray(frequencies.size).also { grid.response(highPass, it) }
-            DoubleArray(frequencies.size) { i -> desired[i] - hp[i] * inRange[i] * reliable[i] }
+            // Only the *band edge* of the pass is compensated. Deeper into its stop band the pass is
+            // protection, not a correction the fitter could or should undo - asking for it produces a
+            // plan nobody can realise (the beta probe measured a 20 dB gap between plan and filters,
+            // 2026-10-28) and burns the band budget on filters that fight the pass.
+            DoubleArray(frequencies.size) { i ->
+                desired[i] - hp[i].coerceIn(-HP_COMPENSATION_LIMIT_DB, HP_COMPENSATION_LIMIT_DB) * inRange[i] * reliable[i]
+            }
         } else desired
         val fitted = PeqFitter(grid, fitDesired, weights, constraints).fit()
         val bands = if (highPass != null) {

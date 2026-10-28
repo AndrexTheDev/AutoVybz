@@ -88,7 +88,14 @@ data class SpeakerClassTuning(
     val forcePhoneMic: Boolean = false,
 ) {
     companion object {
-        private val STANDARD = SpeakerClassTuning()
+        private val STANDARD = SpeakerClassTuning(
+            // Above ~10 kHz the phone-mic profile is an estimate (not a calibration) and programme
+            // material carries 0.0-0.1 % of its energy there: an uncapped 6 dB treble correction buys
+            // nothing audible but costs the full 6 dB of master level (see PreampPlanner). 3 dB keeps a
+            // gentle treble lift - more is phantom boost with a real loudness price.
+            highBoostCapDb = 3.0,
+            highBoostCapStartHz = 10000.0,
+        )
 
         private val RESCUE = SpeakerClassTuning(
             // Cheap drivers measure ragged; correct the tonal shape, not every wiggle.

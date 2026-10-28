@@ -6,6 +6,7 @@ import android.os.Build
 import android.util.Log
 import com.andrexthedev.autovybz.export.PresetNaming
 import com.andrexthedev.autovybz.measurement.audio.EqBypass
+import com.andrexthedev.autovybz.measurement.eq.AntiClipping
 import com.andrexthedev.autovybz.preset.model.AutoVybzPreset
 import com.andrexthedev.autovybz.sound.SoundComposer
 import com.andrexthedev.autovybz.sound.VybzSound
@@ -213,12 +214,14 @@ object AutoVybzPresetStore {
         p.saveSimpleEqEnabled(false)
         p.saveAutoEqName("")
         if (enableLimiter) {
+            // One source of truth: [AntiClipping.DEFAULT_LIMITER] (measured peak-protection values).
+            val limiter = AntiClipping.DEFAULT_LIMITER
             p.saveLimiterEnabled(true)
-            p.saveLimiterThreshold(-1f)
-            p.saveLimiterRatio(10f)
-            p.saveLimiterAttack(1f)
-            p.saveLimiterRelease(60f)
-            p.saveLimiterPostGain(0f)
+            p.saveLimiterThreshold(limiter.thresholdDb)
+            p.saveLimiterRatio(limiter.ratio)
+            p.saveLimiterAttack(limiter.attackMs)
+            p.saveLimiterRelease(limiter.releaseMs)
+            p.saveLimiterPostGain(limiter.postGainDb)
         }
         val state = context.getSharedPreferences(AVZ_PREFS, Context.MODE_PRIVATE).edit().putBoolean(KEY_PENDING_APPLY, true)
         if (!styleOnly) state.putString(KEY_LAST_PRESET, preset.name)

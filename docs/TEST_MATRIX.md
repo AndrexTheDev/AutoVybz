@@ -80,6 +80,8 @@ Seven configurations, each running `ScreenshotTourE2ETest` + `LegacyScreensE2ETe
 ## 5. What can be verified without a device
 
 ```bash
+python3 tools/probe/check_parity.py                     # 27 self-checks: Python port vs. Kotlin goldens
+python3 tools/probe/live_probe.py --music <recording>   # real programme material through the whole chain
 python3 tools/i18n/check_strings.py                     # string parity en/de/es
 python3 tools/audit/secret_scan.py .                    # 0 findings
 python3 site/build.py --out /tmp/site --stars 0 && python3 tools/audit/site_audit.py /tmp/site
@@ -87,6 +89,12 @@ python3 tools/micdb/generate_mic_profiles.py && git diff --exit-code app/src/mai
 python3 tools/autoeq/pack_autoeq.py && git diff --exit-code app/src/main/assets/autoeq/autoeq.bin
 bash tools/native/host_check.sh                          # FFT vs DFT + Oboe/JNI syntax
 ```
+
+`tools/probe` is the only suite that judges the *result* instead of the code: it runs real music through a
+modelled measurement chain (minimum-phase speaker + room + mic, sweep + noise) and scores tonal error,
+loudness, peaks and clipping. `check_parity.py` guards the port against the Kotlin golden values and runs in
+CI; `live_probe.py` needs programme material and `ffmpeg`/`imageio-ffmpeg`, so it stays a manual/probing
+tool (see `tools/probe/README.md`). Its round-8 findings are listed there.
 
 Everything else (Kotlin compile, unit tests, lint, instrumented suites) needs the Gradle toolchain and is
 therefore proven only by CI. That is deliberate: the sandbox has no JDK, so "it compiles" is never claimed

@@ -10,6 +10,33 @@ import kotlin.math.pow
 import kotlin.math.sign
 import kotlin.math.sqrt
 
+/**
+ * Upper bound on the number of residual extrema offered to the optimiser per greedy step.
+ * Three covers the classic "boom + honk + presence" shape of a small speaker; more only cost CPU.
+ */
+private const val MAX_PEAK_CANDIDATES = 3
+
+/** A candidate must be at least this large (dB) to be worth one of the [FitConstraints.maxBands]. */
+private const val CANDIDATE_MIN_DB = 0.5
+
+/** ... and this large to be offered as an *alternative* to the worst residual point. */
+private const val CANDIDATE_SECONDARY_MIN_DB = 1.0
+
+/** Bands closer than this (octaves) are duplicates and are merged after the refinement passes. */
+private const val MERGE_DISTANCE_OCT = 0.28
+
+/** ... as long as dropping one does not increase the loss by more than this fraction ... */
+private const val MERGE_LOSS_TOLERANCE = 0.001
+
+/** ... nor make the worst un-fitted gap more than this much bigger (dB). */
+private const val MERGE_MAX_ERROR_GROWTH_DB = 0.05
+
+/** Greedy acceptance: a band has to buy this fraction of the *current* error, but at least ... */
+private const val GREEDY_MIN_GAIN_RATIO = 0.015
+
+/** ... this absolute amount (dB^2), so the fit stops before chasing ripple. */
+private const val GREEDY_MIN_GAIN_FLOOR_DB2 = 0.005
+
 /** Constraints for [PeqFitter]. */
 data class FitConstraints(
     val maxBands: Int = 10,
@@ -33,10 +60,11 @@ data class FitConstraints(
  *
  * Strategy (speaker-oriented, inspired by AutoEq's greedy approach):
  * 1. Greedy: in each step look at the remaining error and propose candidates -
- *    a peaking filter at the largest weighted deviation (Q from its width) and,
- *    if allowed, low/high shelves for broad trends. Each candidate is locally
- *    optimised (Nelder-Mead over log f, gain, log Q) with all previous bands
- *    fixed; the best one is kept. Stops early when nothing improves.
+ *    peaking filters at the [MAX_PEAK_CANDIDATES] largest weighted deviations (Q
+ *    from their width) and, if allowed, low/high shelves for broad trends. Each
+ *    candidate is locally optimised (Nelder-Mead over log f, gain, log Q) with all
+ *    previous bands fixed; the best one is kept. Stops early when nothing improves
+ *    enough *relative to what is still left* (not relative to the initial error).
  * 2. Refinement: every band is re-optimised against the others (2 passes).
  * 3. Clean-up: inaudible bands (|gain| < 0.2 dB) are dropped.
  *
@@ -61,12 +89,16 @@ class PeqFitter(
         val bands = mutableListOf<PeqBand>()
         val fixed = DoubleArray(n)
         var currentLoss = loss(fixed, null)
-        // A band must buy at least 1.5 % of the initial error (or 0.01 dB^2) - otherwise it's
-        // fitting measurement noise / reflection ripple, not the speaker.
-        val minGain = maxOf(currentLoss * 0.015, 0.01)
 
         repeat(constraints.maxBands) {
             val residual = DoubleArray(n) { desired[it] - fixed[it] }
+            // A band must buy at least 1.5 % of the *remaining* error (or 0.005 dB^2) - otherwise it is
+            // fitting measurement noise / reflection ripple, not the speaker. Measured: with the
+            // threshold frozen at 1.5 % of the *initial* loss (0.096 dB^2) the greedy stopped after 4 of
+            // 10 bands while the next band still bought 0.060 dB^2 and 2.3 dB of the plan stayed
+            // unfitted (587 Hz broad lift, mini box). Following the remaining error fixed that.
+            val minGain = maxOf(currentLoss * GREEDY_MIN_GAIN_RATIO, GREEDY_MIN_GAIN_FLOOR_DB2)
+
             var best: PeqBand? = null
             var bestLoss = currentLoss
             for (candidate in candidates(residual)) {
@@ -74,7 +106,7 @@ class PeqFitter(
                 val l = loss(fixed, opt)
                 if (l < bestLoss - minGain) { bestLoss = l; best = opt }
             }
-            val chosen = best ?: return finish(bands)
+            val chosen = best ?: break
             bands += chosen
             grid.response(chosen, fixed, accumulate = true)
             currentLoss = bestLoss
@@ -89,7 +121,55 @@ class PeqFitter(
                 if (loss(others, opt) < loss(others, bands[i])) bands[i] = opt
             }
         }
-        return finish(bands)
+        return finish(mergeDuplicates(bands))
+    }
+
+    /**
+     * Drops the weaker of two bands closer than [MERGE_DISTANCE_OCT] when doing so costs almost nothing.
+     *
+     * The refinement moves neighbouring bands towards each other (mini box: PK 123 Hz +3.7 and PK 133 Hz
+     * +0.9 - two biquads doing one biquad's work). Both guards compare against the *original* fit, so a
+     * series of individually harmless merges cannot add up to a visibly worse correction.
+     */
+    private fun mergeDuplicates(bands: List<PeqBand>): List<PeqBand> {
+        var out = bands.toMutableList()
+        val baselineMax = maxError(out)
+        var changed = true
+        while (changed && out.size > 1) {
+            changed = false
+            val order = out.indices.sortedBy { out[it].frequency }
+            for (k in 0 until order.size - 1) {
+                val i = order[k]
+                val j = order[k + 1]
+                val a = out[i]
+                val b = out[j]
+                if (abs(log2(b.frequency / a.frequency)) >= MERGE_DISTANCE_OCT) continue
+                val weaker = if (abs(a.gainDb) < abs(b.gainDb)) i else j
+                val trial = out.filterIndexed { index, _ -> index != weaker }
+                val trialLoss = lossOf(trial)
+                if (trialLoss > lossOf(out) * (1.0 + MERGE_LOSS_TOLERANCE)) continue
+                if (maxError(trial) > baselineMax + MERGE_MAX_ERROR_GROWTH_DB) continue
+                out = trial.toMutableList()
+                changed = true
+                break
+            }
+        }
+        return out
+    }
+
+    private fun responseOf(bands: List<PeqBand>): DoubleArray {
+        val r = DoubleArray(n)
+        for (b in bands) grid.response(b, r, accumulate = true)
+        return r
+    }
+
+    private fun lossOf(bands: List<PeqBand>): Double = loss(responseOf(bands), null)
+
+    private fun maxError(bands: List<PeqBand>): Double {
+        val r = responseOf(bands)
+        var m = 0.0
+        for (i in 0 until n) m = max(m, abs(desired[i] - r[i]))
+        return m
     }
 
     private fun finish(bands: List<PeqBand>): List<PeqBand> =
@@ -118,15 +198,25 @@ class PeqFitter(
     private fun candidates(residual: DoubleArray): List<PeqBand> {
         val out = mutableListOf<PeqBand>()
         val f = grid.frequencies
-        // Largest weighted deviation inside the allowed range.
-        var idx = -1
-        var best = 0.0
-        for (i in 0 until n) {
-            if (f[i] < constraints.minFrequency || f[i] > constraints.maxFrequency) continue
-            val v = weights[i] * abs(residual[i])
-            if (v > best) { best = v; idx = i }
-        }
-        if (idx >= 0 && abs(residual[idx]) > 0.3) {
+        // Up to [MAX_PEAK_CANDIDATES] *distinct* residual extrema (worst first, at least a third of an
+        // octave apart). Offering only the single worst point made the greedy follow one lobe at a
+        // time; several candidates let the optimiser pick the lobe that actually pays off.
+        val picked = mutableListOf<Double>()
+        while (picked.size < MAX_PEAK_CANDIDATES) {
+            var idx = -1
+            var best = 0.0
+            for (i in 0 until n) {
+                if (f[i] < constraints.minFrequency || f[i] > constraints.maxFrequency) continue
+                if (picked.any { abs(log2(f[i] / it)) < 1.0 / 3.0 }) continue
+                val v = weights[i] * abs(residual[i])
+                if (v > best) { best = v; idx = i }
+            }
+            if (idx < 0) break
+            // The first candidate only has to be audible; the alternatives must be worth the extra
+            // Nelder-Mead run (two more candidates triple the CPU of a greedy step).
+            val gate = if (picked.isEmpty()) CANDIDATE_MIN_DB else CANDIDATE_SECONDARY_MIN_DB
+            if (abs(residual[idx]) <= gate) break
+            picked += f[idx]
             val g0 = residual[idx]
             var l = idx
             while (l > 0 && sign(residual[l - 1]) == sign(g0) && abs(residual[l - 1]) > abs(g0) / 2) l--

@@ -154,13 +154,21 @@ perceived loudness. Measured with the model used by the tests, a typical phone c
    *predicted* response (measurement + correction, A-weighted pink programme spectrum on a
    1/3-octave grid 40 Hz–16 kHz).
 3. **Two regimes** (`preampHeadroomAllowanceDb`):
-   * *Limiter armed* (device, rescue, outdoor – 6 dB allowance): the pre-gain is set
+   * *Limiter armed* (device, rescue, outdoor – 4 dB allowance): the pre-gain is set
      **loudness-neutral**: `pre-gain = clamp(−ΔL, clipping-safe, clipping-safe + allowance)`.
      The corrected chain comes out as loud as the original. The legacy rule made every
      correction that boosts anything `peak + 0.5 dB` quieter – e.g. the treble restoration
-     of a phone speaker cost the whole output 4.5 dB – and the limiter (−1 dB, 10:1) is the
-     actual peak protection anyway: a 10:1 limiter maps a +6 dB over-shoot to −0.4 dBFS, so
-     the static over-shoot is bounded and cannot clip.
+     of a phone speaker cost the whole output 4.5 dB.
+     The allowance used to be 6 dB with the reasoning "a 10:1 limiter maps a +6 dB over-shoot to
+     −0.4 dBFS". **That was wrong on real material**: the engine's limiter has no look-ahead, so a
+     percussive transient passes almost unattenuated for the length of the attack. Round 8 measured
+     the result on live-programme material through the modelled chain: +0.14 dBFS output peak with
+     13 clipped samples. The allowance is therefore 4 dB *and* the limiter is now a peak limiter
+     (−2 dB, 20:1, 0.2 ms – `AntiClipping.DEFAULT_LIMITER`), which every probed case kept at or
+     below −1.42 dBFS with zero clipped samples.
+   * The static bound itself (`−(peak + headroom)`) is always applied and now also *credits* a
+     correction that only cuts – a 3 dB cut really leaves 3 dB of headroom, which is where a
+     cut-heavy device correction gets its loudness back instead of borrowing it from the limiter.
    * *No limiter* (every other preset, allowance 0): the pre-gain is exactly the clipping-safe
      value – bit-identical to the old behaviour, so external speakers keep the classic rule.
 
