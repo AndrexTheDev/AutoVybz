@@ -1,6 +1,7 @@
 package com.andrexthedev.autovybz.measurement.dsp
 
 import kotlin.math.log10
+import kotlin.math.max
 import kotlin.math.pow
 import kotlin.math.sqrt
 
@@ -14,17 +15,100 @@ import kotlin.math.sqrt
  *
  * All curves are power-averaged per grid point and re-normalised to 0 dB in 300 Hz – 3 kHz, like a
  * single measurement. SNR is the per-point minimum (conservative), latency the mean, warnings the union.
+ *
+ * ## One bad position must not poison the average
+ *
+ * A calibration is a sequence of measurements, and any one of them can be disturbed: a door, a voice, a
+ * hand on the phone, the Bluetooth speaker auto-powering off and on. Without a rule, such a position
+ * pulls the averaged curve towards a response nobody hears – and the user has no way to tell which
+ * measurement was the bad one (the app only showed a "positions disagree" hint *after* the fact).
+ * [analyse] therefore compares every position against the average of all of them and drops the ones
+ * that are far outside the spread of the others ([average] returns just the curve, [analyse] the whole
+ * story). With two positions nothing can be dropped: with two candidates there is no majority to say
+ * which one is wrong.
  */
 object SpatialAverager {
 
-    fun average(results: List<MeasurementResult>): MeasurementResult {
+    /** A position is dropped when it deviates more than this multiple of the *median* deviation. */
+    const val OUTLIER_FACTOR = 3.0
+
+    /**
+     * ... but never below this absolute deviation: three clean positions in a lively room can differ by
+     * a few dB from each other, and dropping "the loudest" of them would be worse than averaging them.
+     */
+    const val OUTLIER_FLOOR_DB = 1.5
+
+    /** Result of a multi-position calibration, including what had to be excluded. */
+    data class SpatialAverage(
+        val result: MeasurementResult,
+        /** RMS disagreement of the kept positions against their average (see [spreadDb]). */
+        val spreadDb: Double,
+        /** 0-based indices of the positions that were excluded as outliers, ascending. */
+        val rejected: List<Int>,
+        /** Deviations of every input position from the average of all of them (dB, same order). */
+        val deviations: List<Double>,
+    )
+
+    fun average(results: List<MeasurementResult>): MeasurementResult = analyse(results).result
+
+    fun analyse(results: List<MeasurementResult>): SpatialAverage {
         require(results.isNotEmpty()) { "no measurements" }
-        if (results.size == 1) return results[0]
+        if (results.size == 1) {
+            return SpatialAverage(results[0], 0.0, emptyList(), listOf(0.0))
+        }
         val first = results[0]
         val n = first.frequencies.size
         require(results.all { it.frequencies.size == n && it.sampleRate == first.sampleRate }) {
             "measurements use different frequency grids"
         }
+
+        val deviations = deviationsFromAll(results)
+        val rejected = if (results.size < 3) emptyList() else outliers(deviations)
+        val kept = results.filterIndexed { index, _ -> index !in rejected }
+        val averaged = powerAverage(kept)
+        return SpatialAverage(averaged, spreadDb(kept, averaged), rejected, deviations)
+    }
+
+    /**
+     * Deviation of each position from the average of all positions: level-aligned RMS over
+     * 100 Hz – 10 kHz. Level alignment matters because a position can be simply closer to the speaker.
+     */
+    private fun deviationsFromAll(results: List<MeasurementResult>): List<Double> {
+        val reference = powerAverage(results)
+        val f = reference.frequencies
+        return results.map { r ->
+            val offset = FrequencyGrid.bandMean(f, r.smoothedDb, 300.0, 3000.0)
+            var sum = 0.0
+            var count = 0
+            for (i in f.indices) {
+                if (f[i] < 100.0 || f[i] > 10_000.0) continue
+                val d = (r.smoothedDb[i] - offset) - reference.smoothedDb[i]
+                sum += d * d
+                count++
+            }
+            if (count == 0) 0.0 else sqrt(sum / count)
+        }
+    }
+
+    /**
+     * Drop the positions whose deviation is more than [OUTLIER_FACTOR] × the median deviation, but never
+     * fewer than two positions: a calibration must keep a majority, otherwise the "outlier" is the rule.
+     */
+    private fun outliers(deviations: List<Double>): List<Int> {
+        val sorted = deviations.sorted()
+        val median = sorted[sorted.size / 2]
+        val limit = max(OUTLIER_FACTOR * median, OUTLIER_FLOOR_DB)
+        val candidates = deviations.indices
+            .filter { deviations[it] > limit }
+            .sortedByDescending { deviations[it] }
+            .take(maxOf(0, deviations.size - 2))
+        return candidates.sorted()
+    }
+
+    private fun powerAverage(results: List<MeasurementResult>): MeasurementResult {
+        if (results.size == 1) return results[0]
+        val first = results[0]
+        val n = first.frequencies.size
 
         fun powerAverage(pick: (MeasurementResult) -> DoubleArray): DoubleArray = DoubleArray(n) { i ->
             var p = 0.0
@@ -78,4 +162,8 @@ object SpatialAverager {
         }
         return if (count == 0) 0.0 else sqrt(sum / count)
     }
+
+    /** Convenience for tests and diagnostics: the largest deviation, 0 for a single position. */
+    fun maxDeviationDb(results: List<MeasurementResult>): Double =
+        if (results.size < 2) 0.0 else deviationsFromAll(results).maxOrNull() ?: 0.0
 }

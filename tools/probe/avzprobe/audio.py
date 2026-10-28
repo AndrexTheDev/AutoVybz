@@ -80,6 +80,80 @@ def write_wav(path: str, x: np.ndarray, sample_rate: int = SAMPLE_RATE) -> None:
         w.writeframes(pcm.tobytes())
 
 
+# ------------------------------------------------------------------ true peak --
+
+TRUE_PEAK_OVERSAMPLE = 4
+_TRUE_PEAK_TAPS_PER_PHASE = 24
+_TRUE_PEAK_KAISER_BETA = 8.0
+
+
+def _kaiser_i0(x: float) -> float:
+    total, term, k = 1.0, 1.0, 1
+    while k < 64:
+        term *= (x / (2 * k)) ** 2
+        total += term
+        if term < total * 1e-17:
+            break
+        k += 1
+    return total
+
+
+def _true_peak_kernel(taps_per_phase: int = _TRUE_PEAK_TAPS_PER_PHASE,
+                      beta: float = _TRUE_PEAK_KAISER_BETA,
+                      oversample: int = TRUE_PEAK_OVERSAMPLE) -> np.ndarray:
+    """Windowed-sinc polyphase kernel, unity DC gain per phase - the mirror of `TruePeak.kernel`."""
+    n = oversample * taps_per_phase
+    t = np.arange(n) - (n - 1) / 2.0
+    h = np.where(np.abs(t) < 1e-12, 1.0,
+                 np.sin(np.pi * t / oversample) / (np.pi * t / oversample)) / oversample
+    h = h * np.kaiser(n, beta)
+    for phase in range(oversample):
+        h[phase::oversample] /= h[phase::oversample].sum()
+    return h
+
+
+def true_peak_db(x: np.ndarray, oversample: int = TRUE_PEAK_OVERSAMPLE) -> float:
+    """True peak in dBTP via band-limited FFT oversampling (the exact reference).
+
+    The app computes the same quantity with a 96-tap polyphase filter
+    (`TruePeak.peakDbtp`); `true_peak_polyphase_db` is the mirror of that, and
+    `pipeline_findings.py` checks the two against each other.
+    """
+    x = np.asarray(x, dtype=float)
+    if x.size == 0:
+        return float("-inf")
+    n = x.size
+    spec = np.fft.rfft(x)
+    padded = np.zeros(n * oversample // 2 + 1, dtype=complex)
+    padded[:spec.size] = spec
+    up = np.fft.irfft(padded, n * oversample) * oversample
+    peak = float(np.max(np.abs(up)))
+    return 20.0 * math.log10(peak) if peak > 1e-12 else float("-inf")
+
+
+def true_peak_polyphase_db(x: np.ndarray, taps_per_phase: int = _TRUE_PEAK_TAPS_PER_PHASE) -> float:
+    """`TruePeak.peakDbtp`: the same metric with the app's cheap FIR."""
+    x = np.asarray(x, dtype=float)
+    if x.size <= 2 * taps_per_phase:
+        peak = float(np.max(np.abs(x))) if x.size else 0.0
+        return 20.0 * math.log10(peak) if peak > 1e-12 else float("-inf")
+    h = _true_peak_kernel(taps_per_phase)
+    n = x.size
+    best = 0.0
+    for phase in range(TRUE_PEAK_OVERSAMPLE):
+        g = h[phase::TRUE_PEAK_OVERSAMPLE]
+        acc = np.zeros(n - 2 * taps_per_phase)
+        for k in range(taps_per_phase):
+            acc += x[taps_per_phase - k: n - taps_per_phase - k] * g[k]
+        best = max(best, float(np.max(np.abs(acc))))
+    return 20.0 * math.log10(best) if best > 1e-12 else float("-inf")
+
+
+def sample_peak_db(x: np.ndarray) -> float:
+    peak = float(np.max(np.abs(x))) if x.size else 0.0
+    return 20.0 * math.log10(peak) if peak > 1e-12 else float("-inf")
+
+
 def resample(x: np.ndarray, src_rate: int, dst_rate: int) -> np.ndarray:
     if src_rate == dst_rate:
         return x

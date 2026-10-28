@@ -155,3 +155,41 @@ Result on `Demosong.mp3` (same six scenarios):
 Note: `Demosong.mp3` is a **Matroska/WebM container with Opus audio** despite the extension. The probe
 decodes it with `ffmpeg` (`imageio-ffmpeg` fallback), so it does not care, but browsers do – the landing
 page therefore uses a real 128 kb/s MP3 re-encode (`site/static/audio/demosong.mp3`).
+
+## Round-11 findings (2026-10) – where does the correction actually act?
+
+Round 11 gave the probe ears at more than one place. `rooms.position_variants()` moves the listening spot
+by up to `POSITION_SPREAD_M` = 0.4 m: each room mode (43–145 Hz) gets its own gain from the mode shape's
+coupling plus a ±4 dB scatter and its own Q, and each reflection path its own delay (±0.4 m ≈ 1.2 ms) and
+level. That is the mechanism that produces a position-specific comb notch – and, at 74 Hz on the mini box,
+a 12 dB disagreement that a full-range EQ cannot resolve.
+
+1. **A judge that never fires is not a judge.** The first position model varied only the modal gains; the
+   three "positions" then agreed to within a few dB everywhere, the > 6 dB spread gate never opened and
+   `null_boost_db` was structurally 0.0. Real rooms differ by 10–15 dB per mode across 40 cm, so the
+   scatter and the reflection-delay shift were added; the mini box now shows 6.7 dB total spread (12.2 dB
+   at 43 Hz) and the gate has teeth.
+2. **What the gate measures matters.** `null_boost_db` is the largest boost of a *narrow* band (Q ≥ 3)
+   inside a region where the positions disagree by more than 6 dB – checked per band, not on the summed
+   correction, because a broad bass shelf legitimately crosses such a region. It is only asserted with
+   `--positions > 1`: with one position the app cannot know that a dip is local.
+3. **A unit bug that looked like a finding.** The first version fed `Grid.response()` (already in dB)
+   through `20 log10 |x|` and reported 3.8–7.0 dB of null-filling – a metric artefact, not a defect.
+   With the fix: 1.58 dB (SMART), 1.96 dB (HARMAN), 0.63 dB (laptop), gate 2.5 dB. Lesson repeated from
+   finding F2: check what the unit of a mirror function is before believing a scary number.
+4. **Is one measurement enough?** `--positions 1 --truth-positions 3` fits from a single spot and judges
+   three: mini box SMART 0.63 dB RMS / p95 1.38 dB, HARMAN 0.68 / 1.41. Fitting from three positions:
+   0.50 / 0.84 and 0.53 / 1.02. Averaging buys ~20 % of the residual and a third of the tail – modest, and
+   exactly why the app *recommends* three positions indoors instead of demanding them.
+5. **The 1-octave indoor rule is not free.** Against a three-seat truth it costs 0.13 dB of RMS
+   (0.37 → 0.50 dB on the mini box) and buys a third of the p95 tail plus the null gate. Kept, documented.
+
+`Intro1.mp4`, default run: 6/6 within every threshold (indoor mini box 2.03 → 0.85 dB).
+`--positions 3`: 6/6, worst `null_boost_db` 1.96 dB, worst peak −1.05 dBTP (party box, was −1.28 dBTP
+with a sample-peak meter).
+
+Note on the second clip: the full 174 s `demosong.mp3` is OOM-killed in the coding sandbox (3.9 GB, the
+probe keeps several 48 kHz float copies per case); a 60 s excerpt of the same file passes 6/6 (mini box
+2.58 → 0.69 dB, loud master 6.2 dB crest) – the crest and the tonal numbers match the round-9 table, so
+nothing about round 11 depends on the full length.
+

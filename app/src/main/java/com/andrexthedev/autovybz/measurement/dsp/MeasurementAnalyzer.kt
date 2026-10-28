@@ -32,6 +32,12 @@ enum class MeasurementWarning {
      * Typical for a very laggy route (party speaker behind a repeater, TV with a big DSP buffer).
      */
     LATENCY_OUT_OF_RANGE,
+    /**
+     * A multi-position calibration had one measurement that deviated from the others far more than
+     * they differ among themselves (a door, a voice, the speaker dropping out). It was excluded from
+     * the average; the result is built from the remaining positions.
+     */
+    POSITION_OUTLIER,
 }
 
 class MeasurementException(val reason: Reason, message: String) : Exception(message) {

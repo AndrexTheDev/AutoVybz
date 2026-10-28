@@ -142,8 +142,10 @@ class OutdoorScenarioTest {
         assertTrue(o.forceLimiter && o.recommendedPositions == 3 && o.broadBoostOctaves != null)
         assertEquals(2.0, EnvironmentTuning.of(ListeningEnvironment.OUTDOOR, SmoothingProfile.FINE, 2.0).maxBoostDb, 0.0)
         assertEquals(SmoothingProfile.FINE, EnvironmentTuning.of(ListeningEnvironment.OUTDOOR, SmoothingProfile.FINE, 6.0).smoothing)
+        // Indoors the room's own modes (a 353 Hz mini-box boom at Q 4 reaches +4 dB) are position
+        // dependent, so a boost must follow the 1-octave trend as well, and one seat is not a room.
         val i = EnvironmentTuning.of(ListeningEnvironment.INDOOR, SmoothingProfile.DYNAMIC, 6.0)
-        assertTrue(i.maxBoostDb == 6.0 && i.broadBoostOctaves == null && !i.forceLimiter && i.recommendedPositions == 1)
+        assertTrue(i.maxBoostDb == 6.0 && i.broadBoostOctaves == 1.0 && !i.forceLimiter && i.recommendedPositions == 3)
     }
 
     private companion object {

@@ -162,6 +162,32 @@ The previous rule was a hard switch at 6 dB, which could put a step of up to `1 
 neighbouring grid points; the fitter then spent a parametric filter on that ledge. The ramp keeps the
 curve continuous while still distrusting the pink path exactly where it is noise-dominated.
 
+## 8b. Several positions: average what everyone hears, drop what nobody heard
+
+A single microphone position contains its own cancellations: at 40 cm from the same speaker a mode can
+move 10–15 dB, and a 10 dB dip at 74 Hz is a property of *the spot*, not of the speaker. An EQ that fills
+it spends excursion that the other seats pay for. The app therefore measures up to three positions
+(indoors `recommendedPositions = 3`; the free tier stays at one) and combines them with a power
+("RMS") average – `SpatialAverager` – which keeps the peaks every position shares and lifts the dips that
+only one position has.
+
+`analyse()` returns the averaged result *and* the story behind it:
+
+* **spread** – RMS disagreement of the positions against their average over 100 Hz–10 kHz (each position
+  level-aligned, so "closer to the speaker" is not an error). 1–3 dB is a normal room; > 6 dB means the
+  phone moved a lot or one measurement was disturbed (`HIGH_POSITION_SPREAD_DB` in the wizard).
+* **outliers** – a position is dropped when its deviation exceeds `max(3 × median, 1.5 dB)`. Two limits
+  make this safe: with two positions nothing can be dropped (no majority says which one is wrong), and
+  never fewer than two positions survive. A dropped position raises `POSITION_OUTLIER` with the wizard's
+  "repeat this position" action instead of silently skewing the result.
+* **rejectedPositions / positionSpreadDb** travel with the `MeasurementOutcome`, and the spread is
+  computed on the *kept* positions, so a dropped outlier does not leave a scary number behind.
+
+Indoors, boosts additionally follow a 1-octave smoothed curve (`broadBoostOctaves = 1.0`): a narrow dip
+inside a region where the positions disagree by more than 6 dB gets no boost at all. Measured with the
+probe's position-aware room model, the largest narrow boost inside such a region is 1.96 dB, where the
+unconstrained fitter put 4 dB of Q 4 boost into a mode null.
+
 ## 9. Failure modes → countermeasures → tests
 
 | # | Failure mode | Symptom without countermeasure | Countermeasure | Test |
@@ -175,6 +201,9 @@ curve continuous while still distrusting the pink path exactly where it is noise
 | 7 | Output route changes between check and start | stimulus on the wrong speaker | output pinning, device fallback in both engines | `RouteClassifierTest` (policy), native engine |
 | 8 | Step in the curve at the SNR threshold | fitter chases a ledge | continuous SNR-weighted blend | `MeasurementAnalyzerTest.sweepWeightRampsWithSnr` |
 | 9 | Native engine unavailable / broken | measurement fails | fallback to the Java engine for *any* non-cancellation failure, progress reset | `SoundE2ETest` (device), `FallbackMeasurementEngine` |
+| 10 | Inter-sample peak above 0 dBFS | distortion on the DAC although "0 clipped samples" | 4× oversampled true peak (`TruePeak`), limiter headroom 4.0 → 3.5 dB | `TruePeakTest`, `check_parity.py` peak block, probe `peak_dbtp` |
+| 11 | One disturbed microphone position | average pulled towards a response nobody hears | power average + `max(3 × median, 1.5 dB)` outlier rule, `POSITION_OUTLIER` | `SpatialAveragerTest` |
+| 12 | EQ fills a position-dependent null | excursion spent on a dip only one seat hears | 1-octave broad-boost rule indoors + `null_boost_db` gate | `AutoEqRendererTest` (broad boost), probe `--positions 3` |
 
 ## 10. Tuning knobs (and where they live)
 
@@ -191,3 +220,7 @@ curve continuous while still distrusting the pink path exactly where it is noise
 | `AnalyzerConfig.maxLatencySeconds` | 0.8 | latency search window (also sets the tail) |
 | `AnalyzerConfig.irPostSeconds` | 0.30 | IR window after the peak (also sets the tail) |
 | `StimulusGenerator.PEAK_LEVEL` | 0.5 | −6 dBFS stimulus headroom |
+| `SpatialAverager.OUTLIER_FACTOR` / `…_FLOOR_DB` | 3.0 / 1.5 | when a position counts as disturbed |
+| `TruePeak.OVERSAMPLE` / `TAPS_PER_PHASE` | 4 / 24 | intersection peak accuracy (0.17 dB grid limit) |
+| `PreampPlanner.LIMITER_HEADROOM_ALLOWANCE_DB` | 3.5 | make-up headroom below the limiter (4.0 − 0.5 dB ISP margin) |
+| `ListeningEnvironment.INDOOR.recommendedPositions` | 3 | positions the wizard asks for indoors |

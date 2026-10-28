@@ -62,13 +62,21 @@ data class EnvironmentTuning(
             userMaxBoostDb: Double = 6.0,
         ): EnvironmentTuning = when (environment) {
             ListeningEnvironment.INDOOR -> EnvironmentTuning(
+                // One position indoors is the *worst* place to start: room modes and the nearest
+                // reflection carve position-dependent notches that a single measurement cannot tell
+                // from a defect of the speaker, and the fitter happily boosts them (measured on the mini
+                // box: +4.0 dB at Q 4.0 in a 353 Hz notch). Three positions ~30-50 cm apart average the
+                // position-specific part out. Free tier still caps this at one (EntitlementPolicy).
                 smoothing = userSmoothing,
                 sweepWeight = 0.5,
                 maxBoostDb = userMaxBoostDb,
-                broadBoostOctaves = null,
+                // "Cut narrow, boost broad" indoors as well: a boost follows the 1-octave trend, so a
+                // narrow null gets no power - exactly the rule that was already in place outdoors.
+                // Classes with their own value (DEVICE, RESCUE) keep it: CorrectionPlanner prefers them.
+                broadBoostOctaves = 1.0,
                 excursionGuardOctaves = INDOOR_EXCURSION_GUARD_OCTAVES,
                 forceLimiter = false,
-                recommendedPositions = 1,
+                recommendedPositions = 3,
             )
             ListeningEnvironment.OUTDOOR -> EnvironmentTuning(
                 // No room modes to resolve; 1/2-octave smoothing in the mids ignores ground-reflection ripple.

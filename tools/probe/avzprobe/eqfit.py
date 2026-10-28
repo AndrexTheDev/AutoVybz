@@ -405,7 +405,9 @@ INDOOR_EXCURSION_GUARD_OCT = 0.5
 
 def environment_tuning(env: str, user_smoothing: dsp.SmoothingProfile = dsp.DYNAMIC, user_max_boost_db: float = 6.0) -> EnvironmentTuning:
     if env == INDOOR:
-        return EnvironmentTuning(user_smoothing, 0.5, user_max_boost_db, None, INDOOR_EXCURSION_GUARD_OCT, False, 1)
+        # Round 10: "cut narrow, boost broad" indoors as well (1-octave boosts) and three positions
+        # recommended - a single indoor position is the worst starting point for a room-mode fit.
+        return EnvironmentTuning(user_smoothing, 0.5, user_max_boost_db, 1.0, INDOOR_EXCURSION_GUARD_OCT, False, 3)
     return EnvironmentTuning(
         dsp.STRONG if user_smoothing is dsp.DYNAMIC else user_smoothing,
         0.7,
@@ -500,7 +502,11 @@ def auto_eq_settings(band_count: int, env: EnvironmentTuning, cls: SpeakerClassT
 # ------------------------------------------------------------------ gain staging --
 
 MAX_MAKE_UP_DB = 6.0
-LIMITER_HEADROOM_ALLOWANCE_DB = 4.0
+# `PreampPlanner.INTER_SAMPLE_MARGIN_DB`: the limiter watches *samples*, while the reconstructed
+# waveform overshoots them by 0.43-0.46 dB on the reference material (finding 2 in
+# pipeline_findings.py). Half a decibel is reserved for that, so the allowance is 4.0 - 0.5.
+INTER_SAMPLE_MARGIN_DB = 0.5
+LIMITER_HEADROOM_ALLOWANCE_DB = 4.0 - INTER_SAMPLE_MARGIN_DB
 MIN_PREAMP_DB = -24.0
 _LOUDNESS_GRID = dsp.log_grid(40.0, 16000.0, 3)
 

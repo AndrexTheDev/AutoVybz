@@ -62,11 +62,27 @@ object PreampPlanner {
     const val MAX_MAKE_UP_DB = 6.0
 
     /**
+     * How far the reconstructed waveform rises above the loudest *sample* after the limiter, in dB.
+     *
+     * Measured on the reference material (`tools/probe/pipeline_findings.py`, finding 2): -1.62 dBFS
+     * sample peak but -1.16 dBTP true peak for the phone-speaker case, +0.43 dB for BASS_BOOST - a
+     * limiter that watches samples cannot see it. Conservative half a decibel rather than the 0.46 the
+     * probe found, because the oversampled meter itself under-reads crests between grid points by up to
+     * 0.17 dB ([com.andrexthedev.autovybz.measurement.dsp.TruePeak]).
+     */
+    const val INTER_SAMPLE_MARGIN_DB = 0.5
+
+    /**
      * Overshoot the *static* pre-gain may leave when the DynamicProcessing limiter is armed. Measured on
      * real programme material (see the class doc): 4 dB is what -2 dB / 20:1 / 0.01 ms absorbs with zero
      * clipped samples and >= 1.4 dB of remaining peak margin.
+     *
+     * Half a decibel of that is now reserved for inter-sample peaks ([INTER_SAMPLE_MARGIN_DB]): the old
+     * 4 dB was measured as a *sample* peak, which is exactly what the DAC does not deliver. A correction
+     * therefore gets 3.5 dB of loudness make-up instead of 4 - the honest price of a peak rule that
+     * matches what leaves the phone.
      */
-    const val LIMITER_HEADROOM_ALLOWANCE_DB = 4.0
+    const val LIMITER_HEADROOM_ALLOWANCE_DB = 4.0 - INTER_SAMPLE_MARGIN_DB
 
     /** Floor for pathological corrections (never mute the phone). */
     const val MIN_PREAMP_DB = -24.0

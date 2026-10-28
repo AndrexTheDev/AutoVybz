@@ -165,6 +165,30 @@ def main() -> int:
     quiet = audio.limiter_demand_db(0.1 * tone, threshold_db=-2.0, ratio=20.0)
     ok &= check("limiter demand is 0 dB under the threshold", float(np.max(np.abs(quiet))) == 0.0)
 
+    # --- TruePeak (app: `measurement/dsp/TruePeak`, pinned by `TruePeakTest`) --------------------
+    fs = audio.SAMPLE_RATE
+    dc = np.full(4096, 0.5)
+    ok &= check("true peak of DC is its level", abs(audio.true_peak_db(dc) + 6.02) < 0.01,
+                f"{audio.true_peak_db(dc):+.2f} dBTP")
+    fs4 = np.cos(2.0 * math.pi * 12000.0 * np.arange(8192) / fs + math.pi / 4.0)
+    ok &= check("true peak sees the crest a sample meter misses",
+                abs(audio.true_peak_db(fs4)) < 0.02 and abs(audio.sample_peak_db(fs4) + 3.01) < 0.01,
+                f"sample {audio.sample_peak_db(fs4):+.2f} dBFS, true {audio.true_peak_db(fs4):+.2f} dBTP")
+    # The app cannot afford an FFT per buffer: its 96-tap polyphase filter is the cheap mirror. It
+    # under-reads by up to 0.17 dB (the 4x grid) plus its own truncation - the reserved margin is 0.5.
+    poly = audio.true_peak_polyphase_db(fs4)
+    ok &= check("polyphase filter mirrors the exact true peak", abs(poly + 0.17) < 0.05, f"{poly:+.3f} dBTP")
+    # White noise is the worst case (full energy at Nyquist, where every interpolator transitions);
+    # programme material is band-limited, and there the two agree closely. Judge what music looks like.
+    rng = np.random.default_rng(4)
+    noise = rng.standard_normal(40000) * 0.2
+    spectrum = np.fft.rfft(noise)
+    spectrum[np.fft.rfftfreq(noise.size, 1.0 / fs) > 20000.0] = 0.0
+    band_limited = np.fft.irfft(spectrum, noise.size)
+    gap = abs(audio.true_peak_db(band_limited) - audio.true_peak_polyphase_db(band_limited))
+    ok &= check("polyphase stays within 0.1 dB of the reference on band-limited material",
+                gap < 0.1, f"{gap:.3f} dB")
+
     print("\nparity:", "OK" if ok else "FAILED")
     return 0 if ok else 1
 

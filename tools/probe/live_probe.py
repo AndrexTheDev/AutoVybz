@@ -49,6 +49,11 @@ THRESHOLDS = {
     # 4) The limiter is a safety net, not a compressor: it may not clamp a large share of the programme.
     "limiter_mean_gr_db": 2.0,
     "limiter_stress_pct": 5.0,
+    # 5) Peaks are judged where a DAC sees them: the reconstructed waveform, not the sample grid.
+    #    A -1.6 dBFS sample peak was a -1.2 dBTP true peak on the reference material (finding 2).
+    "peak_dbtp": -1.0,
+    # 6) A correction may not chase a position-dependent null (only meaningful with --positions > 1).
+    "null_boost_db": 2.5,
 }
 
 
@@ -75,6 +80,8 @@ class CaseResult:
     tonal_p95_after_db: float
     loudness_delta_db: float
     peak_dbfs: float
+    # True peak of the same rendered output (4x oversampled): what the DAC and every lossy codec see.
+    peak_dbtp: float
     clipped_samples: int
     max_boost_below_limit_db: float
     max_change_above_limit_db: float
@@ -87,6 +94,11 @@ class CaseResult:
     # the limiter has to clamp a large share of the programme (pumping, pumping-like level dips).
     limiter_mean_gr_db: float
     limiter_stress_pct: float   # share of the programme needing more than 6 dB of gain reduction
+    # How many positions the correction was fitted to, how far they disagreed at the worst point, and
+    # the largest boost inside a region where they disagree by more than NULL_SPREAD_DB.
+    positions: int
+    position_spread_db: float
+    null_boost_db: float
     # Deepest single sample of gain reduction: the mean is near 0 whenever the peaks only just cross the
     # threshold (a safety net that works *rarely*), so the mean alone reads like "never engaged".
     limiter_max_gr_db: float
@@ -156,6 +168,15 @@ LOW_FADE_OCTAVES_SCALE = 2.0 ** 0.5
 # Gain reduction beyond which the limiter stops being a safety net and starts shaping the sound.
 LIMITER_STRESS_GR_DB = 6.0
 
+# How much two listening positions may disagree (dB) before a dip is "the spot, not the speaker".
+# 6 dB is the point where a dip is deep enough that no reasonable boost can fill it without taking
+# excursion from the whole bass range - the literature's rule of thumb for "do not EQ a null".
+NULL_SPREAD_DB = 6.0
+
+# A boost band at least this narrow is "dip filling" by design (Q 3 = 0.48 octave). Broad shelves are
+# excluded from the null metric on purpose: they legitimately cross regions where positions disagree.
+NARROW_Q = 3.0
+
 
 def audit_freqs(size: int) -> np.ndarray:
     return np.maximum(np.fft.rfftfreq(1 << 19, 1 / audio.SAMPLE_RATE), 1e-3)[:size]
@@ -163,6 +184,50 @@ def audit_freqs(size: int) -> np.ndarray:
 
 def _judge_mask(grid: np.ndarray, correction) -> np.ndarray:
     return (grid >= correction.low_limit_hz) & (grid <= correction.high_limit_hz)
+
+
+def _spread_between(curves: list[np.ndarray]) -> np.ndarray:
+    """Per grid point: how far the positions disagree (max - min, dB). The "is this a null?" measure."""
+    stack = np.stack(curves)
+    return np.max(stack, axis=0) - np.min(stack, axis=0)
+
+
+def _spatial_average(measurements: list):
+    """`SpatialAverager.average`: power mean per grid point, re-normalised to 0 dB at 300 Hz-3 kHz.
+
+    The probe mirrors the app's *averaging rule*, not its outlier rejection (a disturbed position is a
+    separate scenario): this is about what the correction is fitted to when every position is good.
+    """
+    if len(measurements) == 1:
+        return measurements[0]
+    first = measurements[0]
+    n = first.frequencies.size
+
+    def power_mean(pick) -> np.ndarray:
+        p = np.mean([10.0 ** (pick(m) / 10.0) for m in measurements], axis=0)
+        return dsp.power_to_db(p)
+
+    smoothed = power_mean(lambda m: m.smoothed_db)
+    norm = dsp.band_mean(first.frequencies, smoothed, 300.0, 3000.0)
+    def normed(a: np.ndarray) -> np.ndarray:
+        return a - norm
+
+    snr = np.minimum.reduce([m.snr_db for m in measurements])
+    return dsp.MeasurementResult(
+        sample_rate=first.sample_rate,
+        frequencies=first.frequencies.copy(),
+        raw_db=normed(power_mean(lambda m: m.raw_db)),
+        smoothed_db=normed(smoothed),
+        third_octave_db=normed(power_mean(lambda m: m.third_octave_db)),
+        sweep_smoothed_db=normed(power_mean(lambda m: m.sweep_smoothed_db)),
+        pink_smoothed_db=normed(power_mean(lambda m: m.pink_smoothed_db)),
+        snr_db=snr,
+        latency_ms=float(np.mean([m.latency_ms for m in measurements])),
+        input_peak=float(np.max([m.input_peak for m in measurements])),
+        median_snr_db=float(np.median(np.sort(snr)[snr.size // 2])),
+        warnings=sorted({w for m in measurements for w in m.warnings}),
+        normalization_db=float(np.mean([m.normalization_db for m in measurements]) + norm),
+    )
 
 
 def _apply_gain_db(x: np.ndarray, db: float) -> np.ndarray:
@@ -182,26 +247,23 @@ def run_case(
     *,
     band_count: int = 10,
     mic_error_db: float = 0.0,
+    positions: int = 1,
+    truth_positions: int = 0,
 ) -> CaseResult:
     model = rooms.SCENARIOS[scenario]
     noise_cfg = rooms.NOISE_PROFILES[noise]
     stim = dsp.stimulus()
     fs = audio.SAMPLE_RATE
 
-    # --- 1. the "device": real sweep through the modelled speaker + room -------------------
-    ir = rooms.impulse_response(model, dsp.next_power_of_two(stim.signal.size + 8192))
-    clean = rooms.convolve(stim.signal, ir)
-    level = 0.25  # a comfortable measuring level, -12 dBFS for the -6 dBFS stimulus
-    clean *= level
-    white, rumble = _noise_signal(clean.size, noise_cfg["snr_db"], noise_cfg["lf_rumble_db"])
-    ref_rms = float(np.sqrt(np.mean(clean[stim.plan.pink_start: stim.plan.sweep_start] ** 2)))
-    rec = clean + white * ref_rms * 10.0 ** (-noise_cfg["snr_db"] / 20.0)
-    rec += rumble * ref_rms * 10.0 ** (-noise_cfg["lf_rumble_db"] / 20.0) * 0.05
-    # microphone colour (the analyzer compensates with the profile from mic_profiles.json,
-    # optionally with a frequency-dependent estimation error of +-mic_error_db, see --mic-error)
+    # The room's own modes exist at every position; outdoors there are none (free field).
+    # The truth is *where the listener sits*, which is not necessarily where the phone measured: with
+    # `truth_positions > positions` a one-position calibration is judged against what three seats hear.
+    truth_count = max(positions, truth_positions) if truth_positions > 0 else positions
+    truth_variants = rooms.position_variants(model, truth_count, room=(environment == "INDOOR"))
+    # A single measurement is taken at the nominal spot - the same one the truth calls position 0.
+    variants = truth_variants[:1] if positions <= 1 else rooms.position_variants(
+        model, positions, room=(environment == "INDOOR"))
     mic_f, mic_db = mic_curve()
-    mic_resp = np.array([dsp.interpolate_log(mic_f, mic_db, f) for f in np.maximum(np.fft.rfftfreq(rec.size, 1 / fs), 1e-3)])
-    rec = np.fft.irfft(np.fft.rfft(rec) * 10.0 ** (mic_resp / 20.0), rec.size)
 
     # --- 2. the app: analyze exactly like the wizard --------------------------------------
     env_tuning = eqfit.environment_tuning(environment)
@@ -216,7 +278,24 @@ def run_case(
         tilt = math.log2(max(f, 1.0) / 1000.0) / 3.0
         return dsp.interpolate_log(mic_f, mic_db, f) + mic_error_db * (bump - 0.3 * tilt)
 
-    measurement = dsp.analyze(rec, stim, mic_compensation_db=mic_correction, config=cfg)
+    # --- 1. the "device": one real sweep per position ---------------------------------------
+    def measure_at(index: int):
+        ir = rooms.impulse_response(variants[index], dsp.next_power_of_two(stim.signal.size + 8192))
+        clean = rooms.convolve(stim.signal, ir)
+        clean *= 0.25  # a comfortable measuring level, -12 dBFS for the -6 dBFS stimulus
+        # Independent noise per position: that is what makes a position repeat meaningful.
+        white, rumble = _noise_signal(clean.size, noise_cfg["snr_db"], noise_cfg["lf_rumble_db"], seed=7 + index)
+        ref_rms = float(np.sqrt(np.mean(clean[stim.plan.pink_start: stim.plan.sweep_start] ** 2)))
+        rec = clean + white * ref_rms * 10.0 ** (-noise_cfg["snr_db"] / 20.0)
+        rec += rumble * ref_rms * 10.0 ** (-noise_cfg["lf_rumble_db"] / 20.0) * 0.05
+        mic_resp = np.array([dsp.interpolate_log(mic_f, mic_db, f)
+                             for f in np.maximum(np.fft.rfftfreq(rec.size, 1 / fs), 1e-3)])
+        rec = np.fft.irfft(np.fft.rfft(rec) * 10.0 ** (mic_resp / 20.0), rec.size)
+        return dsp.analyze(rec, stim, mic_compensation_db=mic_correction, config=cfg)
+
+    per_position = [measure_at(i) for i in range(len(variants))]
+    measurement = _spatial_average(per_position)
+    position_spread = float(np.max(_spread_between([m.smoothed_db for m in per_position])))
 
     settings = eqfit.auto_eq_settings(band_count, env_tuning, cls)
     eq_env, eq_cls = env_tuning, cls
@@ -231,7 +310,11 @@ def run_case(
 
     # --- 3. the truth: what the speaker actually radiates ---------------------------------
     audit_f = np.maximum(np.fft.rfftfreq(1 << 19, 1 / fs), 1e-3)
-    dev_db = 20.0 * np.log10(np.maximum(np.abs(model.response(audit_f, fs)), 1e-9))
+    # Several positions: the truth is their power average (you cannot sit at three places at once),
+    # and the *spread* between them tells which regions an EQ must leave alone.
+    per_position_truth = [20.0 * np.log10(np.maximum(np.abs(v.response(audit_f, fs)), 1e-9)) for v in truth_variants]
+    dev_db = 10.0 * np.log10(np.mean([10.0 ** (c / 10.0) for c in per_position_truth], axis=0))
+    truth_spread_db = _spread_between(per_position_truth)
     corr_db = dsp.Grid(audit_f, fs).response_many(correction.bands)
     # the plan expands to the audit resolution (it is defined on the 48/oct grid)
     desired_full = dsp.resample(measurement.frequencies, correction.desired_correction_db, audit_f)
@@ -240,6 +323,22 @@ def run_case(
     grid = dsp.log_grid()
     def on_grid(values: np.ndarray) -> np.ndarray:
         return dsp.resample(audit_f, values, grid)
+
+    # An EQ must not chase a null: where the positions disagree by more than NULL_SPREAD_DB the local
+    # dip belongs to *that spot*, not to the speaker - a boost there costs excursion everywhere and
+    # makes the other seats worse. Only *narrow* boost bands (Q >= NARROW_Q) are dip-filling by design;
+    # a broad bass shelf crossing such a region is not, and must not be flagged (that is why the metric
+    # looks at each band's own response instead of the summed curve).
+    spread_on_grid = on_grid(truth_spread_db)
+    null_mask = spread_on_grid > NULL_SPREAD_DB
+    null_boost = 0.0
+    if np.any(null_mask):
+        response_grid = dsp.Grid(audit_f, fs)
+        for band in correction.bands:
+            if band.gain_db <= 0.0 or band.q < NARROW_Q:
+                continue
+            # `Grid.response` already returns dB.
+            null_boost = max(null_boost, float(np.max(on_grid(response_grid.response(band))[null_mask])), 0.0)
 
     # The analyzer normalises every curve to 0 dB in 300 Hz - 3 kHz and `render()` normalises the target
     # the same way, so the truth must be normalised too before the two can be compared as shapes.
@@ -297,6 +396,7 @@ def run_case(
     if limiter_armed:
         rendered = audio.limiter(rendered, fs)
     peak = float(np.max(np.abs(rendered)))
+    peak_tp = audio.true_peak_db(rendered)
     clipped = int(np.sum(np.abs(rendered) >= 0.999))
     if limiter_armed:
         gr = audio.limiter_demand_db(rendered_without_limiter, threshold_db=-2.0, ratio=20.0)
@@ -356,12 +456,16 @@ def run_case(
         failures.append(f"peak {20.0 * math.log10(peak):+.2f} dBFS")
     if clipped > THRESHOLDS["clipped_samples"]:
         failures.append(f"{clipped} clipped samples")
+    if peak_tp > THRESHOLDS["peak_dbtp"]:
+        failures.append(f"true peak {peak_tp:+.2f} dBTP")
     if max_boost_below > THRESHOLDS["protect_boost_db"]:
         failures.append(f"boost below half the bass limit {max_boost_below:+.1f} dB")
     if limiter_armed and mean_gr > THRESHOLDS["limiter_mean_gr_db"]:
         failures.append(f"limiter works hard: {mean_gr:.2f} dB mean reduction")
     if limiter_armed and stress > THRESHOLDS["limiter_stress_pct"]:
         failures.append(f"limiter clamps {stress:.1f} % of the programme by > {LIMITER_STRESS_GR_DB:.0f} dB")
+    if positions > 1 and null_boost > THRESHOLDS["null_boost_db"]:
+        failures.append(f"boosts {null_boost:+.1f} dB inside a position-dependent null")
     if bass_regression_db > THRESHOLDS["bass_regression_db"]:
         failures.append(f"bass degraded below the fade {bass_regression_db:+.2f} dB")
     if max_above > THRESHOLDS["above_range_db"]:
@@ -389,6 +493,7 @@ def run_case(
         tonal_p95_after_db=after_stats["p95_db"],
         loudness_delta_db=loudness_delta,
         peak_dbfs=20.0 * math.log10(max(peak, 1e-9)),
+        peak_dbtp=peak_tp,
         clipped_samples=clipped,
         max_boost_below_limit_db=max_boost_below,
         max_change_above_limit_db=max_above,
@@ -400,6 +505,9 @@ def run_case(
         limiter_mean_gr_db=mean_gr,
         limiter_stress_pct=stress,
         limiter_max_gr_db=max_gr,
+        positions=positions,
+        position_spread_db=position_spread,
+        null_boost_db=null_boost,
         failures=failures,
     )
 
@@ -427,6 +535,13 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--json", help="write the raw results as JSON")
     ap.add_argument("--markdown", help="write a readable report")
     ap.add_argument("--mic-error", type=float, default=0.0, help="profile estimation error added to the compensation, dB")
+    ap.add_argument("--truth-positions", type=int, default=0,
+                    help="positions the result is judged at (default: same as --positions). "
+                         "--positions 1 --truth-positions 3 answers \"is one measurement enough?\"")
+    ap.add_argument("--positions", type=int, default=1,
+                    help="listening positions per case (1 = the single-position truth the probe always used; "
+                         "3 = room modes and comb notches move between positions, so a dip can be judged as "
+                         "position-dependent instead of being flattered)")
     args = ap.parse_args(argv)
 
     music_paths = args.music or [os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "branding", "intro", "Intro1.mp4")]
@@ -436,16 +551,23 @@ def main(argv: list[str] | None = None) -> int:
         grid = dsp.log_grid()
         music_power = audio.stats(music).spectrum_db
         music_power = 10.0 ** (music_power / 10.0)
+        print(f"  positions per case: {max(1, args.positions)}"
+              + ("" if args.positions > 1 else "  (single-position truth: dips are flattered)"))
         print(f"\n=== programme material: {os.path.basename(path)} "
               f"({music.size / audio.SAMPLE_RATE:.1f} s, {audio.stats(music).crest_db:.1f} dB crest)")
         for scenario, cls, env, target, noise in CASES:
-            res = run_case(scenario, cls, env, target, noise, music, music_power, mic_error_db=args.mic_error)
+            res = run_case(scenario, cls, env, target, noise, music, music_power,
+                           mic_error_db=args.mic_error, positions=max(1, args.positions),
+                           truth_positions=args.truth_positions)
             results.append(res)
             status = "ok  " if res.ok else "FAIL"
             print(f"{status} {scenario:13s} {cls:8s} {env:7s} {target:10s} {noise:10s} "
                   f"tonal {res.tonal_rms_before_db:5.2f} -> {res.tonal_rms_after_db:5.2f} dB "
                   f"(p95 {res.tonal_p95_after_db:4.2f})  loud {res.loudness_delta_db:+5.2f} dB  "
-                  f"peak {res.peak_dbfs:+5.2f} dBFS  preamp {res.preamp_db:+5.1f}  bands {len(res.bands):2d}"
+                  f"peak {res.peak_dbfs:+5.2f} dBFS / {res.peak_dbtp:+5.2f} dBTP  preamp {res.preamp_db:+5.1f}  "
+                  f"bands {len(res.bands):2d}"
+                  + (f"  null-boost {res.null_boost_db:4.2f} dB  spread {res.position_spread_db:4.1f} dB"
+                     if res.positions > 1 else "")
                   + (f"  limiter mean {res.limiter_mean_gr_db:4.2f} max {res.limiter_max_gr_db:5.2f} dB / "
                      f"{res.limiter_stress_pct:4.1f} %" if res.limiter_armed else "")
                   + ("" if res.ok else "  <- " + "; ".join(res.failures)))
@@ -463,13 +585,14 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def _markdown(results: list[CaseResult]) -> str:
-    lines = ["| Scenario | Class | Env | Target | Noise | Tonal error before | after | p95 | Loudness | Peak | Limiter (mean / max GR / stress) | Preamp | Bands |", "|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
+    lines = ["| Scenario | Class | Env | Target | Noise | Tonal error before | after | p95 | Loudness | Peak (sample / true) | Limiter (mean / max GR / stress) | Null boost | Preamp | Bands |", "|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for r in results:
         lines.append(
             f"| {r.scenario} | {r.speaker_class} | {r.environment} | {r.target} | {r.noise} | "
             f"{r.tonal_rms_before_db:.2f} dB | **{r.tonal_rms_after_db:.2f} dB** | {r.tonal_p95_after_db:.2f} dB | "
-            f"{r.loudness_delta_db:+.2f} dB | {r.peak_dbfs:+.2f} dBFS | "
+            f"{r.loudness_delta_db:+.2f} dB | {r.peak_dbfs:+.2f} dBFS / {r.peak_dbtp:+.2f} dBTP | "
             f"{(f'{r.limiter_mean_gr_db:.2f} / {r.limiter_max_gr_db:.2f} dB / {r.limiter_stress_pct:.1f} %' if r.limiter_armed else '-')} | "
+            f"{(f'{r.null_boost_db:.2f} dB (spread {r.position_spread_db:.1f})' if r.positions > 1 else '-')} | "
             f"{r.preamp_db:+.1f} dB | {len(r.bands)} |"
         )
     bad = [r for r in results if not r.ok]

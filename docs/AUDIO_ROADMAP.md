@@ -136,6 +136,27 @@ it must drop below 1 dB while the average tonal error stays within +0.2 dB.
 *Cost/risk:* small, contained to `tools/probe`. Risk: an over-eager judge that forbids legitimate broad
 bass correction – mitigated by the 6 dB position-variance gate.
 
+**Done (round 11).** `rooms.position_variants(model, count, room=…)` moves the listening spot by up to
+`POSITION_SPREAD_M` = 0.4 m: every room mode (43–145 Hz) gets its own gain (coupling of the mode shape,
+±4 dB scatter, Q 8–11) and every reflection path its own delay (±spread/c) and level, which is what
+produces the position-specific comb notch. The probe measures and judges per position
+(`--positions N`), averages with the app's own rule (power mean, 300 Hz–3 kHz renormalisation) and adds
+two gates: `position_spread_db` and `null_boost_db`.
+
+Two corrections to the plan came out of the first honest run, both of which changed the design:
+
+1. The naive variant model (mode gain only) produced **no** spread above 6 dB, so the null gate could
+   never fire – a judge that always passes. Real rooms vary 10–15 dB per mode across 40 cm; with the
+   scatter the mini box now shows 12.2 dB spread at 43 Hz, i.e. the gate has teeth.
+2. `null_boost_db` measures the *band response* (dB) of every narrow boost (Q ≥ 3) inside the spread
+   region, not the summed correction as first drafted: a broad bass shelf legitimately crosses such a
+   region and must not be flagged. Threshold 2.5 dB.
+
+A third lever followed from the model: `--truth-positions M` judges a result at other seats than it was
+fitted at, which answers "is one measurement enough?". Measured on the mini box, judged at three seats:
+one position 0.63 dB RMS (p95 1.38), three positions 0.50 dB (p95 0.84) – the averaging is worth ~20 % of
+the residual and a third of the tail, which is the empirical basis for W5's `recommendedPositions = 3`.
+
 ### W2 – True peak as the acceptance quantity (S)
 
 *Why:* F2. "0 clipped samples" is a sample-grid statement.
@@ -152,6 +173,20 @@ number, not a real-time meter.
 
 *Risk:* low. It may cost ~0.4 dB of make-up loudness – the honest price of not trusting a sample-peak
 meter.
+
+**Done (round 11).** `measurement/dsp/TruePeak.kt`: 4× oversampling with a 24-tap/phase Kaiser(β = 8)
+windowed-sinc kernel, per-phase DC normalisation (so a DC input reads −6.021 dBTP instead of a
+phase-dependent value), zero-phase centring and a power-of-two FFT for the offline variant. Python mirror
+in `avzprobe/audio.py`, parity in `check_parity.py`: FIR vs FFT agree to **+0.007 dB** on 20 kHz
+band-limited noise, the 12 kHz/45° acceptance signal reads −0.168 dBTP where the sample grid says
+−3.01 dBFS (a 2.84 dB lie), and the gain staging drops to `LIMITER_HEADROOM_ALLOWANCE_DB = 3.5`
+(4.0 − 0.5 dB intersample margin). The probe now asserts `peak_dbtp ≤ −1.0`: all six cases pass, the
+party box moving from −1.28 to −1.05 dBTP – i.e. the sample meter had been claiming 0.6 dB of headroom
+that was not there.
+
+*Known limit, documented in the KDoc:* a 4× grid still under-reads a crest that sits between the
+oversampled taps by `1 − cos(π/8)` = 0.17 dB near fs/4. 8× would halve that; the cost is not worth it for
+a planner number, but the residual belongs in the safety margin (it is inside the 0.5 dB allowance).
 
 ### W3 – THD from the sweep (M)
 
@@ -205,6 +240,19 @@ must match the two clean ones within 0.2 dB; the wizard test drives the resume p
 
 *Risk:* low, but it changes a user-facing recommendation – needs the German/English/Spanish copy and the
 entitlement limits reviewed.
+
+**Done (round 11).** `SpatialAverager.analyse()` returns `SpatialAverage(result, spreadDb, rejected,
+deviations)`; a position is dropped when its level-aligned RMS deviation (100 Hz–10 kHz, normalised
+300 Hz–3 kHz) exceeds `max(3 × median, 1.5 dB)`, never below three positions and never below two kept
+ones. `MeasurementController.combine()` averages the kept positions, adds `POSITION_OUTLIER` to the
+warnings and reports `rejectedPositions`; the wizard has copy for it in en/de/es (the existing
+`resumePosition` path repeats exactly one position). Indoors, `recommendedPositions = 3` and
+`broadBoostOctaves = 1.0` (free tier still capped at one position by `EntitlementPolicy`).
+
+Measured effect (probe, three seats): mini box SMART 0.63 → 0.50 dB, p95 1.38 → 0.84 dB; HARMAN
+0.68 → 0.53 dB. With the 1-octave broad rule the largest narrow boost inside a > 6 dB spread region is
+**1.96 dB** (HARMAN, mini box) – under the 2.5 dB gate, where the old unconstrained fitter put 4 dB of
+Q 4 boost at 74 Hz into a mode null.
 
 ### W6 – Verification pass: measure the result (L)
 
@@ -314,7 +362,7 @@ W1 (judge first) ──► W5 (positions + dip rule, needs W1)
                                    W9 (convolution: measurement only)
 ```
 
-* **Round 11:** W1, W2, W5 – harness first, then the two "we measure the wrong thing" defects.
+* **Round 11 (done):** W1, W2, W5 – harness first, then the two "we measure the wrong thing" defects.
 * **Round 12:** W3, W4 – the two free metrics (THD, RT60) and their warnings.
 * **Round 13:** W10, W6 – the verification pass, which needs an honest peak/loudness metric first.
 * **Round 14:** W7, W8, and W9's measurement (build only if it shows ≥ 0.2 dB).

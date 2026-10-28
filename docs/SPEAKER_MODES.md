@@ -154,7 +154,7 @@ perceived loudness. Measured with the model used by the tests, a typical phone c
    *predicted* response (measurement + correction, A-weighted pink programme spectrum on a
    1/3-octave grid 40 Hz–16 kHz).
 3. **Two regimes** (`preampHeadroomAllowanceDb`):
-   * *Limiter armed* (device, rescue, outdoor – 4 dB allowance): the pre-gain is set
+   * *Limiter armed* (device, rescue, outdoor – 3.5 dB allowance): the pre-gain is set
      **loudness-neutral**: `pre-gain = clamp(−ΔL, clipping-safe, clipping-safe + allowance)`.
      The corrected chain comes out as loud as the original. The legacy rule made every
      correction that boosts anything `peak + 0.5 dB` quieter – e.g. the treble restoration
@@ -166,6 +166,11 @@ perceived loudness. Measured with the model used by the tests, a typical phone c
      13 clipped samples. The allowance is therefore 4 dB *and* the limiter is now a peak limiter
      (−2 dB, 20:1, 0.01 ms – `AntiClipping.DEFAULT_LIMITER`), which every probed case kept at or
      below −1.42 dBFS with zero clipped samples.
+     Round 10 reserved half a decibel of it for **inter-sample peaks**: the limiter watches samples,
+     but the reconstructed waveform overshoots them by 0.43–0.46 dB (measured, `TruePeak`), so the
+     allowance is 3.5 dB (`LIMITER_HEADROOM_ALLOWANCE_DB = 4.0 − INTER_SAMPLE_MARGIN_DB`). A sample
+     peak of −1.6 dBFS is a true peak of −1.2 dBTP; the difference is what a DAC and every lossy
+     codec actually see.
    * The static bound itself (`−(peak + headroom)`) is always applied and now also *credits* a
      correction that only cuts – a 3 dB cut really leaves 3 dB of headroom, which is where a
      cut-heavy device correction gets its loudness back instead of borrowing it from the limiter.

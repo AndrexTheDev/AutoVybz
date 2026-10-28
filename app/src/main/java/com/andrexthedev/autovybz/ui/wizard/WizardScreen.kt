@@ -1210,6 +1210,7 @@ private fun warningText(w: MeasurementWarning, latencyMs: Double): String = when
     MeasurementWarning.NOISE_UNSTEADY -> stringResource(R.string.avz_warn_unsteady)
     MeasurementWarning.DROPOUT -> stringResource(R.string.avz_warn_dropout)
     MeasurementWarning.AUDIO_GLITCH -> stringResource(R.string.avz_warn_glitch)
+    MeasurementWarning.POSITION_OUTLIER -> stringResource(R.string.avz_warn_position_outlier)
 }
 
 /** Warnings that make the result questionable (highlighted in gold). */

@@ -21,6 +21,7 @@ import com.andrexthedev.autovybz.measurement.audio.SampleRateMismatchException
 import com.andrexthedev.autovybz.measurement.dsp.AnalyzerConfig
 import com.andrexthedev.autovybz.measurement.dsp.MeasurementAnalyzer
 import com.andrexthedev.autovybz.measurement.dsp.MeasurementResult
+import com.andrexthedev.autovybz.measurement.dsp.MeasurementWarning
 import com.andrexthedev.autovybz.measurement.dsp.SmoothingProfile
 import com.andrexthedev.autovybz.measurement.dsp.SpatialAverager
 import com.andrexthedev.autovybz.measurement.dsp.Stimulus
@@ -95,6 +96,8 @@ class MeasurementOutcome(
     val positions: Int = 1,
     /** RMS disagreement between the positions in dB (null for a single position). */
     val positionSpreadDb: Double? = null,
+    /** Positions excluded as outliers from a multi-position average (0 = all of them were used). */
+    val rejectedPositions: Int = 0,
 )
 
 /**
@@ -252,7 +255,7 @@ class MeasurementController(
         MeasurementOutcome(
             request, outcome.result, render(outcome.result, request), outcome.capture,
             outcome.micProfile, outcome.micDescription, outcome.fftEngine, outcome.createdAtMillis,
-            outcome.positions, outcome.positionSpreadDb,
+            outcome.positions, outcome.positionSpreadDb, outcome.rejectedPositions,
         )
 
     /**
@@ -263,12 +266,17 @@ class MeasurementController(
         require(outcomes.isNotEmpty()) { "no measurements" }
         if (outcomes.size == 1) return outcomes[0]
         val results = outcomes.map { it.result }
-        val averaged = SpatialAverager.average(results)
+        val analysed = SpatialAverager.analyse(results)
+        // A disturbed position is dropped instead of pulling the average towards a response nobody
+        // hears; the user still sees that it happened (the warning names the fact, not a number).
+        val averaged = if (analysed.rejected.isEmpty()) analysed.result
+        else analysed.result.withExtraWarnings(listOf(MeasurementWarning.POSITION_OUTLIER))
         val last = outcomes.last()
         return MeasurementOutcome(
             request, averaged, render(averaged, request), last.capture, last.micProfile, last.micDescription,
             last.fftEngine, last.createdAtMillis, positions = outcomes.size,
-            positionSpreadDb = SpatialAverager.spreadDb(results, averaged),
+            positionSpreadDb = analysed.spreadDb,
+            rejectedPositions = analysed.rejected.size,
         )
     }
 

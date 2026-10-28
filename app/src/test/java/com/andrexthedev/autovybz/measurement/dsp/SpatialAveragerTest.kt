@@ -100,6 +100,69 @@ class SpatialAveragerTest {
         assertTrue(SpatialAverager.spreadDb(results, avg) > 0.0)
     }
 
+    // --- outlier rejection (analyse) -------------------------------------------------------
+
+    @Test
+    fun twoPositionsCanNeverReject() {
+        // With two candidates there is no majority to say which one is wrong: whatever the spread,
+        // both are kept (a disturbed second measurement still shows up as a large spreadDb).
+        val good = result({ f -> bump(f, 100.0, 4.0, 0.5) })
+        val bad = result({ f -> bump(f, 100.0, 4.0, 0.5) + bump(f, 900.0, -18.0, 0.2) })
+        val a = SpatialAverager.analyse(listOf(good, bad))
+        assertTrue(a.rejected.isEmpty())
+        assertEquals(2, a.deviations.size)
+        assertTrue("spread ${a.spreadDb}", a.spreadDb > 1.0)
+        // Both deviate equally from their common average: nothing singles one of them out.
+        assertEquals(a.deviations[0], a.deviations[1], 1e-9)
+    }
+
+    @Test
+    fun oneDisturbedPositionIsDropped() {
+        val room = { f: Double -> bump(f, 62.0, 7.0, 0.45) + bump(f, 240.0, -3.0, 0.3) }
+        val a = result({ f -> room(f) + bump(f, 150.0, -12.0, 0.15) })
+        val b = result({ f -> room(f) + bump(f, 400.0, -14.0, 0.15) })
+        val c = result({ f -> room(f) + bump(f, 1000.0, -13.0, 0.15) })
+        // A hand (or a passing body) over the phone: a broad 20 dB suck-out across the whole midrange,
+        // which no position in the room actually shows.
+        val bad = result({ f -> room(f) + bump(f, 900.0, -20.0, 1.5) })
+
+        val kept = SpatialAverager.analyse(listOf(a, b, c))
+        assertTrue(kept.rejected.isEmpty())
+
+        val withBad = SpatialAverager.analyse(listOf(a, b, c, bad))
+        assertEquals(listOf(3), withBad.rejected)
+        // The averaged curve is the clean average, not a compromise with the disturbed position.
+        val clean = SpatialAverager.average(listOf(a, b, c))
+        for (i in grid.indices) assertEquals(clean.smoothedDb[i], withBad.result.smoothedDb[i], 1e-9)
+        // ... and the spread is measured on the kept positions, so it stays small.
+        assertTrue("spread ${withBad.spreadDb}", withBad.spreadDb < 1.0)
+    }
+
+    @Test
+    fun atLeastTwoPositionsAlwaysSurvive() {
+        val clean = { f: Double -> bump(f, 80.0, 5.0, 0.6) }
+        val disturbed = { f: Double -> clean(f) + bump(f, 900.0, -20.0, 1.5) }
+        // Whatever the deviations, a calibration never ends up with fewer than two positions: with
+        // one survivor there is nothing left to average and the "outlier" would be the room.
+        listOf(3, 4, 5).forEach { n ->
+            val results = List(n) { i -> result(if (i == 0) clean else disturbed) }
+            val r = SpatialAverager.analyse(results)
+            assertTrue("n=$n rejected ${r.rejected}", n - r.rejected.size >= 2)
+            assertTrue("n=$n duplicates ${r.rejected}", r.rejected.size == r.rejected.distinct().size)
+        }
+    }
+
+    @Test
+    fun equallyGoodPositionsAreAllKept() {
+        val a = result({ f -> bump(f, 100.0, 5.0, 0.5) + bump(f, 900.0, -4.0, 0.4) })
+        val b = result({ f -> bump(f, 100.0, 5.0, 0.5) + bump(f, 1100.0, -4.0, 0.4) })
+        val c = result({ f -> bump(f, 100.0, 5.0, 0.5) + bump(f, 1050.0, -4.0, 0.4) })
+        assertTrue(SpatialAverager.analyse(listOf(a, b, c)).rejected.isEmpty())
+        // The floor keeps a merely "different" position in: without it the median deviation of three
+        // evenly spread positions would be tiny and every one of them would look like an outlier.
+        assertEquals(0, SpatialAverager.analyse(listOf(a, a, b)).rejected.size)
+    }
+
     @Test
     fun rejectsMismatchedGrids() {
         val a = result({ 0.0 })
