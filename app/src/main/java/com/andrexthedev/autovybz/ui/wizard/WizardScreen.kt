@@ -102,6 +102,7 @@ import com.andrexthedev.autovybz.measurement.dsp.MeasurementWarning
 import com.andrexthedev.autovybz.measurement.eq.PeqType
 import com.andrexthedev.autovybz.measurement.eq.TargetType
 import com.andrexthedev.autovybz.measurement.mic.ProfileConfidence
+import com.andrexthedev.autovybz.preset.PresetDisplayName
 import com.andrexthedev.autovybz.ui.components.AvzCard
 import com.andrexthedev.autovybz.ui.components.ChartSeries
 import com.andrexthedev.autovybz.ui.components.ExportButton
@@ -1012,7 +1013,12 @@ private fun SavedStep(step: WizardStep.Saved, onOpenProEq: () -> Unit, onOpenSou
         Text(stringResource(R.string.avz_saved_title), style = MaterialTheme.typography.headlineMedium, color = AutoVybzColors.Gold, modifier = Modifier.semantics { heading() })
         Spacer(Modifier.height(8.dp))
         Text(
-            stringResource(if (step.applied) R.string.avz_saved_applied else R.string.avz_saved_only, step.presetName),
+            stringResource(
+                if (step.applied) R.string.avz_saved_applied else R.string.avz_saved_only,
+                // A generated identifier ("AutoVybz_<device>_<date>") reads badly in a sentence; the user's own
+                // name is shown unchanged (PresetDisplayName only trims the generated parts).
+                PresetDisplayName.compact(step.presetName),
+            ),
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(12.dp))

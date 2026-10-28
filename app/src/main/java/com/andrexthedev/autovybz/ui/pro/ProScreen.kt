@@ -77,6 +77,7 @@ import com.andrexthedev.autovybz.measurement.mic.MicProfileDatabase
 import com.andrexthedev.autovybz.premium.Entitlement
 import com.andrexthedev.autovybz.premium.EntitlementPolicy
 import com.andrexthedev.autovybz.preset.AutoVybzPresetStore
+import com.andrexthedev.autovybz.preset.PresetDisplayName
 import com.andrexthedev.autovybz.preset.model.AutoVybzPreset
 import com.andrexthedev.autovybz.settings.AutoVybzSettings
 import com.andrexthedev.autovybz.settings.SmoothingChoice
@@ -290,8 +291,11 @@ private fun CalibrationList(externalExportsEnabled: Boolean = true, onOpenPremiu
     val active = VybzSound.activeCalibrationName(context)
     var toDelete by remember { mutableStateOf<String?>(null) }
     for (p in items) {
+        // Readable title (the stored identifier is `AutoVybz_<device>_<date>`); the exact date is on the
+        // second line and the test tags keep the stored name, so nothing becomes ambiguous.
+        val label = PresetDisplayName.of(p.speakerName, p.name)
         AvzCard(accent = if (p.name == active) AutoVybzColors.Green else null, modifier = Modifier.testTag("avz:pro:cal:${p.name}")) {
-            Text(p.name, style = MaterialTheme.typography.titleMedium)
+            Text(label, style = MaterialTheme.typography.titleMedium)
             Text(
                 "${df.format(Date(p.createdAtMillis))} · ${stringResource(targetLabel(p.target))} · ${p.bands.size} PEQ · " +
                     String.format(Locale.US, "%+.1f dB", p.preampDb) +
@@ -305,7 +309,7 @@ private fun CalibrationList(externalExportsEnabled: Boolean = true, onOpenPremiu
                     onClick = {
                         // style + Studio tone stay layered on top; outdoor / rescue / device calibrations always
                         // arm the limiter (PresetSafety, the same rule the wizard uses when saving)
-                        Toast.makeText(context, context.getString(R.string.avz_applied_toast, p.name), Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.getString(R.string.avz_applied_toast, label), Toast.LENGTH_SHORT).show()
                         scope.launch {
                             withContext(Dispatchers.IO) { VybzSound.useProfile(context, p.name) }
                             reload++ // re-read the active marker once the engine has the new profile

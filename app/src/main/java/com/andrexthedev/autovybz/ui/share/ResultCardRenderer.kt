@@ -16,6 +16,7 @@ import android.graphics.Typeface
 import androidx.compose.ui.graphics.toArgb
 import com.andrexthedev.autovybz.measurement.MeasurementOutcome
 import com.andrexthedev.autovybz.measurement.eq.TargetType
+import com.andrexthedev.autovybz.preset.PresetDisplayName
 import com.andrexthedev.autovybz.ui.theme.AutoVybzColors
 import com.bearinmind.equalizer314.R
 import java.util.Locale
@@ -100,7 +101,7 @@ object ResultCardRenderer {
             c.drawText(line, 64f, y, headlinePaint)
             y += headlinePaint.textSize * 1.12f
         }
-        val speaker = outcome.request.speakerName?.trim().orEmpty().ifEmpty { presetName }
+        val speaker = outcome.request.speakerName?.trim().orEmpty().ifEmpty { PresetDisplayName.compact(presetName) }
         val speakerPaint = text(34f, MUTED)
         c.drawText(ellipsize(speaker, speakerPaint, WIDTH - 128f), 64f, if (lines.size == 1) 356f else 408f, speakerPaint)
 

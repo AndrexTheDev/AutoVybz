@@ -54,11 +54,11 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.andrexthedev.autovybz.measurement.dsp.FrequencyGrid
 import com.andrexthedev.autovybz.measurement.eq.BiquadMath
 import com.andrexthedev.autovybz.preset.AutoVybzPresetStore
+import com.andrexthedev.autovybz.preset.PresetDisplayName
 import com.andrexthedev.autovybz.preset.model.AutoVybzPreset
 import com.andrexthedev.autovybz.sound.SoundComposer
 import com.andrexthedev.autovybz.sound.SoundSelection
@@ -185,11 +185,7 @@ private fun PowerHero(speaker: String?, style: SoundStyle) {
                 )
                 Text(
                     speaker?.let { stringResource(R.string.avz_home_speaker_value, it) } ?: stringResource(R.string.avz_home_speaker_none_value),
-                    // Measured profile names can be long (AutoVybz_<device>_<date>, device names from the
-                    // firmware are sometimes very long): two lines keep the hero card compact, and the name is
-                    // always readable in full in the speaker picker right below.
                     style = MaterialTheme.typography.bodyMedium, color = AutoVybzColors.OnDarkMuted,
-                    maxLines = 2, overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     stringResource(R.string.avz_home_style_value, stringResource(styleName(style))),
@@ -236,7 +232,7 @@ private fun ThreeSteps(onCalibrate: () -> Unit) {
 
 /* --------------------------------------------------------------- speaker -- */
 
-private fun speakerLabel(p: AutoVybzPreset): String = p.speakerName?.takeIf { it.isNotBlank() } ?: p.name
+private fun speakerLabel(p: AutoVybzPreset): String = PresetDisplayName.of(p.speakerName, p.name)
 
 @Composable
 private fun SpeakerPicker(
@@ -245,13 +241,14 @@ private fun SpeakerPicker(
     onPick: (AutoVybzPreset?) -> Unit,
     onCalibrate: () -> Unit,
 ) {
-    val labels = items.map { speakerLabel(it) }
     val df = remember { java.text.SimpleDateFormat("dd.MM.", java.util.Locale.getDefault()) }
+    val labels = remember(items, df) {
+        // two calibrations of the same speaker (indoor / outdoor) stay distinguishable: date, then a counter
+        PresetDisplayName.uniqueLabels(items.map { speakerLabel(it) }, items.map { it.createdAtMillis }) { df.format(java.util.Date(it)) }
+    }
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         for ((i, p) in items.withIndex()) {
-            // two calibrations of the same speaker (e.g. indoor / outdoor) get their date as a tie-breaker
-            val label = if (labels.count { it == labels[i] } > 1) "${labels[i]} · ${df.format(java.util.Date(p.createdAtMillis))}" else labels[i]
-            VybzChip(p.name == activeName, label, Modifier.testTag("avz:home:speaker:${p.name}")) { onPick(p) }
+            VybzChip(p.name == activeName, labels[i], Modifier.testTag("avz:home:speaker:${p.name}")) { onPick(p) }
         }
         VybzChip(activeName == null, stringResource(R.string.avz_home_speaker_none), Modifier.testTag("avz:home:speaker:none")) { onPick(null) }
         FilterChip(

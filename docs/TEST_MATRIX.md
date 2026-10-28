@@ -12,7 +12,7 @@ the work:
 There is no JDK/Android SDK in the coding sandbox, so local verification is limited to the pure-Python and
 native host tools (see §5).
 
-## 1. JVM unit tests – 44 classes, 225 `@Test` methods
+## 1. JVM unit tests – 39 classes, 238 `@Test` methods
 
 | Package | Classes | What they pin down |
 |---|---|---|
@@ -22,11 +22,11 @@ native host tools (see §5).
 | `measurement` | `OutdoorScenarioTest`, `SpeakerClassTuningTest`, `PerformanceBudgetTest` | outdoor/rescue/device tuning, analysis time budget |
 | `measurement/mic` | `MicProfileDatabaseTest`, `MicProfilesTest`, `CalibrationParserFuzzTest` | profile lookup, calibration-file parsing incl. garbage input |
 | `sound` | `SoundStyleTest` (10), `SoundComposerTest` (7), `PresetSafetyTest` (6) | style design limits, layering + band budget, limiter rule |
-| `preset` | `AutoVybzPresetCodecTest`, `PresetFilesTest`, `model/AutoVybzPresetTest` | round-trip codec, file names, head-only name parse, model invariants |
+| `preset` | `AutoVybzPresetCodecTest`, `PresetFilesTest`, `PresetDisplayNameTest` (8), `model/AutoVybzPresetTest` | round-trip codec, file names, head-only name parse, display names (compact + unique picker labels), model invariants |
 | `premium` | `EntitlementPolicyTest` (13) | trial/paid/unlimited rules, TXID handling, clock-rollback **and** implausible-jump rules |
 | `export` | `PresetExportersTest`, `PresetNamingAndApoFuzzTest` (7) | APO/PEQ/REW output, naming fuzz, code-point-safe names |
 | `ui/wizard` | `WizardErrorMappingTest` | capture failure → user-facing error bucket |
-| `audit` | `StringResourceAuditTest` (15), `ManifestAuditTest` (7), `ColorContrastAuditTest` (8), `ProjectInfoAuditTest`, `LicenseAuditTest`, `InheritedPaletteAuditTest`, `StickyFooterBannerAuditTest` | see §3 |
+| `audit` | `StringResourceAuditTest` (15), `ManifestAuditTest` (7), `ColorContrastAuditTest` (8), `ProjectInfoAuditTest`, `LicenseAuditTest`, `InheritedPaletteAuditTest`, `StickyFooterBannerAuditTest`, `PresetDisplayNameUsageAuditTest` | see §3 |
 | inherited | `AutoEqPackTest`, `HrirLoaderTest` | bundled AutoEq pack + HRIR assets |
 
 ## 2. Static audits (run inside the campaign, `build` job)
@@ -43,7 +43,7 @@ native host tools (see §5).
 | Asset freshness | `tools/micdb/generate_mic_profiles.py`, `tools/autoeq/pack_autoeq.py` | regenerating must be byte-identical |
 | App lint gates as tests | `app/src/test/.../audit/*` | strings (parity, placeholders, plurals, escaping, unused keys, no hardcoded UI text), manifest, contrast, license, project info |
 
-## 3. Instrumented suites – 13 classes, 95 `@Test` methods, API 28 / 30 / 35
+## 3. Instrumented suites – 14 classes, 95 `@Test` methods, API 28 / 30 / 35
 
 | Suite (class) | Tests | Focus |
 |---|---|---|
