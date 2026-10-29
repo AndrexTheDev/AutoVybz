@@ -222,7 +222,9 @@ the measured change (`after − before`), the plan's own filter response, and th
 before / after / as predicted.
 
 Both shapes are normalized in 300 Hz–3 kHz, so the comparison is level-invariant: a user who turns the
-volume down between the runs invalidates nothing, because the pre-gain cancels. What it does catch is the
+volume down between the runs invalidates nothing, because the pre-gain cancels. The measured difference is
+aligned in that band once more before it is judged – the analyzer's normalisation already does this, but a
+capture-gain change that survived it must not be able to pass for a tonal change. What it does catch is the
 chain lying in between, and the verdict order is what makes that possible:
 
 | condition | verdict | typical cause |

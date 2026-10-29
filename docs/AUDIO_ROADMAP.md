@@ -324,7 +324,10 @@ Decisions worth keeping:
 
 * **Level-invariant on purpose.** Both shapes are normalised in 300 Hz–3 kHz, so a user who changes the
   volume between the runs invalidates nothing (`aLevelChangeBetweenTheRunsDoesNotMatter`). The pre-gain is a
-  pure level change and disappears in the normalisation – exactly right for a *shape* comparison.
+  pure level change and disappears in the normalisation – exactly right for a *shape* comparison. The first
+  implementation relied on the *analyzer* having normalised both curves and forgot that the test's own
+  "volume down 4 dB" fixture is applied afterwards; CI failed it, and the fix is one band-mean on the measured
+  difference, which is the right place for it anyway (a capture-gain change must not look tonal).
 * **Correlation, not magnitude, separates "nothing happened" from "something else happened".** Verdict order:
   flat-plan pass → `NO_CHANGE` (< 0.5 dB measured change) → `AS_PREDICTED` (≤ 1.5 dB prediction error) →
   `UNEXPECTED` (correlation < 0.5) → `WEAKER` / `BETTER` by comparing the two RMS changes.
@@ -418,6 +421,12 @@ Two traps, both found by the checks rather than by ear:
 Anchors: a full-scale 1 kHz sine reads −3.00 LUFS, a −23/−33 LUFS sine reads back exactly, EBU 3341 case 3
 (−72 / −36 / −72) gives −36.02, the relative-gate case gives −23.11 against a raw energy average of −25.92,
 and 44.1 kHz reads the same loudness as 48 kHz (the coefficients are derived, not tabulated).
+
+Two more numbers the first CI run corrected: the gating block straddles quiet/loud boundaries, and those
+blocks are genuine programme – with a 2 s / 8 s / 2 s fixture the absolute-gate test read −36.16 instead of
+−36.00, and even 2/20/2 only reaches −36.06. The test now uses the standard's 10/60/10 layout (−36.02) and
+says why. And the true-peak expectation was copied from the *full-scale* 12 kHz fixture: at amplitude 0.5 the
+same tone is −6.02 dBTP (read: −6.19 through the 4× grid), not around 0 dBTP.
 
 Third lesson: the K-weighting *shape* assertions must use the actual curve, not the asymptote. The first
 version of the JVM test demanded 40 Hz < −6 dB and 20 Hz < −14 dB; the filters give −5.6 and −13.3 dB there

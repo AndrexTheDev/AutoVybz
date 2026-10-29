@@ -19,7 +19,8 @@ import kotlin.math.sqrt
  * * **residual** – what is left of the target, before and after.
  *
  * The comparison is level-invariant on purpose: a user who turns the volume down between the two runs
- * invalidates nothing, because both curves are normalised. What it *does* catch is everything that broke
+ * invalidates nothing, because both curves are normalised (and the measured difference is aligned in the
+ * same band again, so an offset that survived the analyzer cannot pass for a tonal change). What it *does* catch is everything that broke
  * the chain in between: the EQ never got applied, the route switched to another speaker, a limiter ate the
  * correction, the speaker rattles at measurement level. In those cases the measured change is not the
  * predicted one, and [Report.verdict] says so.
@@ -125,9 +126,12 @@ object Verification {
         val predicted = DoubleArray(f.size) { autoEq.filterResponseDb[it] }
         val predictedNorm = FrequencyGrid.bandMean(f, predicted, NORMALISATION_LO_HZ, NORMALISATION_HI_HZ)
         val predictedShape = DoubleArray(f.size) { predicted[it] - predictedNorm }
-        // Both measurements are already normalised to 0 dB in the same band by the analyzer, so the
-        // difference of the two is a pure shape change.
-        val measuredShape = DoubleArray(f.size) { after.smoothedDb[it] - before.smoothedDb[it] }
+        // The analyzer already normalises both measurements to 0 dB in the same band, so their difference
+        // is a shape change. It is aligned once more anyway: a level offset that survived (a different
+        // capture gain, a run taken at another volume) must not be able to look like a tonal change.
+        val measuredRaw = DoubleArray(f.size) { after.smoothedDb[it] - before.smoothedDb[it] }
+        val measuredOffset = FrequencyGrid.bandMean(f, measuredRaw, NORMALISATION_LO_HZ, NORMALISATION_HI_HZ)
+        val measuredShape = DoubleArray(f.size) { measuredRaw[it] - measuredOffset }
 
         val lo = max(autoEq.lowLimitHz * JUDGE_LOW_FACTOR, NORMALISATION_LO_HZ / 2.0)
         val hi = autoEq.highLimitHz

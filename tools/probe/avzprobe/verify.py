@@ -40,7 +40,10 @@ def compare(before, after, plan) -> dict:
     grid = before.frequencies
     predicted = np.array(plan.filter_response_db, dtype=float)
     predicted = predicted - dsp.band_mean(grid, predicted, NORMALISATION_LO_HZ, NORMALISATION_HI_HZ)
+    # Level alignment: the analyzer already normalises both curves, but an offset that survived (another
+    # capture gain, a run at a different volume) must not look like a tonal change.
     measured = after.smoothed_db - before.smoothed_db
+    measured = measured - dsp.band_mean(grid, measured, NORMALISATION_LO_HZ, NORMALISATION_HI_HZ)
 
     lo = max(plan.low_limit_hz * JUDGE_LOW_FACTOR, NORMALISATION_LO_HZ / 2.0)
     judge = (grid >= lo) & (grid <= plan.high_limit_hz)

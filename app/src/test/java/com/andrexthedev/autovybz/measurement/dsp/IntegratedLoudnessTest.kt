@@ -74,8 +74,12 @@ class IntegratedLoudnessTest {
     /** EBU Tech 3341 case 3: quiet ends must be removed by the *absolute* gate. */
     @Test
     fun theAbsoluteGateRemovesSilence() {
-        val quiet = sine(amplitudeFor(-72.0), 2.0)
-        val loud = sine(amplitudeFor(-36.0), 8.0)
+        // The loud part must be long compared with one gating block (400 ms) and its hop (100 ms): blocks
+        // that *straddle* a quiet/loud boundary are genuine programme and cannot be gated out. With an 8 s
+        // middle the answer was -36.16 (and with 20 s, -36.06); the standard's own 10/60/10 layout keeps that
+        // contamination below 0.03 dB. The tolerance is therefore 0.1 dB, not 0.05.
+        val quiet = sine(amplitudeFor(-72.0), 10.0)
+        val loud = sine(amplitudeFor(-36.0), 60.0)
         val joined = FloatArray(quiet.size + loud.size + quiet.size)
         quiet.copyInto(joined, 0)
         loud.copyInto(joined, quiet.size)
@@ -111,14 +115,17 @@ class IntegratedLoudnessTest {
 
     @Test
     fun theResultCarriesTheTruePeakNextToTheLoudness() {
-        val signal = sine(0.5, 2.0, 12000.0).also { x ->
-            // A 12 kHz tone at 45 degrees has its crest between the samples.
-            for (i in x.indices) x[i] = (0.5 * cos(2.0 * PI * 12000.0 * i / fs + PI / 4.0)).toFloat()
-        }
+        // A 12 kHz tone at 45 degrees has its crest between the samples: amplitude 0.5 is -6.02 dBTP, but
+        // every sample only reaches -9.03 dBFS. (The 4x grid under-reads the crest by a further ~0.17 dB.)
+        val signal = FloatArray(2 * fs) { i -> (0.5 * cos(2.0 * PI * 12000.0 * i / fs + PI / 4.0)).toFloat() }
         val result = IntegratedLoudness.analyse(signal, fs)
         assertNotNull(result)
-        assertTrue("true peak ${result!!.truePeakDbtp} dBTP", result.truePeakDbtp > -1.0 && result.truePeakDbtp < 0.1)
-        assertTrue("sample peak ${IntegratedLoudness.samplePeakDbfs(signal)}", IntegratedLoudness.samplePeakDbfs(signal) < -2.9)
+        val truePeak = result!!.truePeakDbtp
+        val samplePeak = IntegratedLoudness.samplePeakDbfs(signal)
+        assertTrue("true peak $truePeak dBTP", truePeak > -6.3 && truePeak < -5.9)
+        assertTrue("sample peak $samplePeak dBFS", samplePeak < -8.5)
+        // The whole point of the pair: the sample meter misses more than 2.5 dB of the crest.
+        assertTrue("peak gap ${truePeak - samplePeak} dB", truePeak - samplePeak > 2.5)
         assertTrue(result.blocks > 0)
     }
 

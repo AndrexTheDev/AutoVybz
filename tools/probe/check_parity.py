@@ -280,7 +280,9 @@ def main() -> int:
         ok &= check(f"a sine at {expect:.0f} LUFS reads {expect:.0f}", got is not None and abs(got - expect) < 0.05,
                     f"{got:.2f}")
 
-    # Absolute gate: EBU 3341 case 3 - 10 s at -72 LUFS (below the gate), 60 s at -36, 10 s at -72.
+    # Absolute gate: EBU 3341 case 3 - quiet ends at -72 LUFS (below the gate) around loud -36 LUFS.
+    # Same fixture as the JVM test, 10 / 60 / 10 s: the middle must be long compared with a gating block, or
+    # the straddling blocks (real programme, not silence) drag the answer up (2/8/2 gives -36.16).
     gap = np.concatenate([_sine(_amplitude_for(-72.0), 10.0), _sine(_amplitude_for(-36.0), 60.0),
                           _sine(_amplitude_for(-72.0), 10.0)])
     gated = loudness.integrated_lufs(gap, fs)
@@ -305,6 +307,14 @@ def main() -> int:
         loudness.amplitude_for(-23.0, fs) * np.sin(2.0 * np.pi * 1000.0 * np.arange(n441) / 44100.0), 44100.0)
     ok &= check("44.1 kHz reads the same loudness",
                 at441 is not None and abs(at441 + 23.0) < 0.1, f"{at441:.2f} LUFS")
+
+    # The pair the app shows next to the loudness: sample peak vs true peak on the 12 kHz / 45 degrees tone
+    # of `theResultCarriesTheTruePeakNextToTheLoudness` (amplitude 0.5 = -6.02 dBTP, samples only -9.03).
+    crest = 0.5 * np.cos(2.0 * math.pi * 12000.0 * np.arange(2 * fs) / fs + math.pi / 4.0)
+    tp, sp = loudness.true_peak_dbtp(crest), audio.sample_peak_db(crest)
+    ok &= check("loudness analysis carries a true peak above the sample peak",
+                -6.3 < tp < -5.9 and sp < -8.5 and tp - sp > 2.5,
+                f"true {tp:+.2f} dBTP, sample {sp:+.2f} dBFS, gap {tp - sp:.2f} dB")
 
     # --- Verification (app: `measurement/Verification`, pinned by `VerificationTest`) --------------
     a_series = np.array([1.0, 2.0, 3.0, 4.0])

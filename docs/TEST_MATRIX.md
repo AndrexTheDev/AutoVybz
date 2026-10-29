@@ -80,7 +80,7 @@ Seven configurations, each running `ScreenshotTourE2ETest` + `LegacyScreensE2ETe
 ## 5. What can be verified without a device
 
 ```bash
-python3 tools/probe/check_parity.py                     # 59 self-checks: Python port vs. Kotlin goldens
+python3 tools/probe/check_parity.py                     # 60 self-checks: Python port vs. Kotlin goldens
 python3 tools/probe/live_probe.py --music <recording>   # real programme material through the whole chain
 python3 tools/probe/live_probe.py --positions 3         # ... against a position-aware room (W1)
 python3 tools/probe/live_probe.py --positions 1 --truth-positions 3   # "is one measurement enough?"
