@@ -12,7 +12,7 @@ the work:
 There is no JDK/Android SDK in the coding sandbox, so local verification is limited to the pure-Python and
 native host tools (see §5).
 
-## 1. JVM unit tests – 48 classes, 306 `@Test` methods
+## 1. JVM unit tests – 49 classes, 309 `@Test` methods
 
 | Package | Classes | What they pin down |
 |---|---|---|
@@ -41,9 +41,9 @@ native host tools (see §5).
 | Website | `site/build.py` + `tools/audit/site_audit.py` | 0 errors/warnings, i18n key parity, sitemap |
 | Native host check | `tools/native/host_check.sh` | FFT vs. DFT (≤1e-6), non-pow-2 rejected, Oboe/JNI syntax |
 | Asset freshness | `tools/micdb/generate_mic_profiles.py`, `tools/autoeq/pack_autoeq.py` | regenerating must be byte-identical |
-| App lint gates as tests | `app/src/test/.../audit/*` | strings (parity, placeholders, plurals, escaping, unused keys, no hardcoded UI text), manifest, contrast, license, project info |
+| App lint gates as tests | `app/src/test/.../audit/*` | strings (parity, placeholders, plurals, escaping, unused keys, no hardcoded UI text), manifest, contrast, license, project info, one place per rule (display names, verdict wording) |
 
-## 3. Instrumented suites – 14 classes, 96 `@Test` methods, API 28 / 30 / 35
+## 3. Instrumented suites – 14 classes, 97 `@Test` methods, API 28 / 30 / 35
 
 | Suite (class) | Tests | Focus |
 |---|---|---|
@@ -51,7 +51,7 @@ native host tools (see §5).
 | `WizardLifecycleE2ETest` | 15 | cancel/back confirmation, rotation and process restore, window flags, volume set/restore + abandoned volume, the declared subwoofer surviving a restart |
 | `WizardErrorsE2ETest` | 10 | every error path incl. resume with kept positions |
 | `SoundE2ETest` | 6 | speaker profiles, styles, deleting the audible profile, engine state (band count, pre-gain) |
-| `ProE2ETest` / `LegacyScreensE2ETest` | 4 / 19 | Studio settings, inherited engine screens |
+| `ProE2ETest` / `LegacyScreensE2ETest` | 5 / 19 | Studio settings, inherited engine screens, the check badge in both calibration lists |
 | `PremiumE2ETest` | 4 | Free limits (incl. that studio presets do not consume the free profile), trial, Alpha activation/reset |
 | `NavigationE2ETest` | 7 | tabs, deep links into the engine, feedback mail |
 | `ExportShareE2ETest` | 3 | SAF export, share card through the FileProvider |
@@ -122,6 +122,10 @@ amplitude ratio to 0.5 dB), and noise shaped by `exp(-6.9078·t/T60)` with a kno
 the failure modes the calibration found: a linear system reports **no** THD, a floor 10 dB below the direct
 sound reports **no** THD, a dry response and a noise plateau return **unknown** instead of a number, and a
 symmetric odd-order clip is *not* called a rattle.
+
+Round 16 added `VerificationBadgeUsageAuditTest` (3): every screen that lists a stored calibration shows the
+check badge (Sound chips, Pro list), the verdict is worded in exactly one place (`verificationVerdictLabel`,
+every verdict mapped) and "not checked" stays the absence of a badge - no such string may exist.
 
 Round 15 added five tests that pin "the check travels with the result": the report survives the internal JSON
 and an unknown verdict degrades to "not checked" (`AutoVybzPresetCodecTest`), the check is only ever a comment

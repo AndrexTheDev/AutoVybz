@@ -220,6 +220,8 @@
     <string name="avz_check_unexpected">What changed does not look like our correction.</string>
     <string name="avz_check_numbers">Measured %1$.1f dB better, predicted %2$.1f dB.</string>
     <string name="avz_check_failed">The check could not be completed. Your calibration is saved and unchanged.</string>
+    <string name="avz_check_badge">Checked: %1$s dB measured, %2$s dB predicted</string>
+    <string name="avz_check_badge_failed">Not confirmed: %1$s dB measured, %2$s dB predicted</string>
     <string name="avz_open_pro_eq">Open 10-band EQ</string>
     <string name="avz_done">Done</string>
     <string name="avz_err_title">Measurement failed</string>

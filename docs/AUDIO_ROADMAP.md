@@ -366,7 +366,9 @@ stored with the calibration (`MeasurementSnapshot.verification`) and re-drawn fr
 prints "✓ Checked: measured 1.8 dB, predicted 2.1 dB" next to the key figure (in the warning colour when the
 check did *not* confirm the plan), the APO export carries a `# Check: …` comment, the REW export a `*` header
 line, and the internal preset keeps the whole report – so a re-imported calibration still knows it was
-measured twice. Older files and verdicts from a newer build load as "not checked" rather than a guess.
+measured twice. Older files and verdicts from a newer build load as "not checked" rather than a guess. The
+lists that show stored calibrations carry it too (Sound chips as an icon, Pro list as a line), through one
+shared wording - a check the user cannot find again is a check that did not happen.
 
 ### W7 – Bounded adaptive target (M)
 

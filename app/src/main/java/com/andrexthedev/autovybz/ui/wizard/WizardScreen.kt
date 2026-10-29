@@ -109,6 +109,7 @@ import com.andrexthedev.autovybz.preset.PresetDisplayName
 import com.andrexthedev.autovybz.ui.components.AvzCard
 import com.andrexthedev.autovybz.ui.components.ChartSeries
 import com.andrexthedev.autovybz.ui.components.ExportButton
+import com.andrexthedev.autovybz.ui.components.verificationVerdictLabel
 import com.andrexthedev.autovybz.ui.components.FrequencyResponseChart
 import com.andrexthedev.autovybz.ui.components.LevelMeter
 import com.andrexthedev.autovybz.ui.components.SectionTitle
@@ -1083,15 +1084,9 @@ private fun VerificationCard(report: Verification.Report?, onVerify: () -> Unit)
             )
         } else {
             Text(
-                stringResource(
-                    when (report.verdict) {
-                        Verification.Verdict.AS_PREDICTED -> R.string.avz_check_as_predicted
-                        Verification.Verdict.BETTER_THAN_PREDICTED -> R.string.avz_check_better
-                        Verification.Verdict.WEAKER_THAN_PREDICTED -> R.string.avz_check_weaker
-                        Verification.Verdict.NO_CHANGE -> R.string.avz_check_no_change
-                        Verification.Verdict.UNEXPECTED -> R.string.avz_check_unexpected
-                    },
-                ),
+                // One shared mapping (`verificationVerdictLabel`), so the card, the calibration lists and
+                // the share card cannot drift apart in what they call a verdict.
+                stringResource(verificationVerdictLabel(report.verdict)),
                 style = MaterialTheme.typography.bodyMedium,
                 color = AutoVybzColors.OnDark,
             )

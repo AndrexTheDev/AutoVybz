@@ -84,8 +84,9 @@ import com.andrexthedev.autovybz.settings.SmoothingChoice
 import com.andrexthedev.autovybz.ui.components.AvzCard
 import com.andrexthedev.autovybz.ui.components.CollapsibleCard
 import com.andrexthedev.autovybz.ui.components.ExportButton
-import com.andrexthedev.autovybz.ui.components.SectionTitle
 import com.andrexthedev.autovybz.ui.components.HintRow
+import com.andrexthedev.autovybz.ui.components.SectionTitle
+import com.andrexthedev.autovybz.ui.components.VerificationBadge
 import com.andrexthedev.autovybz.ui.components.VybzIcons
 import com.andrexthedev.autovybz.ui.components.rememberEqPower
 import com.andrexthedev.autovybz.ui.premium.PremiumStatusCard
@@ -304,6 +305,12 @@ private fun CalibrationList(externalExportsEnabled: Boolean = true, onOpenPremiu
                 style = MaterialTheme.typography.bodySmall,
                 color = AutoVybzColors.OnDarkMuted,
             )
+            // The "Check" run (W6), when this calibration was verified: measured vs. predicted, or the
+            // warning colour when the chain did not do what the plan promised.
+            p.measurement?.verification?.let {
+                Spacer(Modifier.height(4.dp))
+                VerificationBadge(it)
+            }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Button(
                     onClick = {

@@ -267,7 +267,12 @@ calibration (`MeasurementSnapshot.verification`) and re-drawn from there:
 * **REW export** – one more `*` header line;
 * **internal `*.avz.json`** – the whole report, so a re-imported preset still knows it was verified. A
   missing block (older files) or a verdict from a newer build loads as "not checked"; the numbers are never
-  guessed.
+  guessed;
+* **the lists that show stored calibrations** – the Sound screen's speaker chips get the tick as a leading
+  icon (its content description is the whole verdict, so a screen reader gets the sentence), and the Pro list
+  prints the badge under the metadata line. Both use one shared component and one shared wording
+  (`verificationVerdictLabel`), and a `null` report renders nothing: "not checked" is the absence of a badge,
+  not a third state to explain.
 
 The wizard writes the block back to the stored preset after a successful check (best effort – failing to
 rewrite the file must not cost the user the ten seconds they just spent). A new plan – another target, or a

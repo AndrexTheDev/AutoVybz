@@ -222,6 +222,8 @@
     <string name="avz_check_unexpected">El cambio no se parece a nuestra corrección.</string>
     <string name="avz_check_numbers">Medido %1$.1f dB mejor, previsto %2$.1f dB.</string>
     <string name="avz_check_failed">No se pudo completar la comprobación. Tu calibración sigue guardada y sin cambios.</string>
+    <string name="avz_check_badge">Comprobado: %1$s dB medidos, %2$s dB previstos</string>
+    <string name="avz_check_badge_failed">No confirmado: %1$s dB medidos, %2$s dB previstos</string>
     <string name="avz_open_pro_eq">Abrir EQ de 10 bandas</string>
     <string name="avz_done">Listo</string>
     <string name="avz_err_title">La medición falló</string>

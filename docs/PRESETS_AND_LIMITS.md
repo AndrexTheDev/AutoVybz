@@ -43,6 +43,10 @@ asymmetry is the whole reason for §3.
   figure, the APO export carries it as a `# Check: …` comment, the REW export as a `*` header line, and the
   internal JSON keeps it so a re-imported preset still knows it was verified. A file without the block (or
   with a verdict from a newer build) loads as "not checked" – the numbers are never guessed.
+* **Where the user sees it later** – the Sound screen's speaker chips carry a tick (or a warning triangle) that
+  is also the screen-reader text, and the Pro list prints "Checked: 1.8 dB measured, 2.1 dB predicted" under the
+  metadata line, in the warning colour when the check did not confirm the plan. A missing badge means "never
+  checked"; there is no third state to read.
 * **Band budget (16 filters in the engine)**: the calibration bands stay, the two Studio tone shelves always
   fit, and the style is cut last (`SoundComposer.fitLayers`). The order used to be "calibration + style +
   tone, then truncate", which dropped the user's Bass/Höhen shelves first on a calibration with more than

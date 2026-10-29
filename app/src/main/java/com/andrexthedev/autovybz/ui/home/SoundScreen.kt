@@ -57,6 +57,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.andrexthedev.autovybz.measurement.dsp.FrequencyGrid
 import com.andrexthedev.autovybz.measurement.eq.BiquadMath
+import com.andrexthedev.autovybz.measurement.Verification
 import com.andrexthedev.autovybz.preset.AutoVybzPresetStore
 import com.andrexthedev.autovybz.preset.PresetDisplayName
 import com.andrexthedev.autovybz.preset.model.AutoVybzPreset
@@ -70,6 +71,7 @@ import com.andrexthedev.autovybz.ui.components.ChartSeries
 import com.andrexthedev.autovybz.ui.components.FrequencyResponseChart
 import com.andrexthedev.autovybz.ui.components.HintRow
 import com.andrexthedev.autovybz.ui.components.SectionTitle
+import com.andrexthedev.autovybz.ui.components.VerificationBadge
 import com.andrexthedev.autovybz.ui.components.VybzIcons
 import com.andrexthedev.autovybz.ui.components.VybzRings
 import com.andrexthedev.autovybz.ui.components.rememberEqPower
@@ -248,7 +250,14 @@ private fun SpeakerPicker(
     }
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         for ((i, p) in items.withIndex()) {
-            VybzChip(p.name == activeName, labels[i], Modifier.testTag("avz:home:speaker:${p.name}")) { onPick(p) }
+            // A checked calibration says so on the chip (icon only - the label is the speaker's name); the
+            // verdict itself becomes the icon's content description.
+            VybzChip(
+                selected = p.name == activeName,
+                label = labels[i],
+                modifier = Modifier.testTag("avz:home:speaker:${p.name}"),
+                report = p.measurement?.verification,
+            ) { onPick(p) }
         }
         VybzChip(activeName == null, stringResource(R.string.avz_home_speaker_none), Modifier.testTag("avz:home:speaker:none")) { onPick(null) }
         FilterChip(
@@ -262,9 +271,20 @@ private fun SpeakerPicker(
 }
 
 @Composable
-private fun VybzChip(selected: Boolean, label: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
+private fun VybzChip(
+    selected: Boolean,
+    label: String,
+    modifier: Modifier = Modifier,
+    /** The "Check" run's report (W6), when this calibration was verified. */
+    report: Verification.Report? = null,
+    onClick: () -> Unit,
+) {
     FilterChip(
         selected = selected, onClick = onClick, label = { Text(label) }, modifier = modifier,
+        // Only checked calibrations get an icon; "not checked" is the plain chip.
+        leadingIcon = if (report != null) {
+            { VerificationBadge(report, iconOnly = true) }
+        } else null,
         colors = FilterChipDefaults.filterChipColors(
             selectedContainerColor = AutoVybzColors.Green,
             selectedLabelColor = AutoVybzColors.OnGreen,
