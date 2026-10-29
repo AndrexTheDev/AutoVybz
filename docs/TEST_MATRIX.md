@@ -43,12 +43,12 @@ native host tools (see §5).
 | Asset freshness | `tools/micdb/generate_mic_profiles.py`, `tools/autoeq/pack_autoeq.py` | regenerating must be byte-identical |
 | App lint gates as tests | `app/src/test/.../audit/*` | strings (parity, placeholders, plurals, escaping, unused keys, no hardcoded UI text), manifest, contrast, license, project info |
 
-## 3. Instrumented suites – 14 classes, 95 `@Test` methods, API 28 / 30 / 35
+## 3. Instrumented suites – 14 classes, 96 `@Test` methods, API 28 / 30 / 35
 
 | Suite (class) | Tests | Focus |
 |---|---|---|
 | `WizardFlowE2ETest` | 11 | happy paths: indoor/outdoor, 1/3 positions, 5/10 bands, naming, hand-over to the engine |
-| `WizardLifecycleE2ETest` | 14 | cancel/back confirmation, rotation and process restore, window flags, volume set/restore + abandoned volume |
+| `WizardLifecycleE2ETest` | 15 | cancel/back confirmation, rotation and process restore, window flags, volume set/restore + abandoned volume, the declared subwoofer surviving a restart |
 | `WizardErrorsE2ETest` | 10 | every error path incl. resume with kept positions |
 | `SoundE2ETest` | 6 | speaker profiles, styles, deleting the audible profile, engine state (band count, pre-gain) |
 | `ProE2ETest` / `LegacyScreensE2ETest` | 4 / 19 | Studio settings, inherited engine screens |
