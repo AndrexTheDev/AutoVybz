@@ -76,8 +76,13 @@ keeps the monkey output, the ANR trace and the main-thread stack of both runs.
 
 The **ANR scan** over the instrumented runs has no confirmation run to ask, so a framework stall there needs
 two independent pieces of evidence before it becomes a warning instead of a failure: the app's main-thread
-stack classifies as a framework stall (no AutoVybz frame) **and** another process ANR'd in the same window —
-i.e. the stall was system-wide. Anything else fails the job, as before.
+stack classifies as a framework stall (no AutoVybz frame) **and** one corroboration from the same job —
+either another process ANR'd in the same window (the stall was system-wide), or the emulator took the window
+away from the app before a suite *and* the monkey run of the same job hit the same class of framework stall
+(campaign 16, API 30: the launcher owned the focus while the app's main thread sat in
+`HardwareRenderer.nSyncAndDrawFrame`, and the monkey run stalled in exactly the same place — no other process
+ANR'd, because the launcher was never asked to draw). Anything else fails the job, as before: an ANR with an
+app frame on the main thread is still ours, and a stall without a second observation stays unexplained.
 
 ## 4. Screenshot + accessibility matrix (API 35)
 

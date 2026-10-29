@@ -17,6 +17,11 @@ APK=$ROOT/app/build/outputs/apk/debug/app-debug.apk
 TAPK=$ROOT/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
 SUMMARY=$OUT/summary.md
 FAIL=0
+# Evidence counters for the ANR scan at the end: how often the emulator took the window away from the app,
+# and which framework stall (if any) the monkey run hit in this same job. Both are only ever used to
+# *corroborate* a stall whose main-thread stack already shows no app frame.
+FOCUS_LOST_N=0
+MONKEY_STALL_KIND=""
 
 log() { echo "[$(date +%H:%M:%S)] $*"; }
 note() { echo "$*" >> "$SUMMARY"; }
@@ -65,6 +70,7 @@ ensure_app_focus() {
     *$PKG*) return 0 ;;
   esac
   log "focus is not the app ($f) - relaunching"
+  FOCUS_LOST_N=$((FOCUS_LOST_N + 1))
   echo "::warning title=Focus lost before $1 (API $API)::${f:-unknown}" >&2
   adb shell am start -n $PKG/com.andrexthedev.autovybz.ui.AutoVybzActivity >/dev/null 2>&1 || true
   sleep 3
@@ -166,6 +172,7 @@ monkey_run() {
       if [ "$STALL_KIND" = "idle main thread" ] && ! grep -q "Input dispatching timed out" "$OUT/$PFX.txt"; then
         STALL_KIND=""
       fi
+      [ -n "$STALL_KIND" ] && MONKEY_STALL_KIND="$STALL_KIND"
     fi
   fi
   if [ "$WHO" = "$PKG" ] && [ -n "$STALL_KIND" ]; then
@@ -283,9 +290,19 @@ fi
 # ANR scan over the instrumented runs (monkey reports its own ANRs above). Needed because error dialogs are hidden.
 # A framework stall during an instrumented run is not ours either - but unlike the monkey path there is no
 # confirmation run to ask, so it takes two independent pieces of evidence to call it the environment:
-# (a) the app's main-thread stack classifies as a framework stall (no AutoVybz frame), and (b) another
-# process ANR'd in the same window, i.e. the stall was system-wide (campaign 15, API 30: systemui and the
-# app both missed the same MotionEvent). Without both, it fails as before.
+#
+#   (a) the app's main-thread stack classifies as a framework stall (no AutoVybz frame), and
+#   (b) *one* corroboration from the same job:
+#       - another process ANR'd in the same window, i.e. the stall was system-wide (campaign 15, API 30:
+#         systemui and the app both missed the same MotionEvent), **or**
+#       - the emulator took the window away from the app before a suite (FOCUS_LOST_N) *and* the monkey
+#         run of this job hit the same class of framework stall (MONKEY_STALL_KIND) - campaign 16, API 30:
+#         the launcher owned the focus while the app's main thread sat in HardwareRenderer.nSyncAndDrawFrame,
+#         and the monkey run in the same job stalled in the same place. No other process ANR'd, because the
+#         launcher was never asked to draw anything.
+#
+# Without both, it fails as before: an ANR with an app frame on the main thread is still ours, and a stall
+# without a second observation is still unexplained.
 ANRS=$(grep -h "ANR in $PKG" $(ls "$OUT"/*.logcat.txt 2>/dev/null | grep -v monkey.logcat) /dev/null 2>/dev/null | wc -l)
 if [ "${ANRS:-0}" -gt 0 ]; then
   FIRST=$(grep -h -m1 -A2 "ANR in $PKG" $(ls "$OUT"/*.logcat.txt | grep -v monkey.logcat) | tr '\n' ' ' | cut -c1-400)
@@ -298,10 +315,16 @@ if [ "${ANRS:-0}" -gt 0 ]; then
     SCAN_STACK=$(grep -E "^\s+at " "$OUT/anr_scan_main.txt" | head -6 | sed 's/^\s*//' | tr '\n' ' ' | cut -c1-600)
   fi
   OTHER_ANR=$(grep -h "ANR in " $(ls "$OUT"/*.logcat.txt 2>/dev/null) /dev/null 2>/dev/null | grep -v "ANR in $PKG" | sed 's/.*ANR in \([^ ]*\).*/\1/' | sort -u | tr '\n' ' ')
-  if [ -n "$SCAN_KIND" ] && [ -n "$OTHER_ANR" ]; then
-    note "- ⚠️ **ANR scan**: $ANRS ANR(s) of $PKG during instrumented runs, $SCAN_KIND with no app frame while $OTHER_ANR also ANR'd – $FIRST"
+  CORROBORATION=""
+  if [ -n "$OTHER_ANR" ]; then
+    CORROBORATION="system-wide stall: $OTHER_ANR also ANR'd"
+  elif [ "${FOCUS_LOST_N:-0}" -gt 0 ] && [ -n "$MONKEY_STALL_KIND" ]; then
+    CORROBORATION="window stolen $FOCUS_LOST_N× before the suites and the same $MONKEY_STALL_KIND under monkey"
+  fi
+  if [ -n "$SCAN_KIND" ] && [ -n "$CORROBORATION" ]; then
+    note "- ⚠️ **ANR scan**: $ANRS ANR(s) of $PKG during instrumented runs, $SCAN_KIND with no app frame – $CORROBORATION – $FIRST"
     note "  - main thread: $SCAN_STACK"
-    echo "::warning title=ANR scan API $API ($SCAN_KIND, system-wide stall)::$FIRST"
+    echo "::warning title=ANR scan API $API ($SCAN_KIND, $CORROBORATION)::$FIRST"
   else
     note "- ❌ **ANR scan**: $ANRS ANR(s) of $PKG during instrumented runs – $FIRST"
     [ -n "$SCAN_STACK" ] && note "  - main thread: $SCAN_STACK"
