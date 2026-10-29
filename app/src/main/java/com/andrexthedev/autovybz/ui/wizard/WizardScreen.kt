@@ -325,6 +325,36 @@ private fun IdleStep(
             style = MaterialTheme.typography.bodySmall,
             color = AutoVybzColors.OnDarkMuted,
         )
+
+        // W8: a subwoofer is declared, not detected. Everything below its crossover is the sub's own
+        // tuning (a level knob on the box), so the correction stops there instead of spending filters on it.
+        SectionTitle(stringResource(R.string.avz_sub_label))
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            for (crossover in listOf(0.0, 80.0, 100.0, 120.0)) {
+                FilterChip(
+                    selected = state.subwooferCrossoverHz == crossover,
+                    onClick = { vm.onSubwooferChanged(crossover) },
+                    label = {
+                        Text(
+                            if (crossover == 0.0) stringResource(R.string.avz_sub_off)
+                            else stringResource(R.string.avz_sub_hz, crossover.toInt()),
+                        )
+                    },
+                    modifier = Modifier.testTag("avz:sub:${crossover.toInt()}"),
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = AutoVybzColors.Green,
+                        selectedLabelColor = AutoVybzColors.OnGreen,
+                    ),
+                )
+            }
+        }
+        Text(
+            stringResource(
+                if (state.subwooferCrossoverHz == 0.0) R.string.avz_sub_none_desc else R.string.avz_sub_desc,
+            ),
+            style = MaterialTheme.typography.bodySmall,
+            color = AutoVybzColors.OnDarkMuted,
+        )
     }
 
     SectionTitle(stringResource(R.string.avz_target_label))

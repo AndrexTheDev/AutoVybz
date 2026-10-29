@@ -359,6 +359,65 @@ class AutoEqRendererTest {
     }
 
     /**
+     * W8: a declared subwoofer lifts the correction's lower limit to the crossover. Below it the
+     * measurement is the sub's own tuning plus the room - a level knob on the box, not a speaker defect -
+     * and spending filters there also costs headroom everywhere else.
+     */
+    @Test
+    fun aDeclaredSubwooferStopsTheCorrectionAtTheCrossover() {
+        val withoutSub = AutoEqRenderer.render(grid, measured, TargetCurve(TargetType.SMART), AutoEqSettings(bandCount = 10))
+        val withSub = AutoEqRenderer.render(
+            grid, measured, TargetCurve(TargetType.SMART),
+            AutoEqSettings(bandCount = 10, subwooferCrossoverHz = 100.0),
+        )
+        assertTrue("low limit without a sub ${withoutSub.lowLimitHz}", withoutSub.lowLimitHz < 90.0)
+        assertEquals("low limit with a sub", 100.0, withSub.lowLimitHz, 1e-9)
+        // Nothing the plan does may reach below the crossover: no boost, no cut.
+        val below = grid.indices.filter { grid[it] < 90.0 }
+        below.forEach { i ->
+            assertTrue("plan at ${grid[i]} Hz: ${withSub.filterResponseDb[i]} dB", abs(withSub.filterResponseDb[i]) < 1.0)
+            assertTrue("desired at ${grid[i]} Hz", abs(withSub.desiredCorrectionDb[i]) < 0.5)
+        }
+    }
+
+    /** W8: the crossover only ever *raises* the limit - a speaker that already stops at 160 Hz keeps that. */
+    @Test
+    fun theCrossoverNeverLowersTheDetectedLimit() {
+        val rollOff = curveOf(PeqBand(PeqType.HIGH_PASS, 300.0, 0.0, 0.707))
+        val detected = AutoEqRenderer.render(grid, rollOff, TargetCurve(TargetType.SMART), AutoEqSettings(bandCount = 10))
+        val withSub = AutoEqRenderer.render(
+            grid, rollOff, TargetCurve(TargetType.SMART),
+            AutoEqSettings(bandCount = 10, subwooferCrossoverHz = 80.0),
+        )
+        assertTrue("detected ${detected.lowLimitHz}", detected.lowLimitHz > 80.0)
+        assertEquals(detected.lowLimitHz, withSub.lowLimitHz, 1e-9)
+    }
+
+    /**
+     * W8: with a sub the protective high pass must disappear. It exists to protect a driver that cannot
+     * play low - but the mains are already crossed over there, so a pass in the app would silence the sub
+     * the user paid for (and the app cannot know where the sub is in the chain).
+     */
+    @Test
+    fun aDeclaredSubwooferDropsTheProtectiveHighPass() {
+        val rescue = CorrectionPlanner.autoEqSettings(
+            10, EnvironmentTuning.of(ListeningEnvironment.INDOOR), SpeakerClassTuning.of(SpeakerClass.RESCUE),
+        )
+        assertTrue("the RESCUE class protects the sub-bass", rescue.protectiveHighPass)
+        val withoutSub = AutoEqRenderer.render(grid, measured, TargetCurve(TargetType.HARMAN), rescue)
+        assertTrue("no pass without a sub", withoutSub.highPassHz != null)
+        val withSub = AutoEqRenderer.render(
+            grid, measured, TargetCurve(TargetType.HARMAN),
+            CorrectionPlanner.autoEqSettings(
+                10, EnvironmentTuning.of(ListeningEnvironment.INDOOR),
+                SpeakerClassTuning.of(SpeakerClass.RESCUE), subwooferCrossoverHz = 100.0,
+            ),
+        )
+        assertEquals("high pass with a sub", null, withSub.highPassHz)
+        assertEquals(100.0, withSub.lowLimitHz, 1e-9)
+    }
+
+    /**
      * The DEVICE `cutTrust` (0.75) must scale *each* cut to 75 % of the measured excess, not merely
      * lower the maximum cut limit. The near field overstates presence peaks; cutting the full excess
      * would over-correct and leave the manufacturer's residual behind unheard.

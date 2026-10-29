@@ -222,3 +222,46 @@ the modelled speaker) and `--stress`, which runs the three field-failure cases a
 *notices*: a driven mini box (4.03 % THD), a 1 s room (1.04 s, `REVERBERANT_ROOM`) and a clean chain
 (neither warning). 3/3 pass; the six standard cases are unchanged (6/6, no new warning).
 
+
+## Round-13 findings (2026-10) – the two things a correction forgets to check
+
+Round 13 added the loudness meter (BS.1770-4) and the verification pass. Both are *measurements of the
+measurement*: the first stops the app from selling "better" as "quieter", the second stops it from promising
+an improvement it cannot see.
+
+1. **A correction changes the level, and the level is what the user hears.** `LiveProbe` reported tonal
+   error only; a plan that cuts a boom lowers the whole output, the user turns the volume up, and the EQ is
+   gone. Both runs are now read with an integrated LUFS meter (K-weighting, 400 ms blocks, absolute and
+   relative gates) and a 4× true peak, and the difference is printed per case.
+2. **The predicted improvement is checkable, and it is worth checking.** `--verify` measures the speaker,
+   applies the plan to the signal, measures again and compares the two changes. On the standard cases the
+   measured improvement matches the predicted one within 0.05–0.34 dB, and a chain that never applied the
+   EQ is reported as `NO_CHANGE`, not as a success (`pipeline_findings.py` finding 14).
+
+New probe switches: `--verify` (measure → correct → re-measure) and the `LU`/`dBTP` columns, which are printed
+on every case.
+
+## Round-14 findings (2026-10) – three proposed features, one shipped
+
+Round 14 worked through the last three roadmap items, and two of them were answered by measuring instead of
+by writing code.
+
+1. **W9 (convolution) is closed by measurement.** An ideal minimum-phase inverse of the same bounded plan
+   beats ten PEQ bands by 0.08–0.23 dB – and the exact inverse cannot do better than ~0.7 dB either, because
+   the residual lives in the plan's own range and boost limits. A screen-capture permission is not worth a
+   fifth of a decibel (`pipeline_findings.py` finding 15).
+2. **W7 (a target that follows the room) is measured and not adopted.** Tilting the target by up to a quarter
+   of the measured trend moved every tilted case *away* from the fixed reference target (mini box 0.55 → 0.84
+   dB, party box 0.94 → 1.38 dB) and turned the party box's bass cut into a boost. `--adaptive-target` keeps
+   the experiment reproducible (finding 16).
+3. **W8 (a declared subwoofer) ships, with the design reversed.** The roadmap proposed raising the protective
+   high pass to the crossover. That would have removed the bass the sub exists to play: the app's EQ sits
+   before the split. What ships instead is the honest scope – the lower limit moves to the declared crossover
+   (so nothing in the plan reaches below the mains' handover) and the protective pass is *dropped*. Measured
+   on the new `party-box+sub` model: undeclared, the fit spends its low bands on a −3.9 dB cut at 40–55 Hz;
+   declared, it touches 40–55 Hz by 0.10 dB and is marginally better above the crossover (0.92 → 0.87 dB).
+   The music-weighted metric lands within 0.02 dB (0.21 vs 0.23 dB), which is the point: this is a scope
+   decision, not a tonal one.
+
+New probe switch: `--sub [HZ]` runs `party-box+sub` twice, declared and undeclared, on the same judge band and
+asserts that the declared plan stays out of the sub's territory. Default run: 6/6; `--sub`: 7/7.

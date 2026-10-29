@@ -45,6 +45,15 @@ class AutoVybzSettings(context: Context) {
             .getOrDefault(ListeningEnvironment.INDOOR)
         set(v) = prefs.edit().putString("environment", v.name).apply()
 
+    /**
+     * W8: the user's subwoofer crossover in Hz (80 / 100 / 120), 0 when there is no sub. Above it the app
+     * corrects; below it the sub's own tuning and level knob rule. Stored as an int so an old install reads
+     * "no sub" instead of an unparsable string, and so a future hand-edited value degrades to "no sub".
+     */
+    var subwooferCrossoverHz: Double
+        get() = prefs.getInt("subCrossoverHz", 0).let { if (it in setOf(80, 100, 120)) it.toDouble() else 0.0 }
+        set(v) = prefs.edit().putInt("subCrossoverHz", if (v in setOf(80.0, 100.0, 120.0)) v.toInt() else 0).apply()
+
     /** External speaker (default), weak-speaker rescue, or this device's own speakers. */
     var speakerClass: SpeakerClass
         get() = runCatching { SpeakerClass.valueOf(prefs.getString("speakerClass", null) ?: "") }
@@ -157,6 +166,7 @@ class AutoVybzSettings(context: Context) {
             micProfileOverrideId = micProfileOverrideId,
             environment = environment,
             speakerClass = cls,
+            subwooferCrossoverHz = subwooferCrossoverHz.takeIf { it > 0.0 },
         )
     }
 

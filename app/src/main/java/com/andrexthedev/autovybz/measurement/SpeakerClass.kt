@@ -200,6 +200,8 @@ object CorrectionPlanner {
         bandCount: Int,
         environment: EnvironmentTuning,
         speakerClass: SpeakerClassTuning,
+        /** W8: declared subwoofer crossover; lifts the lower limit and drops the protective pass. */
+        subwooferCrossoverHz: Double? = null,
     ): AutoEqSettings = AutoEqSettings(
         bandCount = bandCount,
         maxBoostDb = speakerClass.maxBoostCapDb?.let { min(environment.maxBoostDb, it) } ?: environment.maxBoostDb,
@@ -227,5 +229,6 @@ object CorrectionPlanner {
         } else {
             0.0 // no limiter armed -> the clipping-safe pre-gain is the last line of defence
         },
+        subwooferCrossoverHz = subwooferCrossoverHz,
     )
 }

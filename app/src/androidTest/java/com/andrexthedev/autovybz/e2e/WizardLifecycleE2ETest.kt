@@ -209,6 +209,19 @@ class WizardLifecycleE2ETest : E2eTest() {
     }
 
     @Test
+    fun aDeclaredSubwoofer_isPersistedAndCanBeTurnedOffAgain() {
+        // W8: the crossover is a declaration about the user's hardware, so it has to survive a restart of
+        // the wizard and an explicit "none" has to be stored as such (0), not ignored.
+        compose.await("avz:start")
+        compose.tap("avz:sub:100")
+        assertEquals(100.0, AutoVybzSettings(E2e.app).subwooferCrossoverHz, 0.0)
+        compose.activityRule.scenario.recreate()
+        compose.await("avz:start")
+        compose.tap("avz:sub:0")
+        assertEquals(0.0, AutoVybzSettings(E2e.app).subwooferCrossoverHz, 0.0)
+    }
+
+    @Test
     fun backFromOtherTabs_returnsToWizard() {
         compose.await("avz:start")
         compose.tap("avz:tab:ABOUT")

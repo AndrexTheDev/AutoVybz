@@ -29,6 +29,29 @@ def _biquad_h(band: PeqBand, f: np.ndarray, sample_rate: float) -> np.ndarray:
 
 
 @dataclass
+class SubModel:
+    """A powered subwoofer crossed over below the mains (W8).
+
+    [crossover_hz] is where the mains are high-passed and the sub low-passed; [gain_db] is the level knob
+    on the back of the box - the one thing the app can never know, which is why the user has to declare the
+    sub in the first place.
+    """
+
+    crossover_hz: float = 100.0
+    # The sub's own low pass usually sits a little *above* the mains' high pass - that overlap is how a real
+    # system is tuned, and it is why the combined response is flat instead of notched at the crossover.
+    lowpass_hz: float = 120.0
+    f3_hz: float = 35.0
+    box_hz: float = 45.0
+    box_db: float = 4.0
+    gain_db: float = 0.0
+    # A real powered sub's low pass is 24 dB/octave; the mains' high pass is usually gentler. Modelled as
+    # cascaded Butterworth sections, because the *phase* of both paths is what decides whether the sum is
+    # flat at the crossover or has a notch in it.
+    lowpass_db_per_octave: int = 24
+
+
+@dataclass
 class SpeakerModel:
     """One playback scenario.
 
@@ -58,6 +81,8 @@ class SpeakerModel:
     reverb_rt60_s: float = 0.0
     reverb_level: float = 0.0
     distortion_drive: float = 0.0
+    # W8: a subwoofer is *added* to the mains, not multiplied into them - see [SubModel].
+    sub: SubModel | None = None
 
     def response(self, f: np.ndarray, sample_rate: float = dsp.DEFAULT_SAMPLE_RATE) -> np.ndarray:
         h = np.ones(f.size, dtype=complex)
@@ -72,6 +97,15 @@ class SpeakerModel:
             h *= _lowpass_h(self.hf_roll_hz, f, sample_rate)
         if self.tilt_db_per_oct:
             h *= 10.0 ** (self.tilt_db_per_oct * np.log2(f / 1000.0) / 20.0)
+        if self.sub is not None:
+            # The mains are high-passed at the crossover, the sub covers everything below it: a *sum* of
+            # two paths, which is why it cannot be one more biquad in the chain above.
+            sub = self.sub
+            sub_h = (_biquad_h(PeqBand(HIGH_PASS, sub.f3_hz, 0.0, 0.707), f, sample_rate)
+                     * _biquad_h(PeqBand(PEAK, sub.box_hz, sub.box_db, 1.8), f, sample_rate)
+                     * _lowpass_h(sub.lowpass_hz, f, sample_rate) ** max(1, sub.lowpass_db_per_octave // 12)
+                     * 10.0 ** (sub.gain_db / 20.0))
+            h = h * _biquad_h(PeqBand(HIGH_PASS, sub.crossover_hz, 0.0, 0.707), f, sample_rate) + sub_h
         for delay_s, level in self.reflections:
             h *= 1.0 + level * np.exp(-1j * 2.0 * math.pi * f * delay_s)
         for band in self.extra_bands:
@@ -166,7 +200,7 @@ def position_variants(model: SpeakerModel, count: int, spread_m: float = POSITIO
                 hf_roll_hz=model.hf_roll_hz, tilt_db_per_oct=model.tilt_db_per_oct,
                 reflections=reflections, extra_bands=tuple(model.extra_bands) + modes,
                 reverb_rt60_s=model.reverb_rt60_s, reverb_level=model.reverb_level,
-                distortion_drive=model.distortion_drive,
+                distortion_drive=model.distortion_drive, sub=model.sub,
             )
         )
     return variants
@@ -203,6 +237,16 @@ SCENARIOS: dict[str, SpeakerModel] = {
         f3_hz=240.0, box_hz=300.0, box_db=3.0, presence_hz=1200.0, presence_db=3.5, presence_q=1.6,
         hf_roll_hz=16000.0, tilt_db_per_oct=-0.2,
     ),
+    "party-box+sub": SpeakerModel(
+        name="party-box+sub",
+        description="Party box with a powered sub: mains high-passed at 100 Hz, the sub plays 35-100 Hz "
+                    "with its own 45 Hz tuning and is set 3 dB hot.",
+        f3_hz=55.0, box_hz=120.0, box_db=6.0, presence_hz=2500.0, presence_db=-3.0, presence_q=1.1,
+        hf_roll_hz=11000.0, tilt_db_per_oct=-0.5,
+        reflections=((0.0031, 0.45),),
+        sub=SubModel(crossover_hz=100.0, lowpass_hz=120.0, f3_hz=35.0, box_hz=45.0, box_db=4.0,
+                     gain_db=3.0),
+    ),
 }
 
 def stressed(model: SpeakerModel, rt60_s: float = 0.0, drive: float = 0.0,
@@ -215,7 +259,7 @@ def stressed(model: SpeakerModel, rt60_s: float = 0.0, drive: float = 0.0,
         hf_roll_hz=model.hf_roll_hz, tilt_db_per_oct=model.tilt_db_per_oct,
         reflections=model.reflections, extra_bands=model.extra_bands,
         reverb_rt60_s=rt60_s, reverb_level=reverb_level if rt60_s > 0 else 0.0,
-        distortion_drive=drive,
+        distortion_drive=drive, sub=model.sub,
     )
 
 

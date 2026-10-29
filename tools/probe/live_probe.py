@@ -84,6 +84,8 @@ class CaseResult:
     loudness_delta_db: float
     loudness_proxy_delta_db: float
     verification: dict | None
+    # W8: the declared subwoofer crossover (None = the app was told there is no sub).
+    sub_crossover_hz: float | None
     integrated_before_lufs: float | None
     integrated_after_lufs: float | None
     peak_dbfs: float
@@ -291,6 +293,8 @@ def run_case(
     reverb_gate: bool = True,
     verify_run: bool = False,
     adaptive_target: bool = False,
+    sub_crossover_hz: float | None = None,
+    judge_low_hz: float | None = None,
     adaptive_pivot_hz: float = 1000.0,
 ) -> CaseResult:
     model = rooms.SCENARIOS[scenario]
@@ -356,6 +360,9 @@ def run_case(
     settings = eqfit.auto_eq_settings(band_count, env_tuning, cls)
     if reverb_gate and measurement.room_rt60_s is not None:
         settings.room_rt60_s = measurement.room_rt60_s
+    # W8: declaring a subwoofer lifts the correction's lower limit to the crossover and removes the
+    # protective high pass (the mains are already crossed; a pass here would gut the sub).
+    settings.subwoofer_crossover_hz = sub_crossover_hz
     eq_env, eq_cls = env_tuning, cls
     # W7: a bounded tilt that follows the measured trend, computed from the *measurement* - so it is a
     # property of this run and has to be stored with the preset (the app shows it in Pro).
@@ -440,6 +447,10 @@ def run_case(
     # penalises the documented design: measured on the mini box it contributed 9.7 dB at 73 Hz - the
     # limit itself - although no filter in the plan is allowed to act there.
     lo, hi = correction.low_limit_hz * LOW_FADE_OCTAVES_SCALE, correction.high_limit_hz
+    # Comparing two *configurations* (W8: sub declared or not) only makes sense over one band: the default
+    # band follows the correction's own lower limit, so the two would be judged on different music energy.
+    if judge_low_hz is not None:
+        lo = judge_low_hz
 
     # A constant level difference is free (it is just volume) - remove it energy-weighted. It has to be
     # removed over *the same band that is judged*: with the offset taken down to the nominal limit but
@@ -590,6 +601,7 @@ def run_case(
         loudness_delta_db=loudness_delta,
         loudness_proxy_delta_db=loudness_proxy_delta,
         verification=verification,
+        sub_crossover_hz=sub_crossover_hz,
         integrated_before_lufs=loud_before,
         integrated_after_lufs=loud_after,
         peak_dbfs=20.0 * math.log10(max(peak, 1e-9)),
@@ -715,6 +727,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--adaptive-target", action="store_true",
                     help="W7: let the target follow a bounded share of the measured tilt (at most 1 dB/oct, "
                          "never upward) and print it")
+    ap.add_argument("--sub", type=float, nargs="?", const=100.0, metavar="HZ",
+                    help="W8: declare a subwoofer crossed over at HZ (default 100) and measure the "
+                         "party-box+sub system twice - with and without the setting")
     ap.add_argument("--adaptive-pivot", type=float, default=1000.0,
                     help="W7 experiment: frequency the adaptive tilt pivots at (default 1 kHz)")
     ap.add_argument("--stress", action="store_true",
@@ -756,11 +771,40 @@ def main(argv: list[str] | None = None) -> int:
                      f"/{res.verification['predicted_improvement_db']:.2f} dB (err {res.verification['prediction_error_db']:.2f})"
                      if res.verification is not None else "")
                   + (f"  tilt {res.adaptive_tilt_db_per_oct:+.2f} dB/oct" if res.adaptive_tilt_db_per_oct else "")
+                  + (f"  sub {res.sub_crossover_hz:.0f} Hz (low limit {res.low_limit_hz:.0f} Hz)"
+                     if res.sub_crossover_hz else "")
                   + (f"  thd {res.thd_pct:4.2f} %" if res.thd_pct is not None else "")
                   + (f"  rt60 {res.room_rt60_s:4.2f} s" if res.room_rt60_s is not None else "")
                   + (f"  limiter mean {res.limiter_mean_gr_db:4.2f} max {res.limiter_max_gr_db:5.2f} dB / "
                      f"{res.limiter_stress_pct:4.1f} %" if res.limiter_armed else "")
                   + ("" if res.ok else "  <- " + "; ".join(res.failures)))
+
+    # --- W8: a declared subwoofer ---------------------------------------------------------------
+    sub_failures = 0
+    if args.sub:
+        print("\n=== W8: a declared subwoofer (party-box + sub) ======================================")
+        declared = run_case("party-box+sub", "STANDARD", "OUTDOOR", "BASS_BOOST", "street", music,
+                            music_power, sub_crossover_hz=args.sub, judge_low_hz=40.0)
+        undeclared = run_case("party-box+sub", "STANDARD", "OUTDOOR", "BASS_BOOST", "street", music,
+                              music_power, judge_low_hz=40.0)
+        results.append(declared)
+        w8_failures = 0
+        if declared.low_limit_hz < args.sub - 1e-6:
+            print(f"    FAIL the correction reaches below the declared crossover: "
+                  f"low limit {declared.low_limit_hz:.0f} Hz < {args.sub:.0f} Hz")
+            w8_failures += 1
+        if abs(declared.max_boost_below_limit_db) > THRESHOLDS["protect_boost_db"]:
+            print(f"    FAIL the plan boosts {declared.max_boost_below_limit_db:.2f} dB below half the crossover")
+            w8_failures += 1
+        sub_failures += w8_failures
+        for label, res in (("sub declared", declared), ("sub not declared", undeclared)):
+            print(f"    {label:16s} tonal {res.tonal_rms_before_db:4.2f} -> {res.tonal_rms_after_db:4.2f} dB "
+                  f"(p95 {res.tonal_p95_after_db:4.2f})  low limit {res.low_limit_hz:5.0f} Hz  "
+                  f"bands {len(res.bands):2d}  preamp {res.preamp_db:+5.1f} dB  "
+                  f"max boost below the limit {res.max_boost_below_limit_db:4.2f} dB")
+        print("    -> the declared case corrects only above the crossover: the sub's own tuning and level")
+        print("       (a knob on the box) stay untouched, and the same tonal result is reached without")
+        print("       spending filters - or headroom - on a band the app cannot judge.")
 
     failed = [r for r in results if not r.ok]
     print(f"\n{len(results) - len(failed)}/{len(results)} cases within every threshold")
@@ -775,7 +819,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.markdown:
         with open(args.markdown, "w", encoding="utf-8") as fh:
             fh.write(_markdown(results))
-    return 0 if not failed and not stress_failures else 1
+    return 0 if not failed and not stress_failures and not sub_failures else 1
 
 
 def _markdown(results: list[CaseResult]) -> str:

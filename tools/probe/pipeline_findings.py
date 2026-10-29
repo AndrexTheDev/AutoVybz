@@ -49,6 +49,15 @@ Added in round 14:
     300 Hz - 3 kHz always buys bass at the midrange's expense. A bright speaker gets no tilt at all (the
     guard works: the phone speaker measures a rising trend and stays unchanged). Not adopted; the fixed
     targets stay, and following the room would have to be an explicit user choice, not an automatic one.
+17. **A declared subwoofer is a scope, not a gain.** Real systems are mains plus a powered sub, and below the
+    sub's crossover the microphone hears the sub's own tuning plus the room - the fix for a boom there is the
+    level knob on the back of the box, which the app cannot turn and cannot read. On the `party-box+sub`
+    model (mains high-passed at 100 Hz, a sub with a 45 Hz box peak set 3 dB hot) the fit without the
+    declaration starts at 25 Hz and spends its low bands on a 3.9 dB cut at 40-55 Hz; with the crossover
+    declared it starts at 100 Hz, leaves the sub alone (0.10 dB at 40-55 Hz) and is *slightly better*
+    everywhere the app has authority (0.92 -> 0.87 dB above the crossover), because no filter is wasted
+    below it. This is the one finding here that is not an improvement in the usual sense: the honest design
+    gives up the ability to flatten what it cannot attribute.
 """
 
 from __future__ import annotations
@@ -460,6 +469,44 @@ def exp_adaptive_target() -> dict:
     return out
 
 
+def exp_subwoofer() -> dict:
+    """Does declaring the sub help, or does the app need to correct the bass below it?"""
+    print("\n=== 17. a declared subwoofer: correct above the crossover, leave the box alone")
+    grid = dsp.log_grid()
+    reference = eqfit.TargetCurve(eqfit.SMART).sample(grid)
+    freqs = np.maximum(np.fft.rfftfreq(1 << 19, 1.0 / FS), 1e-3)
+    model = rooms.SCENARIOS["party-box+sub"]
+    measured = _rel(grid, _third_octave(grid, dsp.resample(freqs, model.magnitude_db(freqs, FS), grid)))
+    # Both configurations are judged on the same band: the declaration moves the lower limit, and a band
+    # that follows it would let the two grade different music energy (see `live_probe.py --sub`).
+    judge_low = 40.0
+    out: dict[str, dict[str, float | None]] = {}
+    for label, crossover in (("declared", 100.0), ("undeclared", None)):
+        settings = eqfit.AutoEqSettings(band_count=10, max_boost_db=6.0, high_limit_hz=16000.0,
+                                        subwoofer_crossover_hz=crossover)
+        plan = eqfit.render(grid, measured, eqfit.TargetCurve(eqfit.SMART), settings, roll_off_db=measured)
+        judge = (grid >= judge_low) & (grid <= plan.high_limit_hz)
+        error = (measured + plan.filter_response_db - reference)[judge]
+        error = error - float(np.mean(error))
+        floor_hz = crossover or plan.low_limit_hz
+        # The fair band is the one the declaration does not move: above the crossover both plans have the
+        # same job. Below it the two configurations are not comparable - one is allowed to touch the sub.
+        above = (grid >= 100.0) & (grid <= plan.high_limit_hz)
+        above_error = (measured + plan.filter_response_db - reference)[above]
+        above_error = above_error - float(np.mean(above_error))
+        out[label] = {
+            "low_limit_hz": plan.low_limit_hz,
+            "above_db": float(np.sqrt(np.mean(above_error * above_error))),
+            "tonal_db": float(np.sqrt(np.mean(error * error))),
+            "at_45hz_db": float(dsp.band_mean(grid, plan.filter_response_db, 40.0, 55.0)),
+            "high_pass_hz": plan.high_pass_hz,
+        }
+        print(f"    {label:10s} low limit {plan.low_limit_hz:5.1f} Hz, {len(plan.bands):2d} bands, "
+              f"above the crossover {out[label]['above_db']:.2f} dB, 40-55 Hz {out[label]['at_45hz_db']:+.2f} dB, "
+              f"planning floor {floor_hz:.0f} Hz")
+    return out
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--music", help="real recording for findings 2 and 4 (any ffmpeg format)")
@@ -568,6 +615,18 @@ def main(argv: list[str] | None = None) -> int:
     check("the tilt buys bass at the midrange's expense",
           adaptive["party-box"]["bass_tilted_db"] > adaptive["party-box"]["bass_fixed_db"] + 0.5,
           f"{adaptive['party-box']['bass_fixed_db']:+.2f} -> {adaptive['party-box']['bass_tilted_db']:+.2f} dB")
+
+    sub = exp_subwoofer()
+    check("a declared sub stops the correction at its crossover",
+          abs(sub["declared"]["low_limit_hz"] - 100.0) < 1e-9,
+          f"low limit {sub['declared']['low_limit_hz']:.0f} Hz (undeclared: "
+          f"{sub['undeclared']['low_limit_hz']:.0f} Hz)")
+    check("without the declaration the filter sits on the sub's boom",
+          abs(sub["undeclared"]["at_45hz_db"]) >= 2.0,
+          f"{sub['undeclared']['at_45hz_db']:+.2f} dB at 40-55 Hz")
+    check("declaring the sub costs nothing above the crossover",
+          sub["declared"]["above_db"] <= sub["undeclared"]["above_db"] + 0.05,
+          f"{sub['undeclared']['above_db']:.2f} -> {sub['declared']['above_db']:.2f} dB")
 
     bad = [c for c in checks if not c[1]]
     print(f"\n{len(checks) - len(bad)}/{len(checks)} findings hold. See docs/AUDIO_ROADMAP.md.")

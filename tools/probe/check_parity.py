@@ -316,6 +316,45 @@ def main() -> int:
                 -6.3 < tp < -5.9 and sp < -8.5 and tp - sp > 2.5,
                 f"true {tp:+.2f} dBTP, sample {sp:+.2f} dBFS, gap {tp - sp:.2f} dB")
 
+    # --- W8: a declared subwoofer (AutoEqRendererTest.aDeclaredSubwooferStopsTheCorrectionAtTheCrossover) --
+    # Same fixture as the Kotlin test: a small box with a 60 Hz shelf as its roll-off.
+    box = _curve(
+        dsp.PeqBand(dsp.PEAK, 150.0, 6.0, 1.2),
+        dsp.PeqBand(dsp.PEAK, 2500.0, -5.0, 1.5),
+        dsp.PeqBand(dsp.HIGH_SHELF, 10000.0, -4.0, 0.7),
+        dsp.PeqBand(dsp.LOW_SHELF, 60.0, -18.0, 0.7),
+    )
+    no_sub = eqfit.render(GRID, box, eqfit.TargetCurve(eqfit.SMART), eqfit.AutoEqSettings(band_count=10))
+    with_sub = eqfit.render(GRID, box, eqfit.TargetCurve(eqfit.SMART),
+                            eqfit.AutoEqSettings(band_count=10, subwoofer_crossover_hz=100.0))
+    below = GRID < 90.0
+    deepest = float(np.max(np.abs(with_sub.filter_response_db[below]))) if np.any(below) else 0.0
+    ok &= check("a declared subwoofer lifts the low limit to the crossover",
+                no_sub.low_limit_hz < 90.0 and abs(with_sub.low_limit_hz - 100.0) < 1e-9,
+                f"{no_sub.low_limit_hz:.0f} -> {with_sub.low_limit_hz:.0f} Hz")
+    ok &= check("nothing in the plan reaches below the crossover", deepest < 1.0, f"max {deepest:.2f} dB")
+
+    steep = _curve(dsp.PeqBand(dsp.HIGH_PASS, 300.0, 0.0, 0.707))
+    steep_detected = eqfit.render(GRID, steep, eqfit.TargetCurve(eqfit.SMART), eqfit.AutoEqSettings(band_count=10))
+    steep_sub = eqfit.render(GRID, steep, eqfit.TargetCurve(eqfit.SMART),
+                             eqfit.AutoEqSettings(band_count=10, subwoofer_crossover_hz=80.0))
+    ok &= check("the crossover never lowers a detected limit",
+                steep_detected.low_limit_hz > 80.0
+                and abs(steep_sub.low_limit_hz - steep_detected.low_limit_hz) < 1e-9,
+                f"{steep_detected.low_limit_hz:.0f} Hz stays")
+
+    # W8: with a sub the protective pass disappears - the mains are crossed over there already, and a
+    # pass in the app would silence the sub (AutoEqRendererTest.aDeclaredSubwooferDropsTheProtectiveHighPass).
+    indoor = eqfit.environment_tuning(eqfit.INDOOR)
+    rescue = eqfit.SPEAKER_CLASS[eqfit.RESCUE]
+    plain = eqfit.render(GRID, box, eqfit.TargetCurve(eqfit.HARMAN),
+                         eqfit.auto_eq_settings(10, indoor, rescue))
+    subbed = eqfit.render(GRID, box, eqfit.TargetCurve(eqfit.HARMAN),
+                          eqfit.auto_eq_settings(10, indoor, rescue, subwoofer_crossover_hz=100.0))
+    ok &= check("the RESCUE class protects the sub-bass - unless there is a sub",
+                plain.high_pass_hz is not None and subbed.high_pass_hz is None,
+                f"{plain.high_pass_hz:.0f} Hz -> none")
+
     # --- Verification (app: `measurement/Verification`, pinned by `VerificationTest`) --------------
     a_series = np.array([1.0, 2.0, 3.0, 4.0])
     ok &= check("correlation is a Pearson coefficient",

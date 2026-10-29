@@ -120,6 +120,11 @@
     <string name="avz_speaker_name_label">Nombre del altavoz (opcional)</string>
     <string name="avz_speaker_name_hint">p. ej. JBL Flip 6</string>
     <string name="avz_speaker_name_profile_hint">El nombre será tu perfil de altavoz; en la pantalla Sonido cambias entre perfiles.</string>
+    <string name="avz_sub_label">Subwoofer</string>
+    <string name="avz_sub_off">Ninguno</string>
+    <string name="avz_sub_hz">%1$d Hz</string>
+    <string name="avz_sub_none_desc">Sin subwoofer: la corrección también cubre los graves que tu altavoz puede reproducir.</string>
+    <string name="avz_sub_desc">La corrección termina en la frecuencia de corte: por debajo deciden el ajuste y el nivel del subwoofer.</string>
     <string name="avz_target_label">Objetivo de sonido</string>
     <string name="avz_target_smart">Smart (recomendado)</string>
     <string name="avz_target_smart_desc">Graves suavemente realzados, medios y agudos claros</string>

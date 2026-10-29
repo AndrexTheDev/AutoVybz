@@ -12,12 +12,12 @@ the work:
 There is no JDK/Android SDK in the coding sandbox, so local verification is limited to the pure-Python and
 native host tools (see §5).
 
-## 1. JVM unit tests – 47 classes, 293 `@Test` methods
+## 1. JVM unit tests – 47 classes, 296 `@Test` methods
 
 | Package | Classes | What they pin down |
 |---|---|---|
 | `measurement/dsp` | `MeasurementAnalyzerTest` (13), `FftTest`, `StimulusGeneratorTest`, `SpatialAveragerTest` (9), `TruePeakTest` (8), `HarmonicDistortionTest` (7), `RoomDecayTest` (7), `IntegratedLoudnessTest` (10) | sweep deconvolution, latency window, SNR blending, power-of-two stimulus period per sample rate, spatial average + spread + outlier rejection, polyphase true peak, harmonic lags/THD/rattle rule, reverb fit incl. its "unknown" cases, K-weighting coefficients/gates/anchors |
-| `measurement/eq` | `AutoEqRendererTest` (20), `PreampPlannerTest` (9), `AutoEqPropertyTest`, `BiquadParityTest` | target inversion, band fitting, clipping-safe pre-gain, Kotlin↔C++ biquad parity |
+| `measurement/eq` | `AutoEqRendererTest` (23), `PreampPlannerTest` (9), `AutoEqPropertyTest`, `BiquadParityTest` | target inversion, band fitting, clipping-safe pre-gain, Kotlin↔C++ biquad parity |
 | `measurement/audio` | `CaptureRatesTest`, `CaptureTimingTest`, `RouteClassifierTest`, `InputSourceResolverTest` | rate negotiation, capture tail derivation, route verdicts, abandoned-volume rule, input device choice |
 | `measurement` | `VerificationTest` (10), `OutdoorScenarioTest`, `SpeakerClassTuningTest`, `PerformanceBudgetTest` | verification verdicts (as predicted / weaker / unexpected / no change, level-invariance), outdoor/rescue/device tuning (incl. the indoor 1-octave / 3-position policy), analysis time budget |
 | `measurement/mic` | `MicProfileDatabaseTest`, `MicProfilesTest`, `CalibrationParserFuzzTest` | profile lookup, calibration-file parsing incl. garbage input |
@@ -80,13 +80,15 @@ Seven configurations, each running `ScreenshotTourE2ETest` + `LegacyScreensE2ETe
 ## 5. What can be verified without a device
 
 ```bash
-python3 tools/probe/check_parity.py                     # 60 self-checks: Python port vs. Kotlin goldens
+python3 tools/probe/check_parity.py                     # 64 self-checks: Python port vs. Kotlin goldens
+python3 tools/probe/pipeline_findings.py                # 25 findings: every roadmap claim, asserted
 python3 tools/probe/live_probe.py --music <recording>   # real programme material through the whole chain
 python3 tools/probe/live_probe.py --positions 3         # ... against a position-aware room (W1)
 python3 tools/probe/live_probe.py --positions 1 --truth-positions 3   # "is one measurement enough?"
 python3 tools/probe/live_probe.py --stress              # W3/W4: distortion, reverberation, clean-chain control
 python3 tools/probe/live_probe.py --verify              # W6: re-measure through the fitted EQ, compare with the plan
 python3 tools/probe/live_probe.py --adaptive-target     # W7: a target that follows the room (measured, not adopted)
+python3 tools/probe/live_probe.py --sub                 # W8: party-box+sub, with and without the setting
 python3 tools/probe/live_probe.py --rt60 0.9 --drive 0.05   # one case per failure mode, with numbers
 python3 tools/probe/pipeline_findings.py --music <recording>  # THD / true peak / RT60 / band saturation
                                                          # + verification and PEQ-vs-FIR (no --music needed)
@@ -112,6 +114,11 @@ amplitude ratio to 0.5 dB), and noise shaped by `exp(-6.9078·t/T60)` with a kno
 the failure modes the calibration found: a linear system reports **no** THD, a floor 10 dB below the direct
 sound reports **no** THD, a dry response and a noise plateau return **unknown** instead of a number, and a
 symmetric odd-order clip is *not* called a rattle.
+
+Round 14 added three W8 tests to `AutoEqRendererTest`: that a declared subwoofer lifts the lower limit to the
+crossover and leaves nothing in the plan below it, that the crossover never *lowers* a limit the measurement
+already found, and that the protective high pass disappears (the RESCUE class protects the sub-bass – unless
+there is a sub, which is exactly the case the old design would have got wrong).
 
 Round 13 added `IntegratedLoudnessTest` (10) and `VerificationTest` (eight tests). The loudness tests are
 the standard's own vectors – the BS.1770-4 coefficient tables (1e-9), the −3.01 LUFS anchor of a full-scale

@@ -415,6 +415,30 @@ tonal error must not grow and the `protect_boost_below` rule must hold at the cr
 
 *Risk:* low DSP risk, medium product risk (users expect the app to know their hardware – it does not).
 
+**Done (round 14) – with one part of the design reversed.** `AutoEqSettings.subwooferCrossoverHz` lifts the
+correction's lower limit to the declared crossover (`80 / 100 / 120 Hz`, a chip row in the wizard, stored in
+the settings), so nothing the plan does reaches below it. The proposal to *raise the protective high pass to
+the crossover* was wrong and is not implemented: the app's EQ sits before the split, so a high pass there
+would remove exactly the bass the sub exists to play. With a sub declared the protective pass is therefore
+dropped entirely – the mains are crossed over anyway, and the measurement below the crossover is the sub's
+own tuning plus the room, i.e. a level knob on the back of the box, not a defect the app could fix.
+
+Measured (new probe case `party-box+sub`: mains high-passed at 100 Hz, a 24 dB/oct sub with its own 45 Hz
+tuning set 3 dB hot, `live_probe.py --sub`): on the same band (40 Hz – 16 kHz) the declared configuration
+reaches 0.94 → **0.21 dB** tonal error against 0.94 → 0.23 dB without the setting, with a lower limit of
+100 Hz instead of 25 Hz, no boost below half the crossover, and the sub's tuning untouched. The setting is
+therefore not a tonal win – it is the honest scope: the app stops guessing about a band it cannot judge.
+
+`pipeline_findings.py` finding 17 says the same thing in filter terms: undeclared, the low bands go to a
+−3.9 dB cut at 40–55 Hz (a plausible correction of the sub's boom, and an equally plausible undo of the
+user's level knob); declared, the plan touches 40–55 Hz by 0.10 dB and is marginally better above the
+crossover (0.92 → 0.87 dB) for the filters it does not spend. The lower-limit change is shared by the
+excursion guard, the null gate and the fitter window, so one setting moves the whole pipeline.
+
+The order of operations is what makes it work in the app: the crossover wins over the *detected* bass limit
+(it only ever raises it – a speaker that already stops at 160 Hz keeps 160 Hz), and the limit change also
+moves the excursion guard, the null gate and the fitter's window, because they all read the same limit.
+
 ### W9 – Convolution mode (L, research)
 
 *Why:* the only way past the PEQ ceiling is an FIR correction – but F4 says the ceiling is the *plan*, not
@@ -533,8 +557,9 @@ W1 (judge first) ──► W5 (positions + dip rule, needs W1)
 * **Round 12 (done):** W3, W4 – the two free metrics (THD, RT60) and their warnings (W4's gate measured,
   deliberately off).
 * **Round 13 (done):** W10, W6 – BS.1770 integrated loudness + the verification comparison (DSP and probe).
-* **Round 14 (in progress):** W6's wizard step (done: the "Check" run on the saved card), W9's measurement
-  (done: closed, it would buy 0.06–0.24 dB) and W7 (done: measured, not adopted). Left: W8.
+* **Round 14 (done):** W6's wizard step (the "Check" run on the saved card), W9 (measured: closed, it would
+  buy 0.06–0.24 dB), W7 (measured: not adopted) and W8 (a declared subwoofer, with the protective-pass part
+  of the design reversed).
 
 ## 7. Questions that need a device, not a model
 

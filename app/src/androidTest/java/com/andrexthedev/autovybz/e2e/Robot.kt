@@ -131,10 +131,12 @@ fun ComposeTestRule.visibleTags(): List<String> =
 
 // ---- wizard flows -----------------------------------------------------------------------------
 
-fun ComposeTestRule.openSafety(environment: String? = null, positions: Int? = null) {
+fun ComposeTestRule.openSafety(environment: String? = null, positions: Int? = null, subwoofer: Int? = null) {
     await("avz:start")
     environment?.let { tap("avz:env:$it") }
     positions?.let { tap("avz:positions:$it") }
+    // W8: the subwoofer chips live on the same start screen and are optional - 0 means "no sub".
+    subwoofer?.let { tap("avz:sub:$it") }
     tap("avz:start")
     await("avz:safety:start")
 }

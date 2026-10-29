@@ -106,6 +106,17 @@ data class AutoEqSettings(
      * are untouched - removing a boom is right in any room. `null` (the default) disables the gate.
      */
     val roomRt60S: Double? = null,
+    /**
+     * The user owns a powered subwoofer crossed over at this frequency (W8), `null` when there is none.
+     *
+     * Two consequences, and both are the point: the correction never reaches below the crossover (what the
+     * measurement sees there is the sub's own tuning plus the room - a level knob on the back of the box,
+     * not a speaker defect the app could fix), and the protective high pass is dropped, because the mains
+     * are already crossed and a pass here would take the bass away from the sub that is supposed to play it.
+     * Correction still happens above it - the crossover wins over the *detected* bass limit, which would
+     * otherwise chase the sub's boom with filters.
+     */
+    val subwooferCrossoverHz: Double? = null,
 ) {
     init {
         require(bandCount in 1..16)
@@ -223,11 +234,17 @@ object AutoEqRenderer {
         val measuredDb = normalise(frequencies, measuredDb)
         val rollOffDb = normalise(frequencies, rollOffDb)
 
-        val lowLimit = if (settings.autoLowLimit) {
+        val detectedLowLimit = if (settings.autoLowLimit) {
             detectLowLimit(frequencies, rollOffDb, settings.lowLimitScanHz, maxHz = settings.lowLimitMaxHz)
         } else settings.manualLowLimitHz.coerceIn(20.0, 500.0)
+        // A declared subwoofer moves the lower limit to the crossover: the sub owns everything below it.
+        val subCrossover = settings.subwooferCrossoverHz?.takeIf { it > 0.0 }
+        val lowLimit = if (subCrossover == null) detectedLowLimit
+        else maxOf(detectedLowLimit, subCrossover.coerceIn(20.0, 500.0))
         val highLimit = settings.highLimitHz.coerceIn(2000.0, 20000.0)
-        val highPassHz = if (settings.protectiveHighPass) {
+        // No protective pass with a sub: the mains are crossed there anyway, and a pass would silence the
+        // sub the user paid for.
+        val highPassHz = if (settings.protectiveHighPass && subCrossover == null) {
             protectivePassFor(lowLimit, settings.protectiveHighPassHz)
         } else null
 

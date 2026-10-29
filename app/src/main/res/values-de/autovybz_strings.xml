@@ -118,6 +118,11 @@
     <string name="avz_speaker_name_label">Lautsprecher-Name (optional)</string>
     <string name="avz_speaker_name_hint">z. B. JBL Flip 6</string>
     <string name="avz_speaker_name_profile_hint">Der Name wird zu deinem Lautsprecher-Profil – im Sound-Bildschirm wechselst du zwischen Profilen.</string>
+    <string name="avz_sub_label">Subwoofer</string>
+    <string name="avz_sub_off">Keiner</string>
+    <string name="avz_sub_hz">%1$d Hz</string>
+    <string name="avz_sub_none_desc">Kein Subwoofer: die Korrektur deckt auch den Bass ab, den dein Lautsprecher kann.</string>
+    <string name="avz_sub_desc">Die Korrektur endet an der Trennfrequenz – darunter entscheiden die Abstimmung und der Pegel des Subwoofers.</string>
     <string name="avz_target_label">Klangziel</string>
     <string name="avz_target_smart">Smart (empfohlen)</string>
     <string name="avz_target_smart_desc">Sanfter Bass-Boost, klare Mitten und Höhen</string>

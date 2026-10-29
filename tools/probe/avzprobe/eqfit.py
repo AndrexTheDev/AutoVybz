@@ -427,6 +427,9 @@ class AutoEqSettings:
     high_boost_cap_db: float | None = None
     high_boost_cap_start_hz: float = 6000.0
     room_rt60_s: float | None = None
+    # W8: the user declared a subwoofer crossed over at this frequency - no correction below it, and no
+    # protective high pass either (the mains are already crossed, and a pass here would gut the sub).
+    subwoofer_crossover_hz: float | None = None
 
 
 @dataclass
@@ -519,7 +522,8 @@ def force_limiter(env: EnvironmentTuning, cls: SpeakerClassTuning) -> bool:
     return env.force_limiter or cls.force_limiter
 
 
-def auto_eq_settings(band_count: int, env: EnvironmentTuning, cls: SpeakerClassTuning) -> AutoEqSettings:
+def auto_eq_settings(band_count: int, env: EnvironmentTuning, cls: SpeakerClassTuning,
+                     subwoofer_crossover_hz: float | None = None) -> AutoEqSettings:
     """`CorrectionPlanner.autoEqSettings`."""
     return AutoEqSettings(
         band_count=band_count,
@@ -541,6 +545,7 @@ def auto_eq_settings(band_count: int, env: EnvironmentTuning, cls: SpeakerClassT
         loudness_make_up=True,
         max_make_up_db=6.0,
         preamp_headroom_allowance_db=LIMITER_HEADROOM_ALLOWANCE_DB if force_limiter(env, cls) else 0.0,
+        subwoofer_crossover_hz=subwoofer_crossover_hz,
     )
 
 
@@ -787,8 +792,16 @@ def render(
 
     low_limit = (detect_low_limit(frequencies, roll_off_db, settings.low_limit_scan_hz, max_hz=settings.low_limit_max_hz)
                  if settings.auto_low_limit else min(max(settings.manual_low_limit_hz, 20.0), 500.0))
+    sub_crossover = settings.subwoofer_crossover_hz
+    if sub_crossover is not None and sub_crossover > 0.0:
+        # Below the crossover the measurement is the sub's own tuning plus the room - not something the
+        # app can or should correct (the level knob is on the sub). The declared crossover therefore wins
+        # over the detected limit, which would otherwise try to correct the sub's 45 Hz boom.
+        low_limit = max(low_limit, min(max(sub_crossover, 20.0), 500.0))
     high_limit = min(max(settings.high_limit_hz, 2000.0), 20000.0)
-    high_pass_hz = protective_pass_for(low_limit, settings.protective_high_pass_hz) if settings.protective_high_pass else None
+    high_pass_hz = (None if sub_crossover is not None and sub_crossover > 0.0
+                    else (protective_pass_for(low_limit, settings.protective_high_pass_hz)
+                          if settings.protective_high_pass else None))
 
     in_range = np.array([range_weight(f, low_limit, high_limit) for f in frequencies])
     reliable = (np.array([reliability(s, settings.min_snr_db, settings.full_snr_db) for s in snr_db])

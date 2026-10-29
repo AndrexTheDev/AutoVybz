@@ -66,6 +66,8 @@ data class MeasurementRequest(
     val environment: ListeningEnvironment = ListeningEnvironment.INDOOR,
     /** What kind of speaker this is - correction strategy, see [SpeakerClassTuning]. */
     val speakerClass: SpeakerClass = SpeakerClass.STANDARD,
+    /** W8: the user's powered subwoofer is crossed over at this frequency; `null` = no sub. */
+    val subwooferCrossoverHz: Double? = null,
 ) {
     /** Effective analysis / fitting parameters for this request. */
     val tuning: EnvironmentTuning get() = EnvironmentTuning.of(environment, smoothing, maxBoostDb)
@@ -302,7 +304,10 @@ class MeasurementController(
             // plan: `AutoEqSettings.roomRt60S` gates the boosts and was measured on the probe (see
             // docs/AUDIO_ROADMAP.md, W4) - it costs ~0.1 dB of tonal accuracy against anechoic truth and
             // its benefit is a listening impression no model here can score. Deliberately off.
-            CorrectionPlanner.autoEqSettings(request.bandCount, request.tuning, request.classTuning),
+            CorrectionPlanner.autoEqSettings(
+                request.bandCount, request.tuning, request.classTuning,
+                subwooferCrossoverHz = request.subwooferCrossoverHz,
+            ),
             rollOffDb = result.thirdOctaveDb,
             snrDb = result.snrDb,
         )

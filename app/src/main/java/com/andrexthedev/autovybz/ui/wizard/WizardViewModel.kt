@@ -115,6 +115,8 @@ data class WizardUiState(
     val environment: ListeningEnvironment = ListeningEnvironment.INDOOR,
     /** External speaker, weak-speaker rescue, or this device's own speakers. */
     val speakerClass: SpeakerClass = SpeakerClass.STANDARD,
+    /** W8: the user's subwoofer crossover in Hz, 0 when there is none. */
+    val subwooferCrossoverHz: Double = 0.0,
 )
 
 class WizardViewModel(app: Application) : AndroidViewModel(app) {
@@ -151,6 +153,7 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
             positions = limitedPositions(),
             environment = settings.environment,
             speakerClass = settings.speakerClass,
+            subwooferCrossoverHz = settings.subwooferCrossoverHz,
         ),
     )
     val state: StateFlow<WizardUiState> = _state.asStateFlow()
@@ -176,7 +179,18 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
         it.copy(
             target = settings.target, bandCount = settings.bandCount, positions = limitedPositions(),
             environment = settings.environment, speakerClass = settings.speakerClass,
+            subwooferCrossoverHz = settings.subwooferCrossoverHz,
         )
+    }
+
+    /**
+     * W8: declare a subwoofer crossover (0 = none). The correction then stops at the crossover instead of
+     * chasing the sub's own tuning - a knob on the back of the box, not a defect.
+     */
+    fun onSubwooferChanged(crossoverHz: Double) {
+        settings.subwooferCrossoverHz = crossoverHz
+        _state.update { it.copy(subwooferCrossoverHz = settings.subwooferCrossoverHz) }
+        refitIfShowingResult()
     }
 
     fun onSpeakerNameChanged(name: String) = _state.update { it.copy(speakerName = name.take(40)) }
@@ -587,7 +601,10 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
     private fun refitIfShowingResult() {
         val step = _state.value.step as? WizardStep.Result ?: return
         val s = _state.value
-        val req = step.outcome.request.copy(target = s.target, bandCount = s.bandCount, customTarget = settings.customTarget())
+        val req = step.outcome.request.copy(
+            target = s.target, bandCount = s.bandCount, customTarget = settings.customTarget(),
+            subwooferCrossoverHz = s.subwooferCrossoverHz.takeIf { it > 0.0 },
+        )
         // Only the latest choice counts: a slower, older refit must not overwrite a newer one.
         refitJob?.cancel()
         refitJob = viewModelScope.launch {

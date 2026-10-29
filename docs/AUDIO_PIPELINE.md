@@ -33,7 +33,7 @@ rooms. It is the reference for the code in `measurement/audio`, `measurement/dsp
 | 13 | Mic compensation + normalization | `MicCompensation`, `FrequencyGrid.bandMean` | 0 dB @ 300 Hz–3 kHz |
 | 14 | **Speaker health** | `HarmonicDistortion`, `RoomDecay` | THD, H2…H5, `SPEAKER_DISTORTION`, `DRIVER_RATTLE`, room T60, `REVERBERANT_ROOM` |
 | 14b | **Loudness + true peak (BS.1770)** | `IntegratedLoudness` | integrated LUFS, dBTP, block count |
-| 15 | Target inversion | `AutoEqRenderer` | PEQ bands, pre-gain, safety |
+| 15 | Target inversion | `AutoEqRenderer` | PEQ bands, pre-gain, safety (lower limit = detected roll-off, or the declared subwoofer crossover) |
 | 16 | **Verification (Check run)** | `Verification` | measured vs predicted change, `Verdict` |
 
 The bold stages are the refinements of this iteration.
@@ -276,6 +276,27 @@ gap 0.11 dB), while the same comparison on an unapplied correction returns `NO_C
 | 15 | Lively room | measurement smoothed by its own reverb, user wonders why it sounds softer | reverb estimated from the same IR, `REVERBERANT_ROOM` ≥ 0.8 s | `RoomDecayTest`, `pipeline_findings.py` finding 10, probe `--rt60` |
 | 16 | The correction never reached the speaker (wrong route, engine off) | the app promises an improvement it did not deliver | second measurement through the EQ, `Verification` → `NO_CHANGE` / `UNEXPECTED` | `VerificationTest`, `pipeline_findings.py` finding 14, probe `--verify` |
 | 17 | "Better" turned out to be "quieter" | the user turns it back up and the EQ is gone | integrated LUFS (BS.1770-4) + true peak on both runs | `IntegratedLoudnessTest`, probe loudness column (`LU`), `loudness_proxy_gap_db` gate |
+| 18 | A subwoofer is in the chain and the app tries to correct it | filters and headroom spent on the sub's level knob, mains asked to play below the crossover | declared crossover: correction starts above it, no protective pass | `AutoEqRendererTest.aDeclaredSubwooferStopsTheCorrectionAtTheCrossover`, `check_parity.py`, probe `--sub` |
+
+## 8e. A subwoofer is declared, not detected
+
+A phone microphone cannot tell whether the bass it hears comes from the speaker or from a sub. The user
+declares it (`80 / 100 / 120 Hz`, or "none"), and `AutoEqSettings.subwooferCrossoverHz` then does two things:
+
+* **the correction's lower limit becomes the crossover** – but only ever *raises* the detected limit, so a
+  small box that already stops at 160 Hz keeps its own. Everything downstream (range weight, excursion guard,
+  null gate, fitter window) reads that one limit, so none of them has to know about subwoofers;
+* **the protective high pass is dropped.** It exists to protect a driver that cannot play low, and with a sub
+  the mains are crossed over anyway – a pass in the app would silence the sub that is supposed to play there.
+
+Below the crossover the app deliberately does nothing: what the microphone sees there is the sub's own
+tuning plus the room, and the fix for a sub that is too loud is the knob on the back of the box. What that
+costs is measured rather than assumed (`pipeline_findings.py` finding 17, probe `--sub`): without the
+declaration the fit starts at 25 Hz and spends its low bands on a −3.9 dB cut at 40–55 Hz, guessing that the
+boom is the box's tuning; with the crossover declared the plan touches 40–55 Hz by 0.10 dB and is slightly
+*better* above the crossover (0.92 → 0.87 dB), because no filter or headroom is spent where the app has no
+authority. On the live probe's music-weighted metric the two land within 0.02 dB (0.21 vs 0.23 dB), which is
+the point: the setting is a scope decision, not a tonal one.
 
 ## 9b. Why there is no convolution mode
 
@@ -316,3 +337,4 @@ plus a second audio path, the answer is no - and it is a measured no.
 | `Verification.MIN_AUDIBLE_CHANGE_DB` | 0.5 | below this a change counts as no change |
 | `Verification.MIN_CORRELATION` | 0.5 | below this the change is not the predicted one |
 | `Verification.JUDGE_LOW_FACTOR` | 1.41 | +0.5 octave above the bass limit: where the correction has authority |
+| `AutoEqSettings.subwooferCrossoverHz` | null (off) / 80 / 100 / 120 | a declared sub: correction starts at the crossover, no protective pass |

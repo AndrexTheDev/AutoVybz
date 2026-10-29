@@ -119,6 +119,11 @@
     <string name="avz_speaker_name_label">Speaker name (optional)</string>
     <string name="avz_speaker_name_hint">e.g. JBL Flip 6</string>
     <string name="avz_speaker_name_profile_hint">The name becomes your speaker profile – you switch between profiles on the Sound screen.</string>
+    <string name="avz_sub_label">Subwoofer</string>
+    <string name="avz_sub_off">None</string>
+    <string name="avz_sub_hz">%1$d Hz</string>
+    <string name="avz_sub_none_desc">No subwoofer: the correction also covers the bass your speaker can play.</string>
+    <string name="avz_sub_desc">The correction stops at the crossover – below it the sub\'s own tuning and level decide.</string>
     <string name="avz_target_label">Sound target</string>
     <string name="avz_target_smart">Smart (recommended)</string>
     <string name="avz_target_smart_desc">Gentle bass boost, clear mids and highs</string>
