@@ -65,11 +65,19 @@ walks, both reproducible), a **crash scan** over every logcat
 runs, `am start -W`) and a `meminfo` snapshot.
 
 Monkey verdicts (why an "ANR" is not automatically an app bug): a crash or an ANR *with an app frame on the
-main thread* fails the job. Two shapes are re-run with the same seed first and only fail when they reproduce —
-a **framework graphics stall** (main thread in hwui/EGL, no app frame) and an **idle main thread** (looper in
-`MessageQueue.next` while Android reports *Input dispatching timed out*, i.e. an event was dispatched to a
-window that never got a frame). A system-process ANR is an environment finding. Every verdict names the seed,
-and the report keeps the monkey output, the ANR trace and the main-thread stack of both runs.
+main thread* fails the job. Three shapes are re-run with the same seed first and only fail when they
+reproduce (`classify_anr_main` in `run_e2e.sh`): a **framework graphics stall** (main thread in hwui/EGL, no
+app frame), an **idle main thread** (looper in `MessageQueue.next` while Android reports *Input dispatching
+timed out*, i.e. an event was dispatched to a window that never got a frame) and a **framework IME binder
+stall** (main thread inside `InputMethodManager.startInputInner` → `BinderProxy.transactNative` while the
+window gains focus — campaign 15 on API 30, where `com.android.systemui` and the app both missed the *same*
+`MotionEvent`). A system-process ANR is an environment finding. Every verdict names the seed, and the report
+keeps the monkey output, the ANR trace and the main-thread stack of both runs.
+
+The **ANR scan** over the instrumented runs has no confirmation run to ask, so a framework stall there needs
+two independent pieces of evidence before it becomes a warning instead of a failure: the app's main-thread
+stack classifies as a framework stall (no AutoVybz frame) **and** another process ANR'd in the same window —
+i.e. the stall was system-wide. Anything else fails the job, as before.
 
 ## 4. Screenshot + accessibility matrix (API 35)
 

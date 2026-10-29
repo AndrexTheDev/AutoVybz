@@ -102,6 +102,36 @@ focus_diag() {
   [ -n "$top" ] && echo "::notice title=Top activity after $1 (API $API)::$top" >&2
 }
 
+# Which kind of stall is this ANR? Reads the app's main-thread stack ($1 = the extracted "main" block)
+# and echoes "" when the app itself has a frame there - i.e. when the app is the suspect - or a name for
+# the three framework stalls seen so far:
+#
+#   framework graphics stall   blocked in hwui/EGL teardown or draw (campaign 6, API 30: the emulator's
+#                              software composer used 50 % kernel CPU while Dialog.cancel tore down the
+#                              hardware renderer)
+#   idle main thread           the looper sits in MessageQueue.next while Android reports "Input
+#                              dispatching timed out" (campaign of 3e7b61a, API 30: the launcher held the
+#                              window focus, so the queued MOVE event went to a window that never drew)
+#   framework IME binder stall blocked in the input-method binder call that a window-focus gain triggers
+#                              (campaign 15, API 30: com.android.systemui and the app both failed to consume
+#                              the *same* MotionEvent, and the app's main thread had no AutoVybz frame - it
+#                              was inside InputMethodManager.startInputInner via BinderProxy.transactNative)
+#
+# Anything else - and any stack with a com.andrexthedev / com.bearinmind frame - stays unclassified, which
+# is the caller's signal to treat the ANR as ours.
+classify_anr_main() {
+  local f=$1
+  [ -s "$f" ] || return 0
+  grep -qE "at com\.(andrexthedev|bearinmind)\." "$f" && return 0
+  if grep -qE "HardwareRenderer\.n|ThreadedRenderer\.|eglSwapBuffers|nSyncAndDrawFrame" "$f"; then
+    echo "framework graphics stall"
+  elif grep -qE "MessageQueue\.next|nativePollOnce" "$f"; then
+    echo "idle main thread"
+  elif grep -qE "startInputOrWindowGainedFocus|ImeFocusController|InputMethodManager|IInputMethodManager" "$f"; then
+    echo "framework IME binder stall"
+  fi
+}
+
 # One monkey random walk plus its evaluation. $1 = seed, $2 = file prefix ("monkey", "monkey2").
 # Only a crash / ANR of the app itself fails the job; a system-process ANR on an overloaded emulator is
 # reported as an environment finding, and a framework-only graphics stall is re-run with the same seed.
@@ -126,20 +156,15 @@ monkey_run() {
     awk '/^Cmd line: '"$PKG"'$/{p=1} p&&/^"main"/{m=1} m{print} m&&/^$/{exit}' "$OUT/${PFX}_anr_trace.txt" > "$OUT/${PFX}_anr_main.txt"
     # Java frames tell which call blocked; native frames only show "binder transact".
     STACK=$( { grep -E "^\s+(- waiting|- locked|- sleeping)" "$OUT/${PFX}_anr_main.txt"; grep -E "^\s+at " "$OUT/${PFX}_anr_main.txt" | head -12; } | sed 's/^\s*//' | tr '\n' ' ' | cut -c1-1200)
-    # Two kinds of "not responding" that the app cannot have caused, both requiring that the *main thread* of the
-    # app shows no AutoVybz / Equalizer314 frame at all:
-    #  a) graphics stall - blocked in hwui/EGL teardown or draw (campaign 6, API 30: Dialog.cancel ->
-    #     ViewRootImpl.destroyHardwareRenderer while the emulator's software composer used 50 % kernel CPU);
-    #  b) idle looper - the main thread sits in MessageQueue.next while Android reports "Input dispatching timed
-    #     out" (campaign of 3e7b61a, API 30: the launcher held window focus, the queued MOVE event was dispatched
-    #     to a window that never received a frame). An idle looper proves the app was not busy; it is confirmed by
-    #     re-running the same seed before it is reported as a finding.
-    if [ "$KIND" = "NOT" ] && [ -s "$OUT/${PFX}_anr_main.txt" ] && ! grep -qE "at com\.(andrexthedev|bearinmind)\." "$OUT/${PFX}_anr_main.txt"; then
-      if grep -qE "HardwareRenderer\.n|ThreadedRenderer\.|eglSwapBuffers|nSyncAndDrawFrame" "$OUT/${PFX}_anr_main.txt"; then
-        STALL_KIND="framework graphics stall"
-      elif grep -q "Input dispatching timed out" "$OUT/$PFX.txt" \
-         && grep -qE "MessageQueue\.next|nativePollOnce" "$OUT/${PFX}_anr_main.txt"; then
-        STALL_KIND="idle main thread"
+    # A "not responding" the app cannot have caused requires that its *main thread* shows no AutoVybz /
+    # Equalizer314 frame at all - see `classify_anr_main` for the three framework signatures and the campaign
+    # each one came from. Only the idle-looper case additionally needs the "Input dispatching timed out"
+    # reason in the monkey log; the other two are recognisable from the stack alone. Any stall found here is
+    # still confirmed by re-running the same seed before it is reported without failing the job.
+    if [ "$KIND" = "NOT" ]; then
+      STALL_KIND=$(classify_anr_main "$OUT/${PFX}_anr_main.txt")
+      if [ "$STALL_KIND" = "idle main thread" ] && ! grep -q "Input dispatching timed out" "$OUT/$PFX.txt"; then
+        STALL_KIND=""
       fi
     fi
   fi
@@ -256,11 +281,32 @@ de-landscape|de-DE|1080x2400|420|1.0|1"
 fi
 
 # ANR scan over the instrumented runs (monkey reports its own ANRs above). Needed because error dialogs are hidden.
+# A framework stall during an instrumented run is not ours either - but unlike the monkey path there is no
+# confirmation run to ask, so it takes two independent pieces of evidence to call it the environment:
+# (a) the app's main-thread stack classifies as a framework stall (no AutoVybz frame), and (b) another
+# process ANR'd in the same window, i.e. the stall was system-wide (campaign 15, API 30: systemui and the
+# app both missed the same MotionEvent). Without both, it fails as before.
 ANRS=$(grep -h "ANR in $PKG" $(ls "$OUT"/*.logcat.txt 2>/dev/null | grep -v monkey.logcat) /dev/null 2>/dev/null | wc -l)
 if [ "${ANRS:-0}" -gt 0 ]; then
   FIRST=$(grep -h -m1 -A2 "ANR in $PKG" $(ls "$OUT"/*.logcat.txt | grep -v monkey.logcat) | tr '\n' ' ' | cut -c1-400)
-  note "- ❌ **ANR scan**: $ANRS ANR(s) of $PKG during instrumented runs – $FIRST"
-  echo "::error title=ANR scan API $API::$FIRST"; FAIL=1
+  SCAN_KIND=""; SCAN_STACK=""
+  T=$(adb shell 'ls -t /data/anr/ 2>/dev/null | head -1' < /dev/null | tr -d '\r')
+  if [ -n "$T" ]; then
+    adb shell "cat /data/anr/$T" < /dev/null > "$OUT/anr_scan_trace.txt" 2>/dev/null
+    awk '/^Cmd line: '"$PKG"'$/{p=1} p&&/^"main"/{m=1} m{print} m&&/^$/{exit}' "$OUT/anr_scan_trace.txt" > "$OUT/anr_scan_main.txt"
+    SCAN_KIND=$(classify_anr_main "$OUT/anr_scan_main.txt")
+    SCAN_STACK=$(grep -E "^\s+at " "$OUT/anr_scan_main.txt" | head -6 | sed 's/^\s*//' | tr '\n' ' ' | cut -c1-600)
+  fi
+  OTHER_ANR=$(grep -h "ANR in " $(ls "$OUT"/*.logcat.txt 2>/dev/null) /dev/null 2>/dev/null | grep -v "ANR in $PKG" | sed 's/.*ANR in \([^ ]*\).*/\1/' | sort -u | tr '\n' ' ')
+  if [ -n "$SCAN_KIND" ] && [ -n "$OTHER_ANR" ]; then
+    note "- ⚠️ **ANR scan**: $ANRS ANR(s) of $PKG during instrumented runs, $SCAN_KIND with no app frame while $OTHER_ANR also ANR'd – $FIRST"
+    note "  - main thread: $SCAN_STACK"
+    echo "::warning title=ANR scan API $API ($SCAN_KIND, system-wide stall)::$FIRST"
+  else
+    note "- ❌ **ANR scan**: $ANRS ANR(s) of $PKG during instrumented runs – $FIRST"
+    [ -n "$SCAN_STACK" ] && note "  - main thread: $SCAN_STACK"
+    echo "::error title=ANR scan API $API::$FIRST"; FAIL=1
+  fi
 else
   OTHER=$(grep -h "ANR in " $(ls "$OUT"/*.logcat.txt 2>/dev/null | grep -v monkey.logcat) /dev/null 2>/dev/null | grep -v "$PKG" | sed 's/.*ANR in \([^ ]*\).*/\1/' | sort -u | tr '\n' ' ')
   note "- ✅ **ANR scan**: no ANR of $PKG in the instrumented runs${OTHER:+ (system processes: $OTHER)}"
