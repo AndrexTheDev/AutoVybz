@@ -16,6 +16,7 @@ import com.andrexthedev.autovybz.measurement.MeasurementProgress
 import com.andrexthedev.autovybz.measurement.MeasurementRequest
 import com.andrexthedev.autovybz.measurement.SpeakerClass
 import com.andrexthedev.autovybz.measurement.SpeakerClassTuning
+import com.andrexthedev.autovybz.measurement.Verification
 import com.andrexthedev.autovybz.measurement.audio.CaptureException
 import com.andrexthedev.autovybz.measurement.audio.CaptureInterruptedException
 import com.andrexthedev.autovybz.measurement.audio.RouteClassifier
@@ -85,7 +86,13 @@ sealed interface WizardStep {
         /** Free tier already uses its one saved profile and this name would create another one. */
         val profileLimitReached: Boolean = false,
     ) : WizardStep
-    data class Saved(val presetName: String, val applied: Boolean, val outcome: MeasurementOutcome? = null) : WizardStep
+    data class Saved(
+        val presetName: String,
+        val applied: Boolean,
+        val outcome: MeasurementOutcome? = null,
+        /** Result of the optional "Check" run (W6): null until the user asked for it. */
+        val verification: Verification.Report? = null,
+    ) : WizardStep
     /**
      * [resumePosition] != null: a later position of a multi-position calibration failed; the positions
      * measured before are kept and the user can repeat just this one (or finish with what is there).
@@ -460,7 +467,10 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
         job = null
         refitJob?.cancel()
         resetSession()
-        setStep(WizardStep.Idle)
+        // A cancelled check returns to the saved card, not to the start screen.
+        val restore = savedBeforeCheck
+        savedBeforeCheck = null
+        setStep(restore ?: WizardStep.Idle)
     }
 
     fun onPresetNameChanged(name: String) {
@@ -513,6 +523,66 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun onReset() = onCancel()
+
+    /**
+     * The saved result of a check run in flight. A cancelled check must not throw the user back to the
+     * start screen - the calibration is already stored and the card with its numbers is still what they
+     * were looking at.
+     */
+    private var savedBeforeCheck: WizardStep.Saved? = null
+
+    /**
+     * Verification pass (W6): measure once more, now *through* the applied preset, and compare what the
+     * speaker actually did with what the plan promised. Only offered when the preset was applied - a
+     * preset that was merely saved is not in the signal path, and checking it would measure the unchanged
+     * speaker and report a failure that is not one.
+     */
+    fun onVerifyClicked() {
+        val step = _state.value.step as? WizardStep.Saved ?: return
+        val outcome = step.outcome ?: return
+        if (job?.isActive == true || !step.applied || step.verification != null) return
+        savedBeforeCheck = step
+        // Same measuring level as the calibration: the comparison is level-invariant, but a check at a
+        // much quieter volume would be a check with less signal-to-noise than the run it is verifying.
+        volume.setFraction(
+            if (outcome.request.speakerClass == SpeakerClass.DEVICE) deviceVolumeFraction
+            else VolumeMath.MEASUREMENT_FRACTION,
+        )
+        job = viewModelScope.launch {
+            try {
+                for (s in AutoVybzServices.countdownSeconds downTo 1) {
+                    setStep(WizardStep.Countdown(s))
+                    delay(1000)
+                }
+                setStep(WizardStep.Preparing)
+                val after = controller.run(outcome.request, keepEqActive = true) { p ->
+                    val next = when (p) {
+                        MeasurementProgress.Preparing -> WizardStep.Preparing
+                        is MeasurementProgress.Measuring -> WizardStep.Measuring(p.fraction, p.inputPeak, p.phase)
+                        MeasurementProgress.Analyzing -> WizardStep.Analyzing
+                    }
+                    setStepFromProgress(next)
+                }
+                val report = withContext(Dispatchers.Default) {
+                    Verification.compare(outcome.result, after.result, outcome.autoEq)
+                }
+                savedBeforeCheck = null
+                setStep(step.copy(verification = report))
+            } catch (c: CancellationException) {
+                throw c
+            } catch (e: Exception) {
+                // A failed check costs the user nothing but the ten seconds: the calibration stays saved
+                // and applied, and the card simply offers the check again.
+                Log.e(TAG, "the verification run failed", e)
+                savedBeforeCheck = null
+                setStep(step)
+                Toast.makeText(getApplication<Application>(), R.string.avz_check_failed, Toast.LENGTH_LONG).show()
+            } finally {
+                if (settings.restoreVolumeAfter) volume.restore()
+                job = null
+            }
+        }
+    }
 
     private fun refitIfShowingResult() {
         val step = _state.value.step as? WizardStep.Result ?: return

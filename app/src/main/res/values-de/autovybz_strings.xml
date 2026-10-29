@@ -203,6 +203,17 @@
     <string name="avz_saved_only">„%1$s“ wurde zu deinen Presets hinzugefügt.</string>
     <string name="avz_saved_to_sound">Weiter zum Sound</string>
     <string name="avz_saved_next_hint">Als Nächstes: Wähle im Sound-Bildschirm einen Stil für deine Musik – deine Einmessung bleibt darunter erhalten.</string>
+    <string name="avz_check_title">Ergebnis prüfen</string>
+    <string name="avz_check_explain">Miss noch einmal durch die Korrektur und vergleiche, was dein Lautsprecher wirklich getan hat, mit unserer Vorhersage. Dauert etwa zehn Sekunden.</string>
+    <string name="avz_check_button">Jetzt prüfen</string>
+    <string name="avz_check_repeat">Erneut prüfen</string>
+    <string name="avz_check_as_predicted">Dein Lautsprecher macht, was wir vorhergesagt haben.</string>
+    <string name="avz_check_better">Dein Lautsprecher hat sich stärker verbessert als vorhergesagt.</string>
+    <string name="avz_check_weaker">Nur ein Teil der Korrektur ist angekommen.</string>
+    <string name="avz_check_no_change">Es hat sich messbar nichts geändert.</string>
+    <string name="avz_check_unexpected">Die Änderung sieht nicht nach unserer Korrektur aus.</string>
+    <string name="avz_check_numbers">Gemessen %1$.1f dB besser, vorhergesagt %2$.1f dB.</string>
+    <string name="avz_check_failed">Die Prüfung konnte nicht abgeschlossen werden. Deine Kalibrierung ist gespeichert und unverändert.</string>
     <string name="avz_open_pro_eq">10-Band-EQ öffnen</string>
     <string name="avz_done">Fertig</string>
     <string name="avz_err_title">Messung fehlgeschlagen</string>

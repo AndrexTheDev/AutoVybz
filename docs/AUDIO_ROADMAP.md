@@ -314,7 +314,7 @@ measured improvement is within 0.5 dB of the prediction; E2E test for the new st
 *Risk:* high-ish: it is a new wizard state, a new failure surface and it costs the user 10 s. Worth it:
 it is also the field-diagnostics channel for everything else in this list.
 
-**Done (round 13), the DSP half – the wizard step itself is round 14.** `measurement/Verification.kt`
+**Done (round 13, DSP; round 14, wizard step).** The comparison: `measurement/Verification.kt`
 (`compare(before, after, autoEq)` → `Report`) judges three curves: the measured change
 (`after − before`), the plan's own filter response, and the residual against the target, before / after / as
 predicted. It reports `correlation`, `predictionErrorDb`, the three residuals, `measuredImprovementDb` and
@@ -343,6 +343,23 @@ Measured (`pipeline_findings.py` finding 14, three scenarios at 18 dB SNR): meas
 `AS_PREDICTED` – while the same comparison on a chain that never applied the filter returns `NO_CHANGE`
 in all three. `live_probe.py --verify` reproduces it on the six full scenarios (prediction errors
 0.05–0.34 dB).
+
+The wizard step (round 14) is deliberately small: no new DSP and no new measurement state, just
+
+* `MeasurementController.run(keepEqActive = true)` – the one line that matters. Every normal calibration
+  pauses the EQ (`EqBypass.pauseIfRunning`), because it must measure the speaker and not the speaker plus
+  the previous correction. The check run must do the exact opposite, and that is the whole trick: the
+  stimulus then travels through the engine, the route and the saved preset.
+* a `Verification.Report?` on `WizardStep.Saved` plus `WizardViewModel.onVerifyClicked()` (countdown →
+  measure → `Verification.compare` → same card, now with the verdict), and `VerificationCard` in
+  `WizardScreen`.
+* three decisions worth keeping: the check is offered **only when the preset was applied** (a saved-only
+  preset is not in the signal path, and "nothing changed" would be the app's own fault); it sets the
+  measuring volume again, because a check at a much lower volume would verify with less SNR than the run it
+  judges; and a **cancelled or failed check returns to the saved card** rather than the start screen - the
+  calibration is stored, so throwing the user out of the flow would be the only real damage the check could
+  do. `Report.isConfirmation` (AS_PREDICTED or BETTER) is what decides between gold and warning; `WEAKER`
+  is an improvement but not a confirmation, and a test pins that.
 
 ### W7 – Bounded adaptive target (M)
 
@@ -472,9 +489,9 @@ W1 (judge first) ──► W5 (positions + dip rule, needs W1)
 * **Round 11 (done):** W1, W2, W5 – harness first, then the two "we measure the wrong thing" defects.
 * **Round 12 (done):** W3, W4 – the two free metrics (THD, RT60) and their warnings (W4's gate measured,
   deliberately off).
-* **Round 13 (done):** W10, W6 – BS.1770 integrated loudness + the verification comparison (DSP and probe;
-  the wizard's "Check" step is the first item of round 14).
-* **Round 14:** W6's wizard step, W7, W8, and W9's measurement (build only if it shows ≥ 0.2 dB).
+* **Round 13 (done):** W10, W6 – BS.1770 integrated loudness + the verification comparison (DSP and probe).
+* **Round 14 (in progress):** W6's wizard step (done: the "Check" run on the saved card), then W7, W8 and
+  W9's measurement (build only if it shows ≥ 0.2 dB).
 
 ## 7. Questions that need a device, not a model
 

@@ -92,6 +92,14 @@ object Verification {
 
         /** True when the wizard should show a warning rather than a confirmation. */
         val isUnexpected: Boolean get() = verdict == Verdict.UNEXPECTED
+
+        /**
+         * True when the run confirmed the plan: it did what it said, or more. Everything else is a finding
+         * the user has to see - `NO_CHANGE` and `UNEXPECTED` most of all, because they mean the correction
+         * is not reaching the speaker.
+         */
+        val isConfirmation: Boolean
+            get() = verdict == Verdict.AS_PREDICTED || verdict == Verdict.BETTER_THAN_PREDICTED
     }
 
     /** Pearson correlation of two equally long series; 0 when either has no variance. */

@@ -242,6 +242,15 @@ at 150 Hz): below it the correction has no authority, and judging there would pu
 it made on purpose. It is deliberately *not* an auto-retry: a verification that disagrees with its own
 prediction is shown to the user, not silently re-fitted.
 
+**How the wizard runs it.** The check is offered on the *saved* card and only when the preset was applied –
+a saved-but-inactive preset would measure the unchanged speaker and report a failure that is not one. It
+re-uses the whole measurement path with one difference: `MeasurementController.run(keepEqActive = true)`
+does **not** call `EqBypass.pauseIfRunning`, so the stimulus is played through the correction that is
+actually in the signal path (engine, route and preset included – that is what makes the failure modes above
+visible). The result is compared with the calibration measurement and its own `AutoEqResult`; the card then
+shows the verdict in words plus "measured x dB better, predicted y dB". It costs ten seconds, is repeatable,
+and a failed check costs nothing: the calibration stays saved, and the card offers the check again.
+
 `pipeline_findings.py` finding 14 runs the loop measure → correct → re-measure on three scenario models at
 18 dB SNR: measured improvement +1.66 / +1.73 / +2.64 dB against +1.73 / +1.82 / +2.53 dB predicted (worst
 gap 0.11 dB), while the same comparison on an unapplied correction returns `NO_CHANGE` every time.

@@ -98,6 +98,7 @@ import androidx.core.content.ContextCompat
 import com.andrexthedev.autovybz.measurement.ListeningEnvironment
 import com.andrexthedev.autovybz.measurement.MeasurementProgress
 import com.andrexthedev.autovybz.measurement.SpeakerClass
+import com.andrexthedev.autovybz.measurement.Verification
 import com.andrexthedev.autovybz.measurement.audio.RouteClassifier
 import com.andrexthedev.autovybz.measurement.dsp.MeasurementResult
 import com.andrexthedev.autovybz.measurement.dsp.MeasurementWarning
@@ -198,7 +199,13 @@ fun WizardScreen(
                         externalExportsEnabled = limits.externalExports,
                         onOpenPremium = onOpenPremium,
                     )
-                    is WizardStep.Saved -> SavedStep(step, onOpenProEq, onOpenSound = { vm.onReset(); onOpenSound() }, onDone = vm::onReset)
+                    is WizardStep.Saved -> SavedStep(
+                        step,
+                        onOpenProEq,
+                        onOpenSound = { vm.onReset(); onOpenSound() },
+                        onDone = vm::onReset,
+                        onVerify = vm::onVerifyClicked,
+                    )
                     is WizardStep.Error -> ErrorStep(
                         step,
                         onRetry = startMeasurement,
@@ -1005,10 +1012,82 @@ private fun ResultStep(
     }
 }
 
+/* ------------------------------------------------------------ verification -- */
+
+/**
+ * The card for the verification pass (W6). It shows either the button that starts the ten-second check or
+ * the result of the last one - measured against promised, and a verdict in words. The verdict decides the
+ * tone: a confirmation is gold, a finding is a warning, and neither is hidden behind "details".
+ */
+@Composable
+private fun VerificationCard(report: Verification.Report?, onVerify: () -> Unit) {
+    AvzCard(
+        accent = when {
+            report == null -> AutoVybzColors.OnDarkMuted
+            report.isConfirmation -> AutoVybzColors.Gold
+            else -> AutoVybzColors.Error
+        },
+        modifier = Modifier.fillMaxWidth().testTag("avz:saved:verification"),
+    ) {
+        Text(
+            stringResource(R.string.avz_check_title),
+            style = MaterialTheme.typography.titleMedium,
+            color = AutoVybzColors.OnDark,
+        )
+        Spacer(Modifier.height(6.dp))
+        if (report == null) {
+            Text(
+                stringResource(R.string.avz_check_explain),
+                style = MaterialTheme.typography.bodySmall,
+                color = AutoVybzColors.OnDarkMuted,
+            )
+        } else {
+            Text(
+                stringResource(
+                    when (report.verdict) {
+                        Verification.Verdict.AS_PREDICTED -> R.string.avz_check_as_predicted
+                        Verification.Verdict.BETTER_THAN_PREDICTED -> R.string.avz_check_better
+                        Verification.Verdict.WEAKER_THAN_PREDICTED -> R.string.avz_check_weaker
+                        Verification.Verdict.NO_CHANGE -> R.string.avz_check_no_change
+                        Verification.Verdict.UNEXPECTED -> R.string.avz_check_unexpected
+                    },
+                ),
+                style = MaterialTheme.typography.bodyMedium,
+                color = AutoVybzColors.OnDark,
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                stringResource(
+                    R.string.avz_check_numbers,
+                    report.measuredImprovementDb,
+                    report.predictedImprovementDb,
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = AutoVybzColors.OnDarkMuted,
+            )
+        }
+        if (report == null || !report.isConfirmation) {
+            Spacer(Modifier.height(8.dp))
+            OutlinedButton(
+                onClick = onVerify,
+                modifier = Modifier.fillMaxWidth().testTag("avz:saved:verify"),
+            ) {
+                Text(stringResource(if (report == null) R.string.avz_check_button else R.string.avz_check_repeat))
+            }
+        }
+    }
+}
+
 /* ----------------------------------------------------------------- saved -- */
 
 @Composable
-private fun SavedStep(step: WizardStep.Saved, onOpenProEq: () -> Unit, onOpenSound: () -> Unit, onDone: () -> Unit) {
+private fun SavedStep(
+    step: WizardStep.Saved,
+    onOpenProEq: () -> Unit,
+    onOpenSound: () -> Unit,
+    onDone: () -> Unit,
+    onVerify: () -> Unit,
+) {
     val outcome = step.outcome
     Column(Modifier.fillMaxWidth().padding(top = 32.dp).testTag("avz:saved"), horizontalAlignment = Alignment.CenterHorizontally) {
         Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = AutoVybzColors.GreenBright, modifier = Modifier.size(96.dp))
@@ -1026,6 +1105,12 @@ private fun SavedStep(step: WizardStep.Saved, onOpenProEq: () -> Unit, onOpenSou
         )
         Spacer(Modifier.height(12.dp))
         HintRow(stringResource(R.string.avz_saved_next_hint))
+        // The check is only meaningful while the preset is in the signal path: a saved-but-not-applied
+        // preset would measure the unchanged speaker and report a failure that is not one.
+        if (step.applied && step.outcome != null) {
+            Spacer(Modifier.height(16.dp))
+            VerificationCard(step.verification, onVerify)
+        }
         Spacer(Modifier.height(16.dp))
         Button(onClick = onOpenSound, modifier = Modifier.fillMaxWidth().testTag("avz:saved:sound"), colors = ButtonDefaults.buttonColors(containerColor = AutoVybzColors.Green)) {
             Icon(VybzIcons.Sound, contentDescription = null, modifier = Modifier.size(20.dp))

@@ -151,6 +151,40 @@ class VerificationTest {
         }
     }
 
+    /**
+     * What the wizard's confirmation card is allowed to call a success. A review of the flow found the
+     * obvious bug this pins: `WEAKER` *is* an improvement (half the correction arrived) but it is not a
+     * confirmation, and `NO_CHANGE`/`UNEXPECTED` are exactly the cases the card exists for.
+     */
+    @Test
+    fun onlyAsPredictedAndBetterCountAsConfirmation() {
+        val before = measurement(::speaker)
+        val plan = plan(before)
+        val applied = Verification.compare(before, applied(before, plan), plan)
+        val half = Verification.compare(before, shifted(before, plan.filterResponseDb, scale = 0.45), plan)
+        val nothing = Verification.compare(before, measurement(::speaker), plan)
+        val other = Verification.compare(before, shifted(before, DoubleArray(grid.size) { i ->
+            bump(grid[i], 300.0, -12.0, 0.7) - bump(grid[i], 4000.0, 6.0, 0.5)
+        }), plan)
+        assertTrue(applied.isConfirmation)
+        assertFalse(half.isConfirmation)
+        assertFalse(nothing.isConfirmation)
+        assertFalse(other.isConfirmation)
+        assertTrue(other.isUnexpected)
+        assertFalse(applied.isUnexpected)
+    }
+
+    /** The sentence the card shows: two numbers, no verdict words - the verdict is a separate line. */
+    @Test
+    fun theSummaryNamesBothImprovements() {
+        val before = measurement(::speaker)
+        val plan = plan(before)
+        val report = Verification.compare(before, applied(before, plan), plan)
+        val summary = report.summary
+        assertTrue(summary, summary.contains("%.1f".format(report.measuredImprovementDb)))
+        assertTrue(summary, summary.contains("%.1f".format(report.predictedImprovementDb)))
+    }
+
     /** The correlation helper itself, including its degenerate cases. */
     @Test
     fun correlationIsAPearsonCoefficient() {

@@ -111,7 +111,18 @@ class MeasurementController(
 ) {
     private val app = context.applicationContext
 
-    suspend fun run(request: MeasurementRequest, onProgress: (MeasurementProgress) -> Unit): MeasurementOutcome {
+    /**
+     * One calibration run. [keepEqActive] is the verification pass (W6): the stimulus is played *through*
+     * the correction that is currently active, so the measurement it produces describes the chain the user
+     * actually hears - including the engine, the route and the applied preset. Without it the EQ is paused
+     * for the duration of the measurement, which is what makes a normal calibration measure the speaker
+     * instead of the speaker plus the previous correction.
+     */
+    suspend fun run(
+        request: MeasurementRequest,
+        keepEqActive: Boolean = false,
+        onProgress: (MeasurementProgress) -> Unit,
+    ): MeasurementOutcome {
         onProgress(MeasurementProgress.Preparing)
         val tuning = request.tuning
         // The analysis parameters are known before the capture - the recording tail is derived from them,
@@ -121,7 +132,7 @@ class MeasurementController(
             sweepWeight = tuning.sweepWeight,
         )
         val tailSeconds = CaptureTiming.tailSeconds(config.maxLatencySeconds, config.irPostSeconds)
-        val (captured, stimulus) = captureStimulus(request, tailSeconds, onProgress)
+        val (captured, stimulus) = captureStimulus(request, tailSeconds, keepEqActive, onProgress)
 
         onProgress(MeasurementProgress.Analyzing)
         return withContext(Dispatchers.Default) {
@@ -152,6 +163,7 @@ class MeasurementController(
     private suspend fun captureStimulus(
         request: MeasurementRequest,
         tailSeconds: Double,
+        keepEqActive: Boolean,
         onProgress: (MeasurementProgress) -> Unit,
     ): Pair<CaptureResult, Stimulus> {
         val usbMic = if (request.useUsbMic) InputSourceResolver.findUsbMic(app) else null
@@ -165,7 +177,8 @@ class MeasurementController(
         val outputDevice = RouteInspector.activeOutputDevice(app)
         val rate = AudioCapabilities.preferredCaptureRate(app)
 
-        val eqWasRunning = EqBypass.pauseIfRunning(app)
+        // The check run must *not* touch the EQ: it is verifying what the EQ does.
+        val eqWasRunning = if (keepEqActive) false else EqBypass.pauseIfRunning(app)
         val guard = CaptureGuard(app)
         try {
             if (eqWasRunning) delay(400) // let DynamicsProcessing detach

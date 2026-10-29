@@ -206,6 +206,17 @@
     <string name="avz_saved_only">«%1$s» se ha añadido a tus presets.</string>
     <string name="avz_saved_to_sound">Continuar a Sonido</string>
     <string name="avz_saved_next_hint">Siguiente: elige un estilo para tu música en la pantalla Sonido; tu calibración se mantiene debajo.</string>
+    <string name="avz_check_title">Comprobar el resultado</string>
+    <string name="avz_check_explain">Mide otra vez a través de la corrección y compara lo que tu altavoz ha hecho de verdad con lo que predijimos. Tarda unos diez segundos.</string>
+    <string name="avz_check_button">Comprobar ahora</string>
+    <string name="avz_check_repeat">Comprobar otra vez</string>
+    <string name="avz_check_as_predicted">Tu altavoz hace lo que predijimos.</string>
+    <string name="avz_check_better">Tu altavoz ha mejorado más de lo previsto.</string>
+    <string name="avz_check_weaker">Solo ha llegado una parte de la corrección.</string>
+    <string name="avz_check_no_change">No ha cambiado nada medible.</string>
+    <string name="avz_check_unexpected">El cambio no se parece a nuestra corrección.</string>
+    <string name="avz_check_numbers">Medido %1$.1f dB mejor, previsto %2$.1f dB.</string>
+    <string name="avz_check_failed">No se pudo completar la comprobación. Tu calibración sigue guardada y sin cambios.</string>
     <string name="avz_open_pro_eq">Abrir EQ de 10 bandas</string>
     <string name="avz_done">Listo</string>
     <string name="avz_err_title">La medición falló</string>

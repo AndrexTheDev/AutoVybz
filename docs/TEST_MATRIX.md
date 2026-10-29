@@ -12,14 +12,14 @@ the work:
 There is no JDK/Android SDK in the coding sandbox, so local verification is limited to the pure-Python and
 native host tools (see §5).
 
-## 1. JVM unit tests – 47 classes, 291 `@Test` methods
+## 1. JVM unit tests – 47 classes, 293 `@Test` methods
 
 | Package | Classes | What they pin down |
 |---|---|---|
 | `measurement/dsp` | `MeasurementAnalyzerTest` (13), `FftTest`, `StimulusGeneratorTest`, `SpatialAveragerTest` (9), `TruePeakTest` (8), `HarmonicDistortionTest` (7), `RoomDecayTest` (7), `IntegratedLoudnessTest` (10) | sweep deconvolution, latency window, SNR blending, power-of-two stimulus period per sample rate, spatial average + spread + outlier rejection, polyphase true peak, harmonic lags/THD/rattle rule, reverb fit incl. its "unknown" cases, K-weighting coefficients/gates/anchors |
 | `measurement/eq` | `AutoEqRendererTest` (20), `PreampPlannerTest` (9), `AutoEqPropertyTest`, `BiquadParityTest` | target inversion, band fitting, clipping-safe pre-gain, Kotlin↔C++ biquad parity |
 | `measurement/audio` | `CaptureRatesTest`, `CaptureTimingTest`, `RouteClassifierTest`, `InputSourceResolverTest` | rate negotiation, capture tail derivation, route verdicts, abandoned-volume rule, input device choice |
-| `measurement` | `VerificationTest` (9), `OutdoorScenarioTest`, `SpeakerClassTuningTest`, `PerformanceBudgetTest` | verification verdicts (as predicted / weaker / unexpected / no change, level-invariance), outdoor/rescue/device tuning (incl. the indoor 1-octave / 3-position policy), analysis time budget |
+| `measurement` | `VerificationTest` (10), `OutdoorScenarioTest`, `SpeakerClassTuningTest`, `PerformanceBudgetTest` | verification verdicts (as predicted / weaker / unexpected / no change, level-invariance), outdoor/rescue/device tuning (incl. the indoor 1-octave / 3-position policy), analysis time budget |
 | `measurement/mic` | `MicProfileDatabaseTest`, `MicProfilesTest`, `CalibrationParserFuzzTest` | profile lookup, calibration-file parsing incl. garbage input |
 | `sound` | `SoundStyleTest` (10), `SoundComposerTest` (7), `PresetSafetyTest` (6) | style design limits, layering + band budget, limiter rule |
 | `preset` | `AutoVybzPresetCodecTest`, `PresetFilesTest`, `PresetDisplayNameTest` (8), `model/AutoVybzPresetTest` | round-trip codec, file names, head-only name parse, display names (compact + unique picker labels), model invariants |
@@ -111,13 +111,15 @@ the failure modes the calibration found: a linear system reports **no** THD, a f
 sound reports **no** THD, a dry response and a noise plateau return **unknown** instead of a number, and a
 symmetric odd-order clip is *not* called a rattle.
 
-Round 13 added `IntegratedLoudnessTest` (10) and `VerificationTest` (9). The loudness tests are the
-standard's own vectors – the BS.1770-4 coefficient tables (1e-9), the −3.01 LUFS anchor of a full-scale
+Round 13 added `IntegratedLoudnessTest` (10) and `VerificationTest` (eight tests). The loudness tests are
+the standard's own vectors – the BS.1770-4 coefficient tables (1e-9), the −3.01 LUFS anchor of a full-scale
 1 kHz sine, the absolute gate (EBU 3341 case 3: −72 / −36 / −72 → −36.02), the relative gate (−23 vs −40 →
 −23.11 against a raw average of −25.92), "too short is no measurement", 6 dB → 6.02 LU, and 44.1 kHz reading
 the same as 48 kHz. The verification tests are adversarial by design: only *one* of them checks the happy
 path; the others check that the report **refuses** to confirm a chain that did nothing, confirmed half of
-something, or something unrelated, and that a 4 dB volume change between the runs changes nothing.
+something, or something unrelated, and that a 4 dB volume change between the runs changes nothing. Round 14
+added the two the wizard's card needs: that only `AS_PREDICTED`/`BETTER` count as a confirmation (`WEAKER`
+is an improvement but not one), and that the summary line actually names both numbers.
 
 `tools/probe` is the only suite that judges the *result* instead of the code: it runs real music through a
 modelled measurement chain (minimum-phase speaker + room + mic, sweep + noise) and scores tonal error,
