@@ -277,6 +277,14 @@ gap 0.11 dB), while the same comparison on an unapplied correction returns `NO_C
 | 16 | The correction never reached the speaker (wrong route, engine off) | the app promises an improvement it did not deliver | second measurement through the EQ, `Verification` → `NO_CHANGE` / `UNEXPECTED` | `VerificationTest`, `pipeline_findings.py` finding 14, probe `--verify` |
 | 17 | "Better" turned out to be "quieter" | the user turns it back up and the EQ is gone | integrated LUFS (BS.1770-4) + true peak on both runs | `IntegratedLoudnessTest`, probe loudness column (`LU`), `loudness_proxy_gap_db` gate |
 
+## 9b. Why there is no convolution mode
+
+`pipeline_findings.py` finding 15 realises the app's own bounded plan twice - with the ten PEQ bands and with
+an exact minimum-phase inverse - and scores both against the target. The exact inverse buys 0.06–0.24 dB,
+even on a deliberately narrow 10 dB resonance; what is left after it (~0.7 dB) is the plan's range limits and
+boost caps, not the filter. Since convolution would cost a screen-capture permission (`VirtualSurroundService`)
+plus a second audio path, the answer is no - and it is a measured no.
+
 ## 10. Tuning knobs (and where they live)
 
 | Constant | Value | Meaning |

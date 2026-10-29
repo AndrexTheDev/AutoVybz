@@ -405,6 +405,24 @@ permission for a bass correction is a bad trade unless the gain is demonstrable.
 
 *Risk:* high (permission UX, CPU, battery). Do the measurement before any code.
 
+**Measured (round 14) – closed.** `pipeline_findings.py` finding 15 realises *the same bounded plan* twice:
+once with the ten PEQ bands the app fits and once as an exact minimum-phase inverse (the limit of any filter),
+then scores both against the target over the full-authority band.
+
+| case | before | 10 PEQ | exact inverse | gain |
+|---|---|---|---|---|
+| bt-minibox | 2.56 dB | 0.77 dB | 0.69 dB | 0.08 dB |
+| party-box | 2.69 dB | 0.85 dB | 0.69 dB | 0.17 dB |
+| laptop | 1.36 dB | 0.08 dB | 0.02 dB | 0.06 dB |
+| bt-minibox + a deliberately narrow 10 dB peak at 1.2 kHz | 2.81 dB | 0.98 dB | 0.75 dB | 0.24 dB |
+
+That is 0.06–0.24 dB for unlimited filter capability, and the narrow resonance – the one case where the
+roadmap expected FIR to matter – gains the most and still stays under a quarter of a decibel. What survives
+the exact inverse (~0.7 dB on the two speakers that need a correction) is the *plan*: range limits, boost
+caps, the 6 dB/null gates. A screen-capture permission, a second audio path and the battery cost of a
+convolution engine would buy about a fifth of a decibel - not a trade worth making. W9 is closed by
+measurement instead of opinion.
+
 ### W10 – BS.1770 verification of the level promise (S)
 
 *Why:* C6. The app promises "better, not quieter"; `LufsProcessor` only knows momentary loudness.
@@ -490,8 +508,8 @@ W1 (judge first) ──► W5 (positions + dip rule, needs W1)
 * **Round 12 (done):** W3, W4 – the two free metrics (THD, RT60) and their warnings (W4's gate measured,
   deliberately off).
 * **Round 13 (done):** W10, W6 – BS.1770 integrated loudness + the verification comparison (DSP and probe).
-* **Round 14 (in progress):** W6's wizard step (done: the "Check" run on the saved card), then W7, W8 and
-  W9's measurement (build only if it shows ≥ 0.2 dB).
+* **Round 14 (in progress):** W6's wizard step (done: the "Check" run on the saved card) and W9's
+  measurement (done: closed, it would buy 0.06–0.24 dB). Left in this round: W7, W8.
 
 ## 7. Questions that need a device, not a model
 

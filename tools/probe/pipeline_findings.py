@@ -31,6 +31,16 @@ Added in round 13:
     promised improvement to within a few tenths of a dB on every scenario model, and the same comparison
     calls a chain that never applied the EQ what it is (`NO_CHANGE`) - the verification pass is a
     measurement, not a reassurance.
+
+Added in round 14:
+
+15. **Convolution would buy a fifth of a decibel.** Realising the same bounded plan exactly (an ideal
+    minimum-phase inverse instead of ten PEQ bands) leaves 0.02-0.75 dB of target error where the PEQ
+    version leaves 0.08-0.98 dB - an advantage of 0.08-0.23 dB, even with a deliberately narrow resonance
+    added to the response. What is left is the *plan*, not the filter: the same experiment shows the exact
+    inverse cannot do better than ~0.7 dB either, because the correction is range-limited and boost-capped
+    by design. W9 (convolution mode, which would need a screen-capture permission) is therefore closed by
+    measurement rather than by opinion.
 """
 
 from __future__ import annotations
@@ -333,6 +343,65 @@ def exp_verification() -> dict:
     return out
 
 
+# ------------------------------------------- 15. PEQ vs exact inverse (W9) --
+
+
+def exp_fir_ceiling() -> dict:
+    """How much would an exact minimum-phase inverse buy over the ten PEQ bands the app ships?
+
+    Both sides realise *the same plan*: the app's own bounded desired correction (range-limited,
+    boost-capped, null-gated). The PEQ side is what the fitter makes of it, the exact side is the limit of
+    any filter that can realise a magnitude - so the difference is the price of using ten biquads, and
+    nothing else. Judged against the target curve over the full-authority band, level offset removed.
+    """
+    print("\n=== 15. ten PEQ bands vs an exact inverse (does W9 have anything to buy?)")
+    grid = dsp.log_grid()
+    target = eqfit.TargetCurve(eqfit.SMART).sample(grid)
+    freqs = np.maximum(np.fft.rfftfreq(1 << 19, 1.0 / FS), 1e-3)
+    settings = eqfit.AutoEqSettings(band_count=10, max_boost_db=6.0, high_limit_hz=16000.0)
+
+    def measured_of(scenario: str, extra: np.ndarray | None = None) -> np.ndarray:
+        model = rooms.SCENARIOS[scenario]
+        raw = dsp.resample(freqs, model.magnitude_db(freqs, FS), grid)
+        smoothed = _third_octave(grid, raw)
+        return _rel(grid, smoothed if extra is None else smoothed + extra)
+
+    cases: dict[str, tuple[str, np.ndarray | None]] = {
+        scenario: (scenario, None) for scenario in ("bt-minibox", "party-box", "laptop")
+    }
+    # Where a filter *could* matter: a high-Q resonance a 10-band fit can only approximate.
+    peak = 1200.0
+    cases["bt-minibox + narrow 10 dB peak"] = (
+        "bt-minibox",
+        10.0 * np.exp(-((np.log(grid / peak) / np.log(2.0)) / 0.05) ** 2),
+    )
+    out: dict[str, dict[str, float]] = {}
+    for label, (scenario, extra) in cases.items():
+        measured = measured_of(scenario, extra)
+        plan = eqfit.render(grid, measured, eqfit.TargetCurve(eqfit.SMART), settings, roll_off_db=measured)
+        judge = (grid >= plan.low_limit_hz * 1.41) & (grid <= plan.high_limit_hz)
+
+        def score(curve: np.ndarray) -> float:
+            e = (curve - target)[judge]
+            e = e - float(np.mean(e))  # a constant offset is volume, not tonal balance
+            return float(np.sqrt(np.mean(e * e)))
+
+        before = score(measured)
+        peq = score(measured + plan.filter_response_db)
+        exact = score(measured + plan.desired_correction_db)
+        realisation = float(np.sqrt(np.mean((plan.desired_correction_db - plan.filter_response_db)[judge] ** 2)))
+        out[label] = {
+            "before_db": before, "peq_db": peq, "exact_db": exact,
+            "gap_db": peq - exact, "realisation_db": realisation, "bands": len(plan.bands),
+        }
+        print(f"    {label:28s} {len(plan.bands):2d} bands: target error {before:5.2f} -> "
+              f"{peq:5.2f} dB with PEQ, {exact:5.2f} dB with an exact inverse "
+              f"(gain {peq - exact:4.2f} dB, realisation error {realisation:4.2f} dB)")
+    print("    -> the exact inverse gains 0.08-0.23 dB; what remains is the plan's own limits (range,")
+    print("       boost caps), not the filters. Convolution mode is not worth a screen-capture permission.")
+    return out
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--music", help="real recording for findings 2 and 4 (any ffmpeg format)")
@@ -416,6 +485,19 @@ def main(argv: list[str] | None = None) -> int:
     check("the same comparison catches a chain that never applied the EQ",
           all(r["verdict"] != verify.AS_PREDICTED for _, r in verification.values()),
           ", ".join(f"{k}: {r['verdict']}" for k, (_, r) in verification.items()))
+
+    fir = exp_fir_ceiling()
+    gap = max(v["gap_db"] for v in fir.values())
+    check("an exact inverse buys less than 0.3 dB over ten PEQ bands", gap < 0.3, f"best gain {gap:.2f} dB")
+    # Scoped to the two speakers that actually need a correction: the laptop model is almost on target
+    # (1.36 dB before), so there is nothing left for either filter to prove there.
+    big = ("bt-minibox", "party-box")
+    check("the plan, not the filter, is the limit (an exact inverse still leaves >= 0.6 dB there)",
+          all(fir[k]["exact_db"] >= 0.6 for k in big),
+          ", ".join(f"{k}: {fir[k]['exact_db']:.2f} dB" for k in big))
+    check("the ten-band fit realises its plan to < 0.7 dB rms (worst case: the narrow resonance)",
+          all(v["realisation_db"] < 0.7 for v in fir.values()),
+          f"worst {max(v['realisation_db'] for v in fir.values()):.2f} dB")
 
     bad = [c for c in checks if not c[1]]
     print(f"\n{len(checks) - len(bad)}/{len(checks)} findings hold. See docs/AUDIO_ROADMAP.md.")

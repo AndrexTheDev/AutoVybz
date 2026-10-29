@@ -88,6 +88,7 @@ python3 tools/probe/live_probe.py --stress              # W3/W4: distortion, rev
 python3 tools/probe/live_probe.py --verify              # W6: re-measure through the fitted EQ, compare with the plan
 python3 tools/probe/live_probe.py --rt60 0.9 --drive 0.05   # one case per failure mode, with numbers
 python3 tools/probe/pipeline_findings.py --music <recording>  # THD / true peak / RT60 / band saturation
+                                                         # + verification and PEQ-vs-FIR (no --music needed)
                                                          # (the evidence behind docs/AUDIO_ROADMAP.md)
 python3 tools/i18n/check_strings.py                     # string parity en/de/es
 python3 tools/audit/secret_scan.py .                    # 0 findings
