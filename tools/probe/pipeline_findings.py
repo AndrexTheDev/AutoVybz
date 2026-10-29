@@ -58,6 +58,16 @@ Added in round 14:
     everywhere the app has authority (0.92 -> 0.87 dB above the crossover), because no filter is wasted
     below it. This is the one finding here that is not an improvement in the usual sense: the honest design
     gives up the ability to flatten what it cannot attribute.
+18. **The measurement level is a distortion knob, not an accuracy knob.** THD grows *quadratically*
+    with the level - 2 dB of distortion per dB of drive (4.0 % at the reference level, 2.1 % at -3 dB,
+    0.5 % at -9 dB) - because a soft, symmetric nonlinearity's cubic term dominates. A 3 dB step down is
+    therefore worth 6 dB of distortion, which is why `MeasurementLevel` derives its step from the measured
+    THD instead of using a fixed number: `20 log10(THD / 2 %) / 1.9`, capped at 6 dB. Accuracy does not
+    enter the trade at all - the same speaker measured 9 dB quieter gives a curve that differs by 0.016 dB
+    rms, and even at 6 dB SNR the tonal error is 0.05 dB *lower* than in a quiet room (the sweep's
+    processing gain does not care). W11 therefore only ever *lowers* the level and only when the speaker is
+    actually distorting; the roadmap's "raise until THD reaches 2 %" would have bought nothing and added
+    distortion.
 """
 
 from __future__ import annotations
@@ -507,6 +517,71 @@ def exp_subwoofer() -> dict:
     return out
 
 
+# ------------------------------------------------------- 18. the measurement level ----------
+
+
+def exp_measurement_level() -> dict:
+    """Is the sweep level an accuracy knob or a distortion knob? (W11)"""
+    print("\n=== 18. what does the measurement level buy? (level vs THD vs accuracy)")
+    import live_probe as probe
+
+    stim = dsp.stimulus(FS)
+    plan = stim.plan
+    model = rooms.SCENARIOS["bt-minibox"]
+    ir = rooms.impulse_response(model, dsp.next_power_of_two(stim.signal.size + 8192), FS)
+    clean = rooms.convolve(stim.signal, ir) * 0.25
+    sweep_s = plan.sweep_length / FS
+    ratio = math.log(plan.sweep_end_hz / plan.sweep_start_hz)
+    grid = dsp.log_grid()
+    mask = (grid >= 100.0) & (grid <= 16000.0)
+    freqs = np.maximum(np.fft.rfftfreq(1 << 19, 1.0 / FS), 1e-3)
+    truth = _rel(grid, _third_octave(grid, dsp.resample(freqs, model.magnitude_db(freqs, FS), grid)))
+    mic_f, mic_db = probe.mic_curve()
+
+    def soft(v: np.ndarray) -> np.ndarray:
+        """The same soft clip the THD warning was calibrated on (`exp_ess_distortion`)."""
+        return np.tanh(v * 1.5) / math.tanh(1.5)
+
+    def thd_percent(level_db: float) -> float:
+        dec = dsp.deconvolve_sweep(soft(stim.signal * 10.0 ** (level_db / 20.0)), stim)
+        peak = dsp.locate_ir_peak(dec, int(0.8 * FS), FS)
+        lin = abs(dec[peak])
+        power = 0.0
+        for order in (2, 3, 4, 5):
+            idx = int(round(peak - sweep_s * math.log(order) / ratio * FS)) % dec.size
+            val = float(np.max(np.abs(dec[max(0, idx - 200): idx + 200])))
+            power += (val / lin) ** 2
+        return 100.0 * math.sqrt(power)
+
+    levels = [0.0, -3.0, -6.0, -9.0]
+    thd = {lv: thd_percent(lv) for lv in levels}
+    for lv in levels:
+        print(f"    level {lv:+5.1f} dB: THD {thd[lv]:5.2f} %")
+    # Slope from the two ends: a soft, symmetric nonlinearity produces a *quadratic* THD growth
+    # (2 dB of distortion per dB of level), which is what makes a small step down a big win.
+    slope = 20.0 * math.log10(thd[0.0] / thd[-9.0]) / 9.0
+    print(f"    -> THD follows the level at {slope:.2f} dB per dB (soft knee, not hard)")
+
+    curves = {}
+    for lv in levels:
+        rec = soft(clean * 10.0 ** (lv / 20.0))
+        m = dsp.analyze(rec, stim, mic_compensation_db=lambda f: dsp.interpolate_log(mic_f, mic_db, f))
+        curves[lv] = _rel(grid, _third_octave(grid, m.smoothed_db))
+    drift = {lv: float(np.sqrt(np.mean((curves[lv] - curves[0.0])[mask] ** 2))) for lv in levels}
+    print("    -> curve drift against the reference level: "
+          + ", ".join(f"{lv:+.0f} dB: {drift[lv]:.3f} dB rms" for lv in levels))
+
+    noise = {}
+    ref = float(np.sqrt(np.mean(clean[plan.pink_start: plan.sweep_start] ** 2)))
+    for snr in (42.0, 24.0, 18.0, 9.0, 6.0):
+        rec = clean + np.random.default_rng(3).standard_normal(clean.size) * ref * 10.0 ** (-snr / 20.0)
+        m = dsp.analyze(rec, stim, mic_compensation_db=lambda f: dsp.interpolate_log(mic_f, mic_db, f))
+        d = _rel(grid, _third_octave(grid, m.smoothed_db))[mask] - truth[mask]
+        noise[snr] = float(np.sqrt(np.mean(d * d)))
+        print(f"    SNR {snr:4.1f} dB: tonal error {noise[snr]:4.2f} dB rms")
+    return {"thd": thd, "slope_db_per_db": slope, "drift_db": drift, "noise_db": noise}
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--music", help="real recording for findings 2 and 4 (any ffmpeg format)")
@@ -627,6 +702,18 @@ def main(argv: list[str] | None = None) -> int:
     check("declaring the sub costs nothing above the crossover",
           sub["declared"]["above_db"] <= sub["undeclared"]["above_db"] + 0.05,
           f"{sub['undeclared']['above_db']:.2f} -> {sub['declared']['above_db']:.2f} dB")
+
+    level = exp_measurement_level()
+    check("THD follows the measurement level at about 2 dB per dB (soft knee)",
+          1.6 <= level["slope_db_per_db"] <= 2.2, f"{level['slope_db_per_db']:.2f} dB/dB")
+    check("3 dB down takes a distorting speaker from 4 % to 2 % THD",
+          level["thd"][0.0] > 3.5 and level["thd"][-3.0] < 2.4,
+          f"{level['thd'][0.0]:.2f} -> {level['thd'][-3.0]:.2f} %")
+    check("9 dB quieter measures the same curve (< 0.05 dB rms)",
+          level["drift_db"][-9.0] < 0.05, f"{level['drift_db'][-9.0]:.3f} dB")
+    check("a lower level costs no accuracy even at 6 dB SNR",
+          level["noise_db"][6.0] - level["noise_db"][42.0] < 0.1,
+          f"{level['noise_db'][42.0]:.2f} -> {level['noise_db'][6.0]:.2f} dB rms")
 
     bad = [c for c in checks if not c[1]]
     print(f"\n{len(checks) - len(bad)}/{len(checks)} findings hold. See docs/AUDIO_ROADMAP.md.")

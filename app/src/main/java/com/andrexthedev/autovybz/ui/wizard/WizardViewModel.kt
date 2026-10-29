@@ -19,6 +19,7 @@ import com.andrexthedev.autovybz.measurement.SpeakerClassTuning
 import com.andrexthedev.autovybz.measurement.Verification
 import com.andrexthedev.autovybz.measurement.audio.CaptureException
 import com.andrexthedev.autovybz.measurement.audio.CaptureInterruptedException
+import com.andrexthedev.autovybz.measurement.audio.MeasurementLevel
 import com.andrexthedev.autovybz.measurement.audio.RouteClassifier
 import com.andrexthedev.autovybz.measurement.audio.VolumeGuard
 import com.andrexthedev.autovybz.measurement.audio.VolumeMath
@@ -63,8 +64,18 @@ sealed interface WizardStep {
         /** Device-speaker calibration (own speakers, own microphone, lower volume). */
         val deviceMode: Boolean = false,
     ) : WizardStep
-    /** "Be quiet, don't touch the phone" - gives the user time to step back before each position. */
-    data class Countdown(val secondsLeft: Int, val position: Int = 1, val totalPositions: Int = 1) : WizardStep
+    /**
+     * "Be quiet, don't touch the phone" - gives the user time to step back before each position.
+     *
+     * [quieter]: this is the W11 repeat, i.e. the speaker distorted at the chosen level and the run
+     * starts again a few dB down. The screen says so instead of silently taking longer.
+     */
+    data class Countdown(
+        val secondsLeft: Int,
+        val position: Int = 1,
+        val totalPositions: Int = 1,
+        val quieter: Boolean = false,
+    ) : WizardStep
     object Preparing : WizardStep
     data class Measuring(
         val fraction: Float,
@@ -382,18 +393,18 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
         val position = partial.size + 1
         job = viewModelScope.launch {
             try {
-                for (s in AutoVybzServices.countdownSeconds downTo 1) {
-                    setStep(WizardStep.Countdown(s, position, total))
-                    delay(1000)
-                }
-                setStep(WizardStep.Preparing)
-                val outcome = controller.run(request) { p ->
-                    val next = when (p) {
-                        MeasurementProgress.Preparing -> WizardStep.Preparing
-                        is MeasurementProgress.Measuring -> WizardStep.Measuring(p.fraction, p.inputPeak, p.phase, position, total)
-                        MeasurementProgress.Analyzing -> WizardStep.Analyzing
-                    }
-                    setStepFromProgress(next)
+                var outcome = measureOnce(request, position, total, quieter = false)
+                // W11: a speaker that distorts at the level we picked is measured once more, quieter. One
+                // retry per calibration, and the second measurement is the one that counts - so a THD
+                // number that was caused by the level does not end up in the result's warnings.
+                val step = MeasurementLevel.stepDownDb(outcome.result.thdPercent)
+                val quieterFraction = MeasurementLevel.fractionAfter(volume.currentFraction, step)
+                if (step > 0.0 && quieterFraction < volume.currentFraction - 1e-4f) {
+                    volume.setFraction(quieterFraction)
+                    // Device-speaker runs remember the quieter level, so the next calibration does not
+                    // start over at a volume that already rattled this phone's chassis.
+                    if (request.speakerClass == SpeakerClass.DEVICE) deviceVolumeFraction = quieterFraction
+                    outcome = measureOnce(request, position, total, quieter = true)
                 }
                 partial += outcome
                 if (request.speakerClass == SpeakerClass.DEVICE &&
@@ -423,6 +434,28 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
                 Log.e("AutoVybz", "measurement failed", e)
                 fail(WizardError.UNKNOWN, e.message, position)
             }
+        }
+    }
+
+    /** Countdown + one measurement: what the user sees between two positions (and after a W11 retry). */
+    private suspend fun measureOnce(
+        request: MeasurementRequest,
+        position: Int,
+        total: Int,
+        quieter: Boolean,
+    ): MeasurementOutcome {
+        for (s in AutoVybzServices.countdownSeconds downTo 1) {
+            setStep(WizardStep.Countdown(s, position, total, quieter))
+            delay(1000)
+        }
+        setStep(WizardStep.Preparing)
+        return controller.run(request) { p ->
+            val next = when (p) {
+                MeasurementProgress.Preparing -> WizardStep.Preparing
+                is MeasurementProgress.Measuring -> WizardStep.Measuring(p.fraction, p.inputPeak, p.phase, position, total)
+                MeasurementProgress.Analyzing -> WizardStep.Analyzing
+            }
+            setStepFromProgress(next)
         }
     }
 

@@ -398,6 +398,7 @@
     <string name="avz_err_resume_retry">Repeat position %1$d</string>
     <string name="avz_countdown_title">Starting in a moment</string>
     <string name="avz_countdown_hint">Please be quiet and don\'t touch the phone.</string>
+    <string name="avz_countdown_quieter">Measuring again, a little quieter – the speaker was distorting at this level.</string>
     <string name="avz_discard_title">Discard result?</string>
     <string name="avz_discard_text">This calibration has not been saved yet and will be lost.</string>
     <string name="avz_discard_confirm">Discard</string>

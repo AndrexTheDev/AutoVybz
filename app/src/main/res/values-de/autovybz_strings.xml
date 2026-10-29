@@ -397,6 +397,7 @@
     <string name="avz_err_resume_retry">Position %1$d wiederholen</string>
     <string name="avz_countdown_title">Gleich geht\'s los</string>
     <string name="avz_countdown_hint">Bitte ruhig sein und das Handy nicht berühren.</string>
+    <string name="avz_countdown_quieter">Messung noch einmal, etwas leiser – der Lautsprecher hat bei diesem Pegel verzerrt.</string>
     <string name="avz_discard_title">Ergebnis verwerfen?</string>
     <string name="avz_discard_text">Diese Kalibrierung ist noch nicht gespeichert und geht verloren.</string>
     <string name="avz_discard_confirm">Verwerfen</string>

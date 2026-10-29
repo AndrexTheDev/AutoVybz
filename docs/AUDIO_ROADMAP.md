@@ -530,6 +530,30 @@ degrade.
 
 *Risk:* medium (more measurement time), depends entirely on W3's calibration.
 
+**Done (round 14) – with the direction reversed.** The measurement (`pipeline_findings.py` finding 18) says
+the level is a *distortion* knob, not an accuracy one:
+
+| Level (re the reference) | THD | Curve drift vs. the reference level |
+|---|---|---|
+| 0 dB | 4.01 % | – |
+| −3 dB | 2.14 % | 0.009 dB rms |
+| −6 dB | 1.11 % | 0.014 dB rms |
+| −9 dB | 0.57 % | 0.016 dB rms |
+
+THD follows the drive at **1.89 dB per dB** (a soft, cubic-dominated nonlinearity: distortion grows with the
+square of the level), so one 3 dB step is worth 6 dB of distortion. Accuracy does not enter the trade at all
+– 9 dB quieter measures the same curve to 0.016 dB rms, and at 6 dB SNR the tonal error is 0.05 dB *lower*
+than in a quiet room, because the sweep's processing gain does not care how loud the sweep was.
+
+So `MeasurementLevel` derives the step instead of using the roadmap's "raise until 2 %, then back off 3 dB":
+`20·log10(THD / 2 %) / 1.89`, clamped to at most 6 dB, skipped below 1 dB, never below 25 % of the stream
+range. The wizard retries the position **once**, announces it in the countdown, and keeps the second
+measurement. Raising the level is not implemented: it would buy nothing and add distortion, and a driver asked
+to play louder only distorts more.
+
+*Measured afterwards:* `MeasurementLevelTest` pins the slope, the clamp, the floor and the one promise that
+matters – after the step the model is under the 3 % `SPEAKER_DISTORTION` line.
+
 ## 5. Deliberately not doing
 
 | Idea | Why not |
@@ -558,8 +582,8 @@ W1 (judge first) ──► W5 (positions + dip rule, needs W1)
   deliberately off).
 * **Round 13 (done):** W10, W6 – BS.1770 integrated loudness + the verification comparison (DSP and probe).
 * **Round 14 (done):** W6's wizard step (the "Check" run on the saved card), W9 (measured: closed, it would
-  buy 0.06–0.24 dB), W7 (measured: not adopted) and W8 (a declared subwoofer, with the protective-pass part
-  of the design reversed).
+  buy 0.06–0.24 dB), W7 (measured: not adopted), W8 (a declared subwoofer, with the protective-pass part of
+  the design reversed) and W11 (the measurement level, with the direction reversed: only ever down).
 
 ## 7. Questions that need a device, not a model
 

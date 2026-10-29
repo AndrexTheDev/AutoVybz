@@ -12,7 +12,7 @@ the work:
 There is no JDK/Android SDK in the coding sandbox, so local verification is limited to the pure-Python and
 native host tools (see §5).
 
-## 1. JVM unit tests – 47 classes, 296 `@Test` methods
+## 1. JVM unit tests – 48 classes, 301 `@Test` methods
 
 | Package | Classes | What they pin down |
 |---|---|---|
@@ -81,7 +81,7 @@ Seven configurations, each running `ScreenshotTourE2ETest` + `LegacyScreensE2ETe
 
 ```bash
 python3 tools/probe/check_parity.py                     # 64 self-checks: Python port vs. Kotlin goldens
-python3 tools/probe/pipeline_findings.py                # 25 findings: every roadmap claim, asserted
+python3 tools/probe/pipeline_findings.py                # 29 findings: every roadmap claim, asserted
 python3 tools/probe/live_probe.py --music <recording>   # real programme material through the whole chain
 python3 tools/probe/live_probe.py --positions 3         # ... against a position-aware room (W1)
 python3 tools/probe/live_probe.py --positions 1 --truth-positions 3   # "is one measurement enough?"

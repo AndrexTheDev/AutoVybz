@@ -265,3 +265,9 @@ by writing code.
 
 New probe switch: `--sub [HZ]` runs `party-box+sub` twice, declared and undeclared, on the same judge band and
 asserts that the declared plan stays out of the sub's territory. Default run: 6/6; `--sub`: 7/7.
+4. **W11 (the measurement level) was measured and half of it thrown away.** THD follows the drive at 1.89 dB
+   per dB - a soft, cubic-dominated nonlinearity grows with the *square* of the level - so 4.01 % at the
+   reference level becomes 2.14 % at −3 dB, 1.11 % at −6 dB and 0.57 % at −9 dB. Accuracy does not enter the
+   trade: the same speaker 9 dB quieter measures the same curve to 0.016 dB rms, and at 6 dB SNR the tonal
+   error is 0.05 dB *lower* than in a quiet room. The roadmap wanted to *raise* the level until THD reached
+   2 %; the app now only ever lowers it, by a derived step (`pipeline_findings.py` finding 18).

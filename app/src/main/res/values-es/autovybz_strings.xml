@@ -401,6 +401,7 @@
     <string name="avz_err_resume_retry">Repetir posición %1$d</string>
     <string name="avz_countdown_title">Empezamos enseguida</string>
     <string name="avz_countdown_hint">Silencio, por favor, y no toques el móvil.</string>
+    <string name="avz_countdown_quieter">Midiendo otra vez, algo más bajo: el altavoz distorsionaba a este nivel.</string>
     <string name="avz_discard_title">¿Descartar el resultado?</string>
     <string name="avz_discard_text">Esta calibración aún no se ha guardado y se perderá.</string>
     <string name="avz_discard_confirm">Descartar</string>

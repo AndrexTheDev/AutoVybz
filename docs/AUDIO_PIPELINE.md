@@ -255,6 +255,52 @@ and a failed check costs nothing: the calibration stays saved, and the card offe
 18 dB SNR: measured improvement +1.66 / +1.73 / +2.64 dB against +1.73 / +1.82 / +2.53 dB predicted (worst
 gap 0.11 dB), while the same comparison on an unapplied correction returns `NO_CHANGE` every time.
 
+## 8e. A subwoofer is declared, not detected
+
+A phone microphone cannot tell whether the bass it hears comes from the speaker or from a sub. The user
+declares it (`80 / 100 / 120 Hz`, or "none"), and `AutoEqSettings.subwooferCrossoverHz` then does two things:
+
+* **the correction's lower limit becomes the crossover** – but only ever *raises* the detected limit, so a
+  small box that already stops at 160 Hz keeps its own. Everything downstream (range weight, excursion guard,
+  null gate, fitter window) reads that one limit, so none of them has to know about subwoofers;
+* **the protective high pass is dropped.** It exists to protect a driver that cannot play low, and with a sub
+  the mains are crossed over anyway – a pass in the app would silence the sub that is supposed to play there.
+
+Below the crossover the app deliberately does nothing: what the microphone sees there is the sub's own
+tuning plus the room, and the fix for a sub that is too loud is the knob on the back of the box. What that
+costs is measured rather than assumed (`pipeline_findings.py` finding 17, probe `--sub`): without the
+declaration the fit starts at 25 Hz and spends its low bands on a −3.9 dB cut at 40–55 Hz, guessing that the
+boom is the box's tuning; with the crossover declared the plan touches 40–55 Hz by 0.10 dB and is slightly
+*better* above the crossover (0.92 → 0.87 dB), because no filter or headroom is spent where the app has no
+authority. On the live probe's music-weighted metric the two land within 0.02 dB (0.21 vs 0.23 dB), which is
+the point: the setting is a scope decision, not a tonal one.
+
+## 8f. The measurement level is a distortion knob, not an accuracy knob
+
+The app starts at 70 % of the stream (50 % for device speakers). That is a guess, and a small speaker at
+70 % can be well past its excursion limit - the THD the sweep already yields says so after ten seconds.
+
+`MeasurementLevel` turns that number into a level step: `20·log10(THD / 2 %) / 1.89`, clamped to one step of
+at most 6 dB, and skipped when it would be under 1 dB. The slope is measured, not assumed: a soft, symmetric
+nonlinearity is dominated by its cubic term, so THD grows *quadratically* with the level
+(`pipeline_findings.py` finding 18: 4.01 % → 2.14 % → 1.11 % → 0.57 % over 0 / −3 / −6 / −9 dB, i.e.
+1.89 dB of THD per dB). That is why a 3 dB step takes a 4 % speaker to 2 %, and why "turn it down a bit"
+would land 6 dB of distortion either side of the target.
+
+The wizard retries a position exactly once when the first measurement reports more than 2 % THD. The repeat
+is announced in the countdown ("a little quieter – the speaker was distorting at this level") instead of
+silently taking longer, and the *second* measurement is the one that counts, so a THD number caused by the
+level does not end up as a warning on the result.
+
+Two rules the measurements forced:
+
+* **Only ever down.** The roadmap proposed raising the level until THD reaches 2 %. Finding 18 shows the
+  trade is not symmetric: 9 dB quieter measures the same curve to 0.016 dB rms, and the tonal error at 6 dB
+  SNR is 0.05 dB *lower* than in a quiet room. Getting louder buys nothing; it only adds distortion.
+* **A floor.** At 25 % of the stream range the sweep stops being the loudest thing in the room. A speaker
+  that distorts even there gets the `SPEAKER_DISTORTION` warning - the honest answer - rather than an
+  ever-quieter measurement.
+
 ## 9. Failure modes → countermeasures → tests
 
 | # | Failure mode | Symptom without countermeasure | Countermeasure | Test |
@@ -277,26 +323,7 @@ gap 0.11 dB), while the same comparison on an unapplied correction returns `NO_C
 | 16 | The correction never reached the speaker (wrong route, engine off) | the app promises an improvement it did not deliver | second measurement through the EQ, `Verification` → `NO_CHANGE` / `UNEXPECTED` | `VerificationTest`, `pipeline_findings.py` finding 14, probe `--verify` |
 | 17 | "Better" turned out to be "quieter" | the user turns it back up and the EQ is gone | integrated LUFS (BS.1770-4) + true peak on both runs | `IntegratedLoudnessTest`, probe loudness column (`LU`), `loudness_proxy_gap_db` gate |
 | 18 | A subwoofer is in the chain and the app tries to correct it | filters and headroom spent on the sub's level knob, mains asked to play below the crossover | declared crossover: correction starts above it, no protective pass | `AutoEqRendererTest.aDeclaredSubwooferStopsTheCorrectionAtTheCrossover`, `check_parity.py`, probe `--sub` |
-
-## 8e. A subwoofer is declared, not detected
-
-A phone microphone cannot tell whether the bass it hears comes from the speaker or from a sub. The user
-declares it (`80 / 100 / 120 Hz`, or "none"), and `AutoEqSettings.subwooferCrossoverHz` then does two things:
-
-* **the correction's lower limit becomes the crossover** – but only ever *raises* the detected limit, so a
-  small box that already stops at 160 Hz keeps its own. Everything downstream (range weight, excursion guard,
-  null gate, fitter window) reads that one limit, so none of them has to know about subwoofers;
-* **the protective high pass is dropped.** It exists to protect a driver that cannot play low, and with a sub
-  the mains are crossed over anyway – a pass in the app would silence the sub that is supposed to play there.
-
-Below the crossover the app deliberately does nothing: what the microphone sees there is the sub's own
-tuning plus the room, and the fix for a sub that is too loud is the knob on the back of the box. What that
-costs is measured rather than assumed (`pipeline_findings.py` finding 17, probe `--sub`): without the
-declaration the fit starts at 25 Hz and spends its low bands on a −3.9 dB cut at 40–55 Hz, guessing that the
-boom is the box's tuning; with the crossover declared the plan touches 40–55 Hz by 0.10 dB and is slightly
-*better* above the crossover (0.92 → 0.87 dB), because no filter or headroom is spent where the app has no
-authority. On the live probe's music-weighted metric the two land within 0.02 dB (0.21 vs 0.23 dB), which is
-the point: the setting is a scope decision, not a tonal one.
+| 19 | The measuring level is too loud for the speaker | a THD number, and a correction fitted to a distorted sweep | THD from the same sweep, one quieter repeat, derived step | `MeasurementLevelTest`, `pipeline_findings.py` finding 18 |
 
 ## 9b. Why there is no convolution mode
 
@@ -338,3 +365,4 @@ plus a second audio path, the answer is no - and it is a measured no.
 | `Verification.MIN_CORRELATION` | 0.5 | below this the change is not the predicted one |
 | `Verification.JUDGE_LOW_FACTOR` | 1.41 | +0.5 octave above the bass limit: where the correction has authority |
 | `AutoEqSettings.subwooferCrossoverHz` | null (off) / 80 / 100 / 120 | a declared sub: correction starts at the crossover, no protective pass |
+| `MeasurementLevel.TARGET_THD_PERCENT` | 2.0 % | above it the position is measured again, one step quieter |

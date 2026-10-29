@@ -702,6 +702,16 @@ private fun CountdownStep(step: WizardStep.Countdown, onCancel: () -> Unit) {
         Spacer(Modifier.height(20.dp))
         Text(stringResource(R.string.avz_countdown_title), style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center, modifier = Modifier.semantics { heading() })
         Text(stringResource(R.string.avz_countdown_hint), color = AutoVybzColors.OnDarkMuted, textAlign = TextAlign.Center)
+        // W11: the speaker was distorting, so the same position is measured again a few dB down.
+        if (step.quieter) {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                stringResource(R.string.avz_countdown_quieter),
+                color = AutoVybzColors.Gold,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.testTag("avz:countdown:quieter"),
+            )
+        }
     }
     OutlinedButton(onClick = onCancel, modifier = Modifier.fillMaxWidth().testTag("avz:countdown:cancel")) { Text(stringResource(R.string.avz_cancel)) }
 }
