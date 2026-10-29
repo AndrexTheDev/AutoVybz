@@ -70,7 +70,7 @@ class ProE2ETest : E2eTest() {
         // merges its children, so the badge is found through the chip's content description.
         compose.tap("avz:tab:HOME")
         compose.await("avz:home:speaker:$name")
-        val verdict = compose.str(R.string.avz_check_badge, "2.4", "2.5")
+        val verdict = str(R.string.avz_check_badge, "2.4", "2.5")
         compose.waitRobust("the check on the speaker chip", 10_000) {
             compose.onAllNodesWithContentDescription(verdict).fetchSemanticsNodes().isNotEmpty()
         }
