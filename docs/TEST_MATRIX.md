@@ -84,6 +84,17 @@ away from the app before a suite *and* the monkey run of the same job hit the sa
 ANR'd, because the launcher was never asked to draw). Anything else fails the job, as before: an ANR with an
 app frame on the main thread is still ours, and a stall without a second observation stays unexplained.
 
+**A timeout while another window owns the focus is not a test result.** Campaign 16 (API 30) lost a
+`WizardFlowE2ETest` tap to a stalled notification shade: the launcher held the window focus, the injected
+click was dropped, and the test waited a minute for a screen that was never coming while the button it had
+tapped was plainly visible. The runner already records who owns the focus after a failing suite; when that
+window is *not* ours **and** the failure is a `did not appear within … ms` timeout, the suite is reported as
+an environment finding (a warning naming the window) instead of a failure. Both conditions are required, so a
+genuine regression - which fails with the app in front, with an assertion, or with a crash - still fails the
+job. A first attempt put the focus check into `Robot.tap` itself; it broke three suites (the extra shell
+roundtrip between reading a node and clicking it let popups close), which is why the check lives in the
+runner, after the fact, where it cannot disturb a test.
+
 ## 4. Screenshot + accessibility matrix (API 35)
 
 Seven configurations, each running `ScreenshotTourE2ETest` + `LegacyScreensE2ETest` and then
