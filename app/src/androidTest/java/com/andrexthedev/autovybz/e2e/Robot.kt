@@ -113,12 +113,50 @@ fun ComposeTestRule.awaitAny(vararg tags: String, timeoutMs: Long = TIMEOUT_MS):
     return found!!
 }
 
+/**
+ * Campaign 16 (API 30): a systemui ANR froze the notification shade and the launcher took the window focus
+ * in the middle of a suite. An input event injected into a window that does not own the focus is dropped by
+ * the framework, so the click did nothing - and the test then waited a minute for a screen that was never
+ * coming, while the button it had "tapped" was clearly visible. The app was fine; the harness assumed the
+ * window keeps the focus.
+ *
+ * So every tap checks first and, when the focus is elsewhere, closes system dialogs and brings the task back
+ * (`am start`, the same recovery the shell runner performs between suites) before injecting the event. If the
+ * focus still does not come, the failure names the window that has it instead of a mysterious timeout.
+ */
 fun ComposeTestRule.tap(tag: String) {
     await(tag)
     val node = onNodeWithTag(tag)
     runCatching { node.performScrollTo() }
+    (this as? AvzRule)?.ensureWindowFocus()
     node.performClick()
     waitForIdle()
+}
+
+/** Throws when the app window cannot get the focus back; logs when the recovery had to run. */
+private fun AvzRule.ensureWindowFocus() {
+    fun activityFocused(): Boolean = runCatching {
+        var f = false
+        activityRule.scenario.onActivity { f = it.hasWindowFocus() }
+        f
+    }.getOrDefault(true) // no activity (rule-less suites): never interfere
+    /**
+     * A dialog of our own (the delete confirmation, for instance) also makes `hasWindowFocus()` false - its
+     * *own* window owns the focus, which is exactly as it should be. Only a foreign window is our problem,
+     * so the cheap check is followed by one look at who actually holds the focus.
+     */
+    fun focused(): Boolean = activityFocused() || E2e.focusedWindow().contains(E2e.PKG)
+    if (focused()) return
+    android.util.Log.w("AvzE2E", "tap(): the app window has no focus - asking for it back")
+    E2e.shell("am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS")
+    E2e.shell("am start -n ${E2e.PKG}/com.andrexthedev.autovybz.ui.AutoVybzActivity")
+    val deadline = System.currentTimeMillis() + 10_000
+    while (System.currentTimeMillis() < deadline) {
+        runCatching { waitForIdle() }
+        if (focused()) return
+        Thread.sleep(200)
+    }
+    throw AssertionError("the app window never got the focus back; focus owner: ${E2e.focusedWindow()}")
 }
 
 fun ComposeTestRule.editableText(tag: String): String =
