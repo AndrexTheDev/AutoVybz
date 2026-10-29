@@ -32,7 +32,9 @@ rooms. It is the reference for the code in `measurement/audio`, `measurement/dsp
 | 12 | **SNR-weighted combine** | `blendWeight` | one magnitude curve |
 | 13 | Mic compensation + normalization | `MicCompensation`, `FrequencyGrid.bandMean` | 0 dB @ 300 Hz–3 kHz |
 | 14 | **Speaker health** | `HarmonicDistortion`, `RoomDecay` | THD, H2…H5, `SPEAKER_DISTORTION`, `DRIVER_RATTLE`, room T60, `REVERBERANT_ROOM` |
+| 14b | **Loudness + true peak (BS.1770)** | `IntegratedLoudness` | integrated LUFS, dBTP, block count |
 | 15 | Target inversion | `AutoEqRenderer` | PEQ bands, pre-gain, safety |
+| 16 | **Verification (Check run)** | `Verification` | measured vs predicted change, `Verdict` |
 
 The bold stages are the refinements of this iteration.
 
@@ -212,6 +214,36 @@ must sit 10 dB below the fit region (a plateau has no slope – extrapolating it
 a lot (1.0 s)"; the result itself is unchanged, because the boost gate that could act on it could not be
 shown to help (see `docs/AUDIO_ROADMAP.md`, W4).
 
+## 8d. The verification pass: measuring the promise
+
+Everything above ends with "here is what we predict". `Verification` is the only stage that looks at the
+result: an optional second measuring run is taken *through* the active EQ, and three curves are compared –
+the measured change (`after − before`), the plan's own filter response, and the residual to the target
+before / after / as predicted.
+
+Both shapes are normalized in 300 Hz–3 kHz, so the comparison is level-invariant: a user who turns the
+volume down between the runs invalidates nothing, because the pre-gain cancels. What it does catch is the
+chain lying in between, and the verdict order is what makes that possible:
+
+| condition | verdict | typical cause |
+|---|---|---|
+| nothing predicted, nothing measured | `AS_PREDICTED` | the speaker already matched the target |
+| measured change < 0.5 dB | `NO_CHANGE` | wrong route, EQ off, preset not saved |
+| RMS(measured − predicted) ≤ 1.5 dB | `AS_PREDICTED` | it did what it said |
+| shape correlation < 0.5 | `UNEXPECTED` | something else changed entirely |
+| measured RMS < predicted RMS | `WEAKER_THAN_PREDICTED` | limiter clamped it, engine dropped bands |
+| measured RMS > predicted RMS | `BETTER_THAN_PREDICTED` | the plan was conservative |
+
+Magnitude alone cannot separate "nothing happened" from "the wrong thing happened" – that is why the
+correlation exists. The judged band starts half an octave above the bass limit (`1.41 × lowLimit`, floored
+at 150 Hz): below it the correction has no authority, and judging there would punish the app for a refusal
+it made on purpose. It is deliberately *not* an auto-retry: a verification that disagrees with its own
+prediction is shown to the user, not silently re-fitted.
+
+`pipeline_findings.py` finding 14 runs the loop measure → correct → re-measure on three scenario models at
+18 dB SNR: measured improvement +1.66 / +1.73 / +2.64 dB against +1.73 / +1.82 / +2.53 dB predicted (worst
+gap 0.11 dB), while the same comparison on an unapplied correction returns `NO_CHANGE` every time.
+
 ## 9. Failure modes → countermeasures → tests
 
 | # | Failure mode | Symptom without countermeasure | Countermeasure | Test |
@@ -231,6 +263,8 @@ shown to help (see `docs/AUDIO_ROADMAP.md`, W4).
 | 13 | Speaker driven past its limit (or damaged) | a "corrected" sound that is distorted at every level | THD from the sweep, `SPEAKER_DISTORTION` above 3 % | `HarmonicDistortionTest`, `pipeline_findings.py` finding 9, probe `--stress` |
 | 14 | Loose panel / torn surround | a rattle no EQ can remove | harmonic-series shape (`H5` vs `H3`), `DRIVER_RATTLE` | `HarmonicDistortionTest.onlyAFlatHarmonicSeriesCountsAsRattle`, probe `--stress` |
 | 15 | Lively room | measurement smoothed by its own reverb, user wonders why it sounds softer | reverb estimated from the same IR, `REVERBERANT_ROOM` ≥ 0.8 s | `RoomDecayTest`, `pipeline_findings.py` finding 10, probe `--rt60` |
+| 16 | The correction never reached the speaker (wrong route, engine off) | the app promises an improvement it did not deliver | second measurement through the EQ, `Verification` → `NO_CHANGE` / `UNEXPECTED` | `VerificationTest`, `pipeline_findings.py` finding 14, probe `--verify` |
+| 17 | "Better" turned out to be "quieter" | the user turns it back up and the EQ is gone | integrated LUFS (BS.1770-4) + true peak on both runs | `IntegratedLoudnessTest`, probe loudness column (`LU`), `loudness_proxy_gap_db` gate |
 
 ## 10. Tuning knobs (and where they live)
 
@@ -256,3 +290,10 @@ shown to help (see `docs/AUDIO_ROADMAP.md`, W4).
 | `RoomDecay.REVERBERANT_THRESHOLD_S` | 0.8 | from when the room counts as reverberant |
 | `RoomDecay.DIRECT_SKIP_SECONDS` | 0.010 | what is *not* room decay |
 | `RoomDecay.MIN_R_SQUARED` | 0.98 | how straight the decay must be to be believed |
+| `IntegratedLoudness.LOUDNESS_OFFSET_DB` | −0.691 | the standard's offset (applied **once**, inside each block) |
+| `IntegratedLoudness.ABSOLUTE_GATE_LUFS` / `RELATIVE_GATE_LU` | −70 / −10 | the two gates of BS.1770-4 |
+| `IntegratedLoudness.BLOCK_SECONDS` / `BLOCK_OVERLAP` | 0.400 / 0.75 | gating block length and overlap |
+| `Verification.PREDICTION_TOLERANCE_DB` | 1.5 | RMS(measured − predicted) that still counts as "as predicted" |
+| `Verification.MIN_AUDIBLE_CHANGE_DB` | 0.5 | below this a change counts as no change |
+| `Verification.MIN_CORRELATION` | 0.5 | below this the change is not the predicted one |
+| `Verification.JUDGE_LOW_FACTOR` | 1.41 | +0.5 octave above the bass limit: where the correction has authority |

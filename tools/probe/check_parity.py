@@ -9,12 +9,13 @@ from __future__ import annotations
 
 import math
 import sys
+from typing import NamedTuple
 
 import numpy as np
 
 sys.path.insert(0, __file__.rsplit("/", 1)[0])
 
-from avzprobe import audio, dsp, eqfit, rooms  # noqa: E402
+from avzprobe import audio, dsp, eqfit, loudness, rooms, verify  # noqa: E402
 
 GRID = dsp.log_grid()
 
@@ -23,6 +24,13 @@ def _curve(*bands: dsp.PeqBand) -> np.ndarray:
     """`AutoEqRendererTest.curveOf`: summed band magnitudes, normalised to 300 Hz - 3 kHz."""
     v = dsp.Grid(GRID).response_many(list(bands))
     return v - dsp.band_mean(GRID, v, 300.0, 3000.0)
+
+
+class _Meas(NamedTuple):
+    """The two fields `verify.compare` reads off a `dsp.MeasurementResult`."""
+
+    frequencies: np.ndarray
+    smoothed_db: np.ndarray
 
 
 def check(name: str, ok: bool, detail: str = "") -> bool:
@@ -241,6 +249,128 @@ def main() -> int:
     ok &= check("reverb boost trust is 1/(1+T60)",
                 abs(eqfit.dsp_room_boost_trust(1.0) - 0.5) < 1e-12
                 and abs(eqfit.dsp_room_transition_hz(0.9) - 300.0) < 10.0)
+
+    # --- IntegratedLoudness (app: `measurement/dsp/IntegratedLoudness`, pinned by its JVM test) ----
+    # The coefficients the standard prints for 48 kHz. Anything else means the filters were derived with
+    # the RBJ cookbook formulas instead of the prewarped prototypes, which is 0.26 dB off on every value.
+    expected_shelf = (1.53512485958697, -2.69169618940638, 1.19839281085285, -1.69065929318241, 0.73248077421585)
+    expected_rlb = (1.0, -2.0, 1.0, -1.99004745483398, 0.99007225036621)
+    coeff_err = max(max(abs(a - b) for a, b in zip(loudness.shelf(fs), expected_shelf)),
+                    max(abs(a - b) for a, b in zip(loudness.rlb(fs), expected_rlb)))
+    ok &= check("K-weighting coefficients are the ones BS.1770 prints", coeff_err < 1e-9, f"{coeff_err:.2e}")
+
+    def _sine(amplitude: float, seconds: float, frequency: float = 1000.0) -> np.ndarray:
+        t = np.arange(int(seconds * fs)) / fs
+        return amplitude * np.sin(2 * np.pi * frequency * t)
+
+    def _amplitude_for(lufs: float) -> float:
+        return loudness.amplitude_for(lufs, fs)
+
+    shape = tuple(loudness.k_weighting_gain_db(f, fs) for f in (1000.0, 3000.0, 10000.0, 40.0, 20.0))
+    ok &= check("K-weighting has the documented shape",
+                abs(shape[0] - 0.698) < 0.01 and shape[1] > 3.0 and shape[2] > 3.5
+                and shape[3] < -5.4 and shape[4] < -13.0,
+                f"1 kHz {shape[0]:+.2f} / 3 kHz {shape[1]:+.2f} / 10 kHz {shape[2]:+.2f} / "
+                f"40 Hz {shape[3]:+.1f} / 20 Hz {shape[4]:+.1f} dB")
+
+    full = loudness.integrated_lufs(_sine(1.0, 5.0), fs)
+    ok &= check("a full-scale sine reads -3.01 LUFS", full is not None and abs(full + 3.01) < 0.05, f"{full:.2f}")
+    for expect in (-23.0, -33.0):
+        got = loudness.integrated_lufs(_sine(_amplitude_for(expect), 5.0), fs)
+        ok &= check(f"a sine at {expect:.0f} LUFS reads {expect:.0f}", got is not None and abs(got - expect) < 0.05,
+                    f"{got:.2f}")
+
+    # Absolute gate: EBU 3341 case 3 - 10 s at -72 LUFS (below the gate), 60 s at -36, 10 s at -72.
+    gap = np.concatenate([_sine(_amplitude_for(-72.0), 10.0), _sine(_amplitude_for(-36.0), 60.0),
+                          _sine(_amplitude_for(-72.0), 10.0)])
+    gated = loudness.integrated_lufs(gap, fs)
+    ok &= check("the absolute gate drops silent passages", gated is not None and abs(gated + 36.0) < 0.1,
+                f"{gated:.2f} LUFS")
+    # Relative gate: 6 s at -23 then 6 s at -40. The quiet part is 17 LU down, so the relative gate (10 LU
+    # under the gated mean) must drop it; without it the same material reads ~-24.3 LUFS.
+    mixed = np.concatenate([_sine(_amplitude_for(-23.0), 6.0), _sine(_amplitude_for(-40.0), 6.0)])
+    relative = loudness.integrated_lufs(mixed, fs)
+    naive = 10.0 * math.log10(0.5 * (10.0 ** (-23.0 / 10.0) + 10.0 ** (-40.0 / 10.0)))
+    ok &= check("the relative gate ignores quiet passages",
+                relative is not None and abs(relative + 23.0) < 0.2 and relative > naive + 0.5,
+                f"{relative:.2f} LUFS (raw average {naive:.2f})")
+    ok &= check("too short is no measurement", loudness.integrated_lufs(_sine(0.5, 0.2), fs) is None)
+    quiet_louder = loudness.loudness_difference_lu(_sine(_amplitude_for(-23.0), 3.0),
+                                                   _sine(_amplitude_for(-23.0) * 2.0, 3.0), fs)
+    ok &= check("+6 dB is +6 LU",
+                quiet_louder is not None and abs(quiet_louder - 6.02) < 0.05,
+                f"{quiet_louder:+.2f} LU" if quiet_louder is not None else "none")
+    n441 = int(5.0 * 44100)
+    at441 = loudness.integrated_lufs(
+        loudness.amplitude_for(-23.0, fs) * np.sin(2.0 * np.pi * 1000.0 * np.arange(n441) / 44100.0), 44100.0)
+    ok &= check("44.1 kHz reads the same loudness",
+                at441 is not None and abs(at441 + 23.0) < 0.1, f"{at441:.2f} LUFS")
+
+    # --- Verification (app: `measurement/Verification`, pinned by `VerificationTest`) --------------
+    a_series = np.array([1.0, 2.0, 3.0, 4.0])
+    ok &= check("correlation is a Pearson coefficient",
+                abs(verify.correlation(a_series, a_series) - 1.0) < 1e-9
+                and abs(verify.correlation(a_series, -a_series) + 1.0) < 1e-9
+                and verify.correlation(a_series, np.full(4, 1.0)) == 0.0
+                and abs(verify.correlation(a_series, a_series[::-1])) > 0.99)
+
+    def _measure(curve: np.ndarray):
+        """`VerificationTest.measurement`: a curve normalised in 300 Hz - 3 kHz, like the analyzer."""
+        db = np.asarray(curve, dtype=float)
+        db = db - dsp.band_mean(GRID, db, 300.0, 3000.0)
+        return _Meas(frequencies=GRID, smoothed_db=db)
+
+    def _bump(centre: float, gain_db: float, width_oct: float) -> np.ndarray:
+        x = np.log(GRID / centre) / np.log(2.0) / width_oct
+        return gain_db * np.exp(-x * x)
+
+    def _speaker() -> np.ndarray:
+        # Same small box as the JVM test: boomy at 80 Hz, shouty at 1.6 kHz, rolled off above 12 kHz.
+        return _bump(80.0, 8.0, 0.5) + _bump(1600.0, 5.0, 0.6) + _bump(9000.0, -8.0, 0.8) \
+            - 0.5 * np.log10(GRID / 1000.0)
+
+    def _plan(before) -> eqfit.AutoEqResult:
+        return eqfit.render(GRID, before.smoothed_db, eqfit.TargetCurve(eqfit.SMART),
+                            eqfit.AutoEqSettings(band_count=10, max_boost_db=6.0, high_limit_hz=16000.0),
+                            roll_off_db=before.smoothed_db)
+
+    def _shifted(before, response: np.ndarray, scale: float = 1.0):
+        return _measure(before.smoothed_db + scale * response)
+
+    before = _measure(_speaker())
+    plan = _plan(before)
+    applied = verify.compare(before, _shifted(before, plan.filter_response_db), plan)
+    ok &= check("a chain that does what the plan said verifies as predicted",
+                applied["verdict"] == verify.AS_PREDICTED and applied["prediction_error_db"] < 1.5
+                and applied["correlation"] > 0.9 and applied["predicted_improvement_db"] > 0.5,
+                f"{applied['verdict']}: err {applied['prediction_error_db']:.2f} dB, "
+                f"r {applied['correlation']:.2f}, +{applied['predicted_improvement_db']:.2f} dB")
+
+    # The classic field failure: the user changed the volume by 4 dB between the two runs.
+    louder = _measure(_shifted(before, plan.filter_response_db).smoothed_db + 4.0)
+    volumed = verify.compare(before, louder, plan)
+    ok &= check("a level change between the runs does not matter",
+                volumed["verdict"] == verify.AS_PREDICTED, volumed["verdict"])
+
+    unapplied = verify.compare(before, _measure(_speaker()), plan)
+    ok &= check("an unapplied correction is not verified as predicted",
+                unapplied["verdict"] != verify.AS_PREDICTED and unapplied["prediction_error_db"] > 1.5,
+                f"{unapplied['verdict']}, err {unapplied['prediction_error_db']:.2f} dB")
+
+    half = verify.compare(before, _shifted(before, plan.filter_response_db, 0.45), plan)
+    ok &= check("a half-applied correction is weaker than predicted",
+                half["verdict"] == verify.WEAKER_THAN_PREDICTED and half["correlation"] > 0.5,
+                f"{half['verdict']}, r {half['correlation']:.2f}")
+
+    unrelated_shape = _bump(300.0, -12.0, 0.7) - _bump(4000.0, 6.0, 0.5)
+    unrelated = verify.compare(before, _shifted(before, unrelated_shape), plan)
+    ok &= check("an unrelated change is unexpected", unrelated["verdict"] == verify.UNEXPECTED,
+                unrelated["verdict"])
+
+    flat = _measure(np.zeros(GRID.size))
+    flat_plan = _plan(flat)
+    trivial = verify.compare(flat, _measure(np.zeros(GRID.size)), flat_plan)
+    ok &= check("a flat plan verifies trivially", trivial["verdict"] == verify.AS_PREDICTED, trivial["verdict"])
 
     print("\nparity:", "OK" if ok else "FAILED")
     return 0 if ok else 1

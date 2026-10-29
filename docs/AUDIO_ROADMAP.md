@@ -314,6 +314,33 @@ measured improvement is within 0.5 dB of the prediction; E2E test for the new st
 *Risk:* high-ish: it is a new wizard state, a new failure surface and it costs the user 10 s. Worth it:
 it is also the field-diagnostics channel for everything else in this list.
 
+**Done (round 13), the DSP half – the wizard step itself is round 14.** `measurement/Verification.kt`
+(`compare(before, after, autoEq)` → `Report`) judges three curves: the measured change
+(`after − before`), the plan's own filter response, and the residual against the target, before / after / as
+predicted. It reports `correlation`, `predictionErrorDb`, the three residuals, `measuredImprovementDb` and
+`predictedImprovementDb`, and a `Verdict`.
+
+Decisions worth keeping:
+
+* **Level-invariant on purpose.** Both shapes are normalised in 300 Hz–3 kHz, so a user who changes the
+  volume between the runs invalidates nothing (`aLevelChangeBetweenTheRunsDoesNotMatter`). The pre-gain is a
+  pure level change and disappears in the normalisation – exactly right for a *shape* comparison.
+* **Correlation, not magnitude, separates "nothing happened" from "something else happened".** Verdict order:
+  flat-plan pass → `NO_CHANGE` (< 0.5 dB measured change) → `AS_PREDICTED` (≤ 1.5 dB prediction error) →
+  `UNEXPECTED` (correlation < 0.5) → `WEAKER` / `BETTER` by comparing the two RMS changes.
+* **The judged band starts at `1.41 × lowLimit`** (+0.5 octave above the bass limit, floored at 150 Hz): below
+  that the correction has no authority, and judging there would punish the app for what it deliberately
+  refused to fix.
+* **Not an auto-retry.** A verification that disagrees with its own prediction is information for the user
+  ("your speaker does not do what we predicted – here are both curves"); silently re-fitting until the
+  numbers agree is how a diagnostic becomes a lie.
+
+Measured (`pipeline_findings.py` finding 14, three scenarios at 18 dB SNR): measured improvement
++1.66 / +1.73 / +2.64 dB against +1.73 / +1.82 / +2.53 dB predicted – worst gap **0.11 dB**, all
+`AS_PREDICTED` – while the same comparison on a chain that never applied the filter returns `NO_CHANGE`
+in all three. `live_probe.py --verify` reproduces it on the six full scenarios (prediction errors
+0.05–0.34 dB).
+
 ### W7 – Bounded adaptive target (M)
 
 *Why:* F4 – after 10 bands the residual is the target's shape. Fixed shelves fight a speaker's natural
@@ -370,6 +397,33 @@ make an excellent JVM test.
 
 *Risk:* low, pure DSP with published test vectors.
 
+**Done (round 13).** `measurement/dsp/IntegratedLoudness.kt`: K-weighting as the *two biquads of the
+standard* (`shelf`, `rlb`), gated integrated loudness (`integrated`, `integrate`, `analyse` →
+`integratedLufs` + `truePeakDbtp` + `blocks`), `loudnessDifferenceLu`, `samplePeakDbfs`. The probe mirror is
+`tools/probe/avzprobe/loudness.py`; `live_probe.py` now reports **measured** loudness instead of the
+A-weighted proxy (`loudness_proxy_delta_db` keeps the proxy alongside, and a > 1 dB disagreement between the
+two is itself a failure – the proxy has been right on all six scenarios so far).
+
+Two traps, both found by the checks rather than by ear:
+
+1. **RBJ cookbook biquads are the wrong derivation.** The standard's filters are *analog prototypes*
+   mapped with the bilinear transform, prewarped with `tan(π f0 / fs)`. Using the RBJ shelf/high-pass
+   formulas gives 1 kHz +0.44 dB instead of +0.70 dB – a constant **0.26 dB error on every LUFS value**,
+   which no plausibility check would have caught. With the prewarped form the coefficients reproduce the
+   48 kHz tables of BS.1770-4 to 8.9e-16 (`check_parity.py`).
+2. **Do not apply −0.691 dB twice.** The offset belongs to each block's loudness; the gated mean already
+   averages in the power domain and therefore carries it. Applying it again shifts everything by exactly
+   0.691 dB – the classic way to be "close but not the standard".
+
+Anchors: a full-scale 1 kHz sine reads −3.00 LUFS, a −23/−33 LUFS sine reads back exactly, EBU 3341 case 3
+(−72 / −36 / −72) gives −36.02, the relative-gate case gives −23.11 against a raw energy average of −25.92,
+and 44.1 kHz reads the same loudness as 48 kHz (the coefficients are derived, not tabulated).
+
+Third lesson: the K-weighting *shape* assertions must use the actual curve, not the asymptote. The first
+version of the JVM test demanded 40 Hz < −6 dB and 20 Hz < −14 dB; the filters give −5.6 and −13.3 dB there
+(the −12 dB/octave asymptote only holds an octave below the 38 Hz corner). `check_parity.py` failed before
+CI ever saw it – which is the entire point of the parity harness.
+
 ### W11 – Distortion-driven measurement level (M, needs W3)
 
 *Why:* the app picks 70 % of `STREAM_MUSIC` (50 % for device speakers). That is a guess; THD turns it
@@ -409,8 +463,9 @@ W1 (judge first) ──► W5 (positions + dip rule, needs W1)
 * **Round 11 (done):** W1, W2, W5 – harness first, then the two "we measure the wrong thing" defects.
 * **Round 12 (done):** W3, W4 – the two free metrics (THD, RT60) and their warnings (W4's gate measured,
   deliberately off).
-* **Round 13:** W10, W6 – the verification pass, which needs an honest peak/loudness metric first.
-* **Round 14:** W7, W8, and W9's measurement (build only if it shows ≥ 0.2 dB).
+* **Round 13 (done):** W10, W6 – BS.1770 integrated loudness + the verification comparison (DSP and probe;
+  the wizard's "Check" step is the first item of round 14).
+* **Round 14:** W6's wizard step, W7, W8, and W9's measurement (build only if it shows ≥ 0.2 dB).
 
 ## 7. Questions that need a device, not a model
 

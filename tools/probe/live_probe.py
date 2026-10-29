@@ -28,7 +28,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from avzprobe import audio, dsp, eqfit, rooms  # noqa: E402
+from avzprobe import audio, dsp, eqfit, loudness, rooms, verify  # noqa: E402
 
 # ------------------------------------------------------------------ thresholds --
 THRESHOLDS = {
@@ -40,7 +40,10 @@ THRESHOLDS = {
     "min_improvement_db": 0.25,
     "tonal_p95_db": 3.0,       # the worst 5 % of the music's energy (fidelity-aware band)
     # 3) Safety.
-    "loudness_delta_db": 1.5,  # perceived level may not drift more than this (limiter classes)
+    "loudness_delta_db": 1.5,  # BS.1770 integrated loudness may not drift more than this (limiter classes)
+    "loudness_proxy_gap_db": 1.0,  # ... and the A-weighted spectrum proxy must agree with it
+    # 7) The verification pass (W6): a second measurement through the active EQ must reproduce the plan.
+    "verification_gap_db": 0.5,
     "peak_dbfs": -0.1,         # real programme peaks stay below full scale (after the limiter)
     "clipped_samples": 0,
     "protect_boost_db": 1.0,   # no boost below half the detected bass limit (the app's own boundary)
@@ -79,6 +82,10 @@ class CaseResult:
     full_band_after_db: float
     tonal_p95_after_db: float
     loudness_delta_db: float
+    loudness_proxy_delta_db: float
+    verification: dict | None
+    integrated_before_lufs: float | None
+    integrated_after_lufs: float | None
     peak_dbfs: float
     # True peak of the same rendered output (4x oversampled): what the DAC and every lossy codec see.
     peak_dbtp: float
@@ -280,6 +287,7 @@ def run_case(
     rt60_s: float = 0.0,
     distortion_drive: float = 0.0,
     reverb_gate: bool = True,
+    verify_run: bool = False,
 ) -> CaseResult:
     model = rooms.SCENARIOS[scenario]
     if rt60_s > 0.0 or distortion_drive > 0.0:
@@ -312,11 +320,8 @@ def run_case(
         return dsp.interpolate_log(mic_f, mic_db, f) + mic_error_db * (bump - 0.3 * tilt)
 
     # --- 1. the "device": one real sweep per position ---------------------------------------
-    def measure_at(index: int):
-        ir = rooms.impulse_response(variants[index], dsp.next_power_of_two(stim.signal.size + 8192))
-        clean = rooms.apply_distortion(variants[index], stim.signal)
-        clean = rooms.convolve(clean, ir)
-        clean *= 0.25  # a comfortable measuring level, -12 dBFS for the -6 dBFS stimulus
+    def capture(clean: np.ndarray, index: int):
+        """The microphone side of a measurement: noise, the mic's own response, the analyzer."""
         # Independent noise per position: that is what makes a position repeat meaningful.
         white, rumble = _noise_signal(clean.size, noise_cfg["snr_db"], noise_cfg["lf_rumble_db"], seed=7 + index)
         ref_rms = float(np.sqrt(np.mean(clean[stim.plan.pink_start: stim.plan.sweep_start] ** 2)))
@@ -326,6 +331,18 @@ def run_case(
                              for f in np.maximum(np.fft.rfftfreq(rec.size, 1 / fs), 1e-3)])
         rec = np.fft.irfft(np.fft.rfft(rec) * 10.0 ** (mic_resp / 20.0), rec.size)
         return dsp.analyze(rec, stim, mic_compensation_db=mic_correction, config=cfg)
+
+    def sweep_through(index: int, bands=()) -> np.ndarray:
+        """What the microphone receives: the stimulus (optionally through the EQ) through speaker + room."""
+        ir = rooms.impulse_response(variants[index], dsp.next_power_of_two(stim.signal.size + 8192))
+        signal = rooms.apply_distortion(variants[index], stim.signal)
+        if bands:
+            signal = dsp.filter_signal(signal, list(bands), fs)
+        clean = rooms.convolve(signal, ir)
+        return clean * 0.25  # a comfortable measuring level, -12 dBFS for the -6 dBFS stimulus
+
+    def measure_at(index: int):
+        return capture(sweep_through(index), index)
 
     per_position = [measure_at(i) for i in range(len(variants))]
     kept, position_deviations = _reject_outliers(per_position)
@@ -344,6 +361,18 @@ def run_case(
         roll_off_db=measurement.third_octave_db,
         snr_db=measurement.snr_db,
     )
+
+    # --- 2b. the verification pass (W6) ------------------------------------------------------
+    # A second measurement, taken through the correction exactly like the app's "Check" run: same
+    # microphone, same noise, same analyzer - only the stimulus now carries the EQ and the pre-gain.
+    verification = None
+    if verify_run:
+        verified = capture(sweep_through(0, correction.bands), 0)
+        # The pre-gain is a level change and both curves are normalised in 300 Hz - 3 kHz, so it is
+        # deliberately *not* applied here: the verification judges shape, and a level difference between
+        # the two runs must not be able to break it (that is what `aLevelChangeBetweenTheRunsDoesNotMatter`
+        # pins in the JVM test).
+        verification = verify.compare(measurement, verified, correction)
 
     # --- 3. the truth: what the speaker actually radiates ---------------------------------
     audit_f = np.maximum(np.fft.rfftfreq(1 << 19, 1 / fs), 1e-3)
@@ -448,11 +477,19 @@ def run_case(
     # added on top - adding `in_room_after` as well applied the EQ twice and doubled every level change
     # (measured: the device case looked like -5.4 dB although the pre-gain planner's own model - which
     # this check exists to validate - predicted -2.1 dB).
+    # Measured, not modelled: both signals are pushed through the room and then judged with BS.1770
+    # (K-weighted, gated integrated LUFS) - the standard the promise "as loud as before" is written in.
+    # The A-weighted spectrum proxy is kept alongside, because the two disagreeing would be a finding of
+    # its own (it was the only evidence this check had until round 13).
+    room_ir = _room_filter(in_room_before, grid, fs)
+    loud_before = loudness.integrated_lufs(_convolve(music, room_ir), fs)
+    loud_after = loudness.integrated_lufs(_convolve(rendered, room_ir), fs)
+    loudness_delta = 0.0 if (loud_before is None or loud_after is None) else loud_after - loud_before
     before_music = audio.stats(music, fs)
     after_music = audio.stats(rendered, fs)
-    loud_before = _a_weighted_level(before_music.spectrum_db + in_room_before, grid)
-    loud_after = _a_weighted_level(after_music.spectrum_db + in_room_before, grid)
-    loudness_delta = loud_after - loud_before
+    loud_proxy_before = _a_weighted_level(before_music.spectrum_db + in_room_before, grid)
+    loud_proxy_after = _a_weighted_level(after_music.spectrum_db + in_room_before, grid)
+    loudness_proxy_delta = loud_proxy_after - loud_proxy_before
 
     # --- 4b. did the filters actually realise the requested correction? -------------------
     judge = (grid >= correction.low_limit_hz) & (grid <= correction.high_limit_hz)
@@ -487,8 +524,20 @@ def run_case(
         failures.append(f"tonal p95 {after_stats['p95_db']:.2f} dB > {THRESHOLDS['tonal_p95_db']}")
     # Loudness neutrality is a promise of the limiter-armed classes only (RESCUE / DEVICE / outdoor):
     # everywhere else the static clipping-safe pre-gain deliberately wins over loudness.
+    if verification is not None:
+        v = verification
+        if v["verdict"] != verify.AS_PREDICTED:
+            failures.append(f"verification says {v['verdict']} (prediction error {v['prediction_error_db']:.2f} dB)")
+        if abs(v["measured_improvement_db"] - v["predicted_improvement_db"]) > THRESHOLDS["verification_gap_db"]:
+            failures.append(f"verification measured {v['measured_improvement_db']:.2f} dB, predicted "
+                            f"{v['predicted_improvement_db']:.2f} dB")
     if limiter_armed and abs(loudness_delta) > THRESHOLDS["loudness_delta_db"]:
-        failures.append(f"loudness {loudness_delta:+.2f} dB")
+        failures.append(f"loudness {loudness_delta:+.2f} LU")
+    # The A-weighted proxy was the only evidence for this check until round 13. Where it and the standard
+    # disagree, the difference is reported - a proxy that quietly drifts away from BS.1770 would make every
+    # "as loud as before" statement in the docs unverifiable.
+    if abs(loudness_delta - loudness_proxy_delta) > THRESHOLDS["loudness_proxy_gap_db"]:
+        failures.append(f"A-weighted proxy {loudness_proxy_delta:+.2f} dB vs BS.1770 {loudness_delta:+.2f} LU")
     if 20.0 * math.log10(max(peak, 1e-9)) > THRESHOLDS["peak_dbfs"]:
         failures.append(f"peak {20.0 * math.log10(peak):+.2f} dBFS")
     if clipped > THRESHOLDS["clipped_samples"]:
@@ -529,6 +578,10 @@ def run_case(
         full_band_after_db=full_after["rms_weighted_db"],
         tonal_p95_after_db=after_stats["p95_db"],
         loudness_delta_db=loudness_delta,
+        loudness_proxy_delta_db=loudness_proxy_delta,
+        verification=verification,
+        integrated_before_lufs=loud_before,
+        integrated_after_lufs=loud_after,
         peak_dbfs=20.0 * math.log10(max(peak, 1e-9)),
         peak_dbtp=peak_tp,
         clipped_samples=clipped,
@@ -550,6 +603,20 @@ def run_case(
         null_boost_db=null_boost,
         failures=failures,
     )
+
+
+def _room_filter(deviation_db: np.ndarray, grid: np.ndarray, fs: int) -> np.ndarray:
+    """Minimum-phase FIR of the room/speaker deviation curve, for listening to a signal "in the room"."""
+    n = 1 << 15
+    freqs = np.maximum(np.fft.rfftfreq(n, 1.0 / fs), 1e-3)
+    magnitude = 10.0 ** (dsp.resample(grid, deviation_db, freqs) / 20.0)
+    # `minimum_phase` returns the *spectrum*; the IR is its inverse transform.
+    return np.fft.irfft(rooms.minimum_phase(magnitude), n)
+
+
+def _convolve(x: np.ndarray, ir: np.ndarray) -> np.ndarray:
+    n = dsp.next_power_of_two(x.size + ir.size)
+    return np.fft.irfft(np.fft.rfft(x, n) * np.fft.rfft(ir, n), n)[: x.size]
 
 
 def _a_weighted_level(spectrum_db: np.ndarray, grid: np.ndarray) -> float:
@@ -631,6 +698,9 @@ def main(argv: list[str] | None = None) -> int:
                     help="add a diffuse room tail with this reverberation time (s) to every case (W4)")
     ap.add_argument("--drive", type=float, default=0.0,
                     help="drive the modelled speaker into soft saturation by this fraction (W3)")
+    ap.add_argument("--verify", action="store_true",
+                    help="also run the verification pass (W6): measure again through the fitted EQ and "
+                         "compare what improved with what the plan predicted")
     ap.add_argument("--stress", action="store_true",
                     help="also run the three field-failure cases (distortion, reverberation, clean chain)")
     ap.add_argument("--positions", type=int, default=1,
@@ -654,17 +724,20 @@ def main(argv: list[str] | None = None) -> int:
             res = run_case(scenario, cls, env, target, noise, music, music_power,
                            mic_error_db=args.mic_error, positions=max(1, args.positions),
                            truth_positions=args.truth_positions, rt60_s=args.rt60,
-                           distortion_drive=args.drive)
+                           distortion_drive=args.drive, verify_run=args.verify)
             results.append(res)
             status = "ok  " if res.ok else "FAIL"
             print(f"{status} {scenario:13s} {cls:8s} {env:7s} {target:10s} {noise:10s} "
                   f"tonal {res.tonal_rms_before_db:5.2f} -> {res.tonal_rms_after_db:5.2f} dB "
-                  f"(p95 {res.tonal_p95_after_db:4.2f})  loud {res.loudness_delta_db:+5.2f} dB  "
+                  f"(p95 {res.tonal_p95_after_db:4.2f})  loud {res.loudness_delta_db:+5.2f} LU  "
                   f"peak {res.peak_dbfs:+5.2f} dBFS / {res.peak_dbtp:+5.2f} dBTP  preamp {res.preamp_db:+5.1f}  "
                   f"bands {len(res.bands):2d}"
                   + (f"  null-boost {res.null_boost_db:4.2f} dB  spread {res.position_spread_db:4.1f} dB"
                      if res.positions > 1 else "")
                   + (f"  used {res.positions_used}/{res.positions}" if res.positions_used < res.positions else "")
+                  + (f"  verify {res.verification['verdict']}: {res.verification['measured_improvement_db']:.2f}"
+                     f"/{res.verification['predicted_improvement_db']:.2f} dB (err {res.verification['prediction_error_db']:.2f})"
+                     if res.verification is not None else "")
                   + (f"  thd {res.thd_pct:4.2f} %" if res.thd_pct is not None else "")
                   + (f"  rt60 {res.room_rt60_s:4.2f} s" if res.room_rt60_s is not None else "")
                   + (f"  limiter mean {res.limiter_mean_gr_db:4.2f} max {res.limiter_max_gr_db:5.2f} dB / "
@@ -693,7 +766,7 @@ def _markdown(results: list[CaseResult]) -> str:
         lines.append(
             f"| {r.scenario} | {r.speaker_class} | {r.environment} | {r.target} | {r.noise} | "
             f"{r.tonal_rms_before_db:.2f} dB | **{r.tonal_rms_after_db:.2f} dB** | {r.tonal_p95_after_db:.2f} dB | "
-            f"{r.loudness_delta_db:+.2f} dB | {r.peak_dbfs:+.2f} dBFS / {r.peak_dbtp:+.2f} dBTP | "
+            f"{r.loudness_delta_db:+.2f} LU | {r.peak_dbfs:+.2f} dBFS / {r.peak_dbtp:+.2f} dBTP | "
             f"{(f'{r.limiter_mean_gr_db:.2f} / {r.limiter_max_gr_db:.2f} dB / {r.limiter_stress_pct:.1f} %' if r.limiter_armed else '-')} | "
             f"{(f'{r.null_boost_db:.2f} dB (spread {r.position_spread_db:.1f})' if r.positions > 1 else '-')} | "
             f"{r.preamp_db:+.1f} dB | {len(r.bands)} |"

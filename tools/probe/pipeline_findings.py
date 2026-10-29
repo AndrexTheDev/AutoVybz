@@ -24,6 +24,13 @@ The five findings (2026-10, `Demosong.mp3` / `Intro1.mp4`, port at commit of rou
  5. **More sweeps do nothing.** 0.43 dB rms measurement error at 18 dB SNR - identical to 60 dB. The
     sweep's processing gain already covers stationary noise; repetition would only help against impulsive
     disturbances, which the existing `NOISE_UNSTEADY` check reports instead.
+
+Added in round 13:
+
+14. **The prediction can be checked.** A second measurement through the actual EQ reproduces the plan's
+    promised improvement to within a few tenths of a dB on every scenario model, and the same comparison
+    calls a chain that never applied the EQ what it is (`NO_CHANGE`) - the verification pass is a
+    measurement, not a reassurance.
 """
 
 from __future__ import annotations
@@ -37,7 +44,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from avzprobe import audio, dsp, rooms  # noqa: E402
+from avzprobe import audio, dsp, eqfit, rooms, verify  # noqa: E402
 
 FS = audio.SAMPLE_RATE
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -289,6 +296,43 @@ def exp_noise_robustness() -> dict:
     return errors
 
 
+# -------------------------------------------------------- 14. verification pass --
+
+
+def exp_verification() -> dict:
+    """Measure -> correct -> measure again, and see whether the plan's promise survives the second run."""
+    print("\n=== 14. measure -> correct -> re-measure (18 dB SNR, one position)")
+    stim = dsp.stimulus(FS)
+    rng = np.random.default_rng(23)
+    out = {}
+    for scenario in ("bt-minibox", "party-box", "phone-speaker"):
+        model = rooms.SCENARIOS[scenario]
+        ir = rooms.impulse_response(model, dsp.next_power_of_two(stim.signal.size + 8192))
+
+        def capture(signal: np.ndarray) -> "dsp.MeasurementResult":
+            clean = rooms.convolve(signal, ir) * 0.25
+            ref = float(np.sqrt(np.mean(clean ** 2)))
+            rec = clean + rng.standard_normal(clean.size) * ref * 10.0 ** (-18.0 / 20.0)
+            return dsp.analyze(rec, stim)
+
+        before = capture(stim.signal)
+        plan = eqfit.render(before.frequencies, before.smoothed_db, eqfit.TargetCurve(eqfit.SMART),
+                            eqfit.AutoEqSettings(band_count=10, max_boost_db=6.0, high_limit_hz=16000.0),
+                            roll_off_db=before.third_octave_db)
+        corrected = verify.compare(before, capture(dsp.filter_signal(stim.signal, plan.bands, FS)), plan)
+        # The control: the same two measurements with the EQ never applied (wrong route, engine off).
+        unapplied = verify.compare(before, capture(stim.signal), plan)
+        out[scenario] = (corrected, unapplied)
+        print(f"    {scenario:14s} {len(plan.bands):2d} bands: measured "
+              f"{corrected['measured_improvement_db']:+.2f} dB, predicted "
+              f"{corrected['predicted_improvement_db']:+.2f} dB -> {corrected['verdict']} "
+              f"(err {corrected['prediction_error_db']:.2f} dB, r {corrected['correlation']:.2f})"
+              f"  |  EQ off -> {unapplied['verdict']}")
+    print("    -> the second run reproduces the first run's promise, and the same comparison refuses to")
+    print("       confirm a chain that never applied the correction.")
+    return out
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--music", help="real recording for findings 2 and 4 (any ffmpeg format)")
@@ -361,6 +405,17 @@ def main(argv: list[str] | None = None) -> int:
     check("18 dB SNR costs nothing measurable",
           max(noise.values()) - min(noise.values()) < 0.05,
           ", ".join(f"{k:.0f} dB: {v:.2f}" for k, v in noise.items()))
+
+    verification = exp_verification()
+    check("every scenario verifies as predicted",
+          all(report["verdict"] == verify.AS_PREDICTED for report, _ in verification.values()),
+          ", ".join(f"{k}: {r['verdict']}" for k, (r, _) in verification.items()))
+    gap = max(abs(r["measured_improvement_db"] - r["predicted_improvement_db"])
+              for r, _ in verification.values())
+    check("the measured improvement is within 0.5 dB of the predicted one", gap <= 0.5, f"worst {gap:.2f} dB")
+    check("the same comparison catches a chain that never applied the EQ",
+          all(r["verdict"] != verify.AS_PREDICTED for _, r in verification.values()),
+          ", ".join(f"{k}: {r['verdict']}" for k, (_, r) in verification.items()))
 
     bad = [c for c in checks if not c[1]]
     print(f"\n{len(checks) - len(bad)}/{len(checks)} findings hold. See docs/AUDIO_ROADMAP.md.")
