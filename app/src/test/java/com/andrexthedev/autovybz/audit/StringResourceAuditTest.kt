@@ -151,6 +151,9 @@ class StringResourceAuditTest {
         // navigation / brand words used as-is in German ("Sound", "Studio") and genre names that are loanwords
         "avz_nav_home", "avz_pro_title", "avz_studio_bass", "avz_studio_db", "avz_home_intensity_value",
         "avz_style_group_base", "avz_style_afrobeats", "avz_style_latin", "avz_style_electronic", "avz_style_rock", "avz_style_pop",
+        // W8: "Subwoofer" is the word German and Spanish actually use (a loanword, not a missing translation),
+        // and the chip label "%1$d Hz" is a number with a unit - there is nothing to translate in either.
+        "avz_sub_label", "avz_sub_hz",
     )
 
     @Test
