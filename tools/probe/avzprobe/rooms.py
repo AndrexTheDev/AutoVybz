@@ -52,6 +52,12 @@ class SpeakerModel:
     tilt_db_per_oct: float = 0.0
     reflections: tuple[tuple[float, float], ...] = ()
     extra_bands: tuple[PeqBand, ...] = field(default_factory=tuple)
+    # W4: a real room does not stop at its first reflection. `reverb_rt60_s` > 0 adds a diffuse tail with
+    # that T60 at `reverb_level` (amplitude relative to the direct sound); `distortion_drive` (W3) makes
+    # the *playback* nonlinear - the model of a driver driven past its excursion limit.
+    reverb_rt60_s: float = 0.0
+    reverb_level: float = 0.0
+    distortion_drive: float = 0.0
 
     def response(self, f: np.ndarray, sample_rate: float = dsp.DEFAULT_SAMPLE_RATE) -> np.ndarray:
         h = np.ones(f.size, dtype=complex)
@@ -159,6 +165,8 @@ def position_variants(model: SpeakerModel, count: int, spread_m: float = POSITIO
                 presence_hz=model.presence_hz, presence_db=model.presence_db, presence_q=model.presence_q,
                 hf_roll_hz=model.hf_roll_hz, tilt_db_per_oct=model.tilt_db_per_oct,
                 reflections=reflections, extra_bands=tuple(model.extra_bands) + modes,
+                reverb_rt60_s=model.reverb_rt60_s, reverb_level=model.reverb_level,
+                distortion_drive=model.distortion_drive,
             )
         )
     return variants
@@ -197,6 +205,20 @@ SCENARIOS: dict[str, SpeakerModel] = {
     ),
 }
 
+def stressed(model: SpeakerModel, rt60_s: float = 0.0, drive: float = 0.0,
+             reverb_level: float = 0.20) -> SpeakerModel:
+    """[model] with a diffuse tail and/or a nonlinear drive - the two field failures W3/W4 must see."""
+    return SpeakerModel(
+        name=model.name, description=model.description, f3_hz=model.f3_hz,
+        box_hz=model.box_hz, box_db=model.box_db, presence_hz=model.presence_hz,
+        presence_db=model.presence_db, presence_q=model.presence_q,
+        hf_roll_hz=model.hf_roll_hz, tilt_db_per_oct=model.tilt_db_per_oct,
+        reflections=model.reflections, extra_bands=model.extra_bands,
+        reverb_rt60_s=rt60_s, reverb_level=reverb_level if rt60_s > 0 else 0.0,
+        distortion_drive=drive,
+    )
+
+
 # How noisy the listening situation is (SNR of the measurement, i.e. of the sweep at the mic).
 NOISE_PROFILES: dict[str, dict] = {
     "quiet-room": {"snr_db": 42.0, "lf_rumble_db": 12.0},
@@ -225,11 +247,39 @@ def minimum_phase(magnitude: np.ndarray) -> np.ndarray:
 
 
 def impulse_response(model: SpeakerModel, n_fft: int, sample_rate: float = dsp.DEFAULT_SAMPLE_RATE) -> np.ndarray:
-    """Causal (minimum-phase) impulse response of the model on an [n_fft] grid."""
+    """Causal (minimum-phase) impulse response of the model on an [n_fft] grid, plus its diffuse tail."""
     freqs = np.fft.rfftfreq(n_fft, 1.0 / sample_rate)
     freqs = np.maximum(freqs, 1e-3)
     h = minimum_phase(model.response(freqs, sample_rate))
-    return np.fft.irfft(h, n_fft)
+    direct = np.fft.irfft(h, n_fft)
+    if model.reverb_rt60_s <= 0.0 or model.reverb_level <= 0.0:
+        return direct
+    # A diffuse tail is the speaker fed with exponentially decaying noise: filtered by the same response
+    # (the room is excited by *this* loudspeaker), starting at the direct arrival. Deterministic seed, so
+    # a scenario is reproducible.
+    rng = np.random.default_rng(0x5EED)
+    t = np.arange(n_fft) / sample_rate
+    tail = rng.standard_normal(n_fft) * np.exp(-6.9078 * t / model.reverb_rt60_s)
+    tail[: int(round(0.003 * sample_rate))] = 0.0
+    wet = np.fft.irfft(np.fft.rfft(tail) * h, n_fft)
+    wet_norm = float(np.sqrt(np.sum(wet * wet)))
+    direct_norm = float(np.sqrt(np.sum(direct * direct)))
+    if wet_norm <= 0.0 or direct_norm <= 0.0:
+        return direct
+    return direct + wet * (model.reverb_level * direct_norm / wet_norm)
+
+
+def apply_distortion(model: SpeakerModel, x: np.ndarray) -> np.ndarray:
+    """`distortion_drive` > 0: soft saturation of the *drive* signal (a driver past its excursion limit).
+
+    The reference level is 1.0 - the stimulus is peak-normalised to -6 dBFS, so a drive of 0.02 is "the
+    last 2 % of the excursion", which measures ~3 % THD in the deconvolution (see docs/AUDIO_ROADMAP.md).
+    """
+    drive = model.distortion_drive
+    if drive <= 0.0:
+        return x
+    gain = 1.0 + 10.0 * drive
+    return np.tanh(x * gain) / math.tanh(gain)
 
 
 def convolve(x: np.ndarray, ir: np.ndarray) -> np.ndarray:

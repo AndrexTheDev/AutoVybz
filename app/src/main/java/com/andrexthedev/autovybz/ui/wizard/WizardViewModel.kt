@@ -537,7 +537,16 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
     companion object {
         private const val TAG = "AutoVybzWizard"
 
-        /** Everything except the purely informational Bluetooth latency suggests repeating a position. */
-        fun isDisturbed(warnings: List<MeasurementWarning>): Boolean = warnings.any { it != MeasurementWarning.HIGH_LATENCY }
+        /**
+         * Warnings that say "this position was disturbed, repeat it". Informational ones do not qualify:
+         * Bluetooth latency is normal, and a reverberant room is a property of the room - repeating the
+         * measurement cannot change either, so asking the user to walk around again would be noise.
+         */
+        private val INFORMATIONAL_WARNINGS = setOf(
+            MeasurementWarning.HIGH_LATENCY,
+            MeasurementWarning.REVERBERANT_ROOM,
+        )
+
+        fun isDisturbed(warnings: List<MeasurementWarning>): Boolean = warnings.any { it !in INFORMATIONAL_WARNINGS }
     }
 }

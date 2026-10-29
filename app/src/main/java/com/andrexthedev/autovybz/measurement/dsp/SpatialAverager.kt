@@ -144,6 +144,13 @@ object SpatialAverager {
         val snr = DoubleArray(n) { i -> results.minOf { it.snrDb[i] } }
         val sortedSnr = snr.sorted()
         val warnings = results.flatMap { it.warnings }.distinct()
+        // Distortion is a property of the loudspeaker, not of the spot: the worst position wins (it is the
+        // one that was driven hardest). Room decay is a property of the *room*: the median of the positions
+        // that produced a number at all, so one noisy corner cannot invent a reverberant room.
+        val thd = results.mapNotNull { it.thdPercent }.maxOrNull()
+        val rt60Values = results.mapNotNull { it.roomRt60S }.sorted()
+        val rt60 = if (rt60Values.isEmpty()) null else rt60Values[rt60Values.size / 2]
+        val worst = results.maxByOrNull { it.thdPercent ?: Double.NEGATIVE_INFINITY }
 
         return MeasurementResult(
             sampleRate = first.sampleRate,
@@ -159,6 +166,10 @@ object SpatialAverager {
             medianSnrDb = sortedSnr[sortedSnr.size / 2],
             warnings = warnings,
             normalizationDb = results.map { it.normalizationDb }.average() + norm,
+            thdPercent = thd,
+            harmonicsDb = worst?.harmonicsDb ?: emptyMap(),
+            h3MinusH2Db = worst?.h3MinusH2Db,
+            roomRt60S = rt60,
         )
     }
 

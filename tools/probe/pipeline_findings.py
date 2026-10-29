@@ -193,6 +193,44 @@ def exp_ir_window() -> list:
     return rows
 
 
+# ------------------------------------------- 9/10. speaker health from the same IR (W3/W4) --
+
+
+def exp_speaker_health() -> dict:
+    print("\n=== 9/10. distortion and room decay out of the sweep the app already plays")
+    stim = dsp.stimulus(FS)
+    plan = stim.plan
+    model = rooms.SCENARIOS["bt-minibox"]
+    ir = rooms.impulse_response(model, dsp.next_power_of_two(stim.signal.size + 8192))
+    out = {"thd": {}, "rt60": []}
+    for drive in (0.0, 0.02, 0.05, 0.10):
+        driven = rooms.apply_distortion(rooms.stressed(model, drive=drive), stim.signal)
+        clean = rooms.convolve(driven, ir)
+        noise = np.random.default_rng(11).standard_normal(clean.size) * 1e-4
+        rec = (clean + noise) * (0.25 / max(float(np.max(np.abs(clean))), 1e-9))
+        dec = dsp.deconvolve_sweep(rec, stim)
+        peak = dsp.locate_ir_peak(dec, int(0.8 * FS), FS)
+        found = dsp.harmonic_distortion(dec, peak, plan.sweep_length / FS, plan.sweep_start_hz, plan.sweep_end_hz, FS)
+        thd = None if found is None else found["thd_pct"]
+        out["thd"][drive] = thd
+        print(f"    drive {drive:4.2f}: THD {'-' if thd is None else f'{thd:5.2f} %'}  "
+              f"harmonics {({k: round(v, 1) for k, v in (found or {'harmonics_db': {}})['harmonics_db'].items()})}")
+    for rt60 in (0.0, 0.4, 0.8, 1.2):
+        tail = rooms.stressed(model, rt60_s=rt60, reverb_level=0.2)
+        irx = rooms.impulse_response(tail, dsp.next_power_of_two(stim.signal.size + 8192))
+        rec = rooms.convolve(stim.signal, irx)
+        rec = (rec + np.random.default_rng(12).standard_normal(rec.size) * 1e-5) * (
+            0.25 / max(float(np.max(np.abs(rec))), 1e-9))
+        dec = dsp.deconvolve_sweep(rec, stim)
+        peak = dsp.locate_ir_peak(dec, int(0.8 * FS), FS)
+        est = dsp.estimate_t30(dec, peak, FS)
+        out["rt60"].append((rt60, est))
+        print(f"    room T60 {rt60:3.1f} s -> estimate {'unknown' if est is None else f'{est:4.2f} s'}")
+    print("    -> both metrics are read from the deconvolution that already exists: the windows sit outside")
+    print("       the magnitude window, so the frequency response is untouched (finding 1).")
+    return out
+
+
 # ---------------------------------------------------------------- 4. band saturation --
 
 
@@ -261,6 +299,25 @@ def main(argv: list[str] | None = None) -> int:
     def check(name: str, ok: bool, detail: str = "") -> None:
         checks.append((name, ok, detail))
         print(f"{'ok  ' if ok else 'FAIL'} {name}{' - ' + detail if detail else ''}")
+
+    health = exp_speaker_health()
+    check("a linear chain reports no THD at all", health["thd"][0.0] is None, "no number, not 0.0 %")
+    check("a driven driver is measured above the 3 % warning line",
+          health["thd"][0.05] is not None and health["thd"][0.05] > 3.0,
+          f"{health['thd'][0.05]:.2f} % at drive 0.05")
+    check("THD grows monotonically with the drive",
+          all(health["thd"][a] < health["thd"][b] for a, b in ((0.02, 0.05), (0.05, 0.10))),
+          " / ".join(f"{d:g}:{v:.2f} %" for d, v in health["thd"].items() if v is not None))
+    rt_known = [(true, est) for true, est in health["rt60"] if true > 0.0]
+    check("room decay recovered within 15 %", all(est is not None and abs(est - true) <= 0.15 * true
+                                                  for true, est in rt_known),
+          ", ".join(f"{true:.1f}->{'unknown' if est is None else f'{est:.2f}'}" for true, est in health["rt60"]))
+    # A dry model still rings for a few milliseconds (the driver itself, and the minimum-phase response),
+    # so the honest requirement is not "unknown" but "never mistaken for a reverberant room": a short
+    # number or none at all. What must not happen is a dry room reported as a hall.
+    dry = health["rt60"][0][1]
+    check("a dry room is never reported as reverberant", dry is None or dry < 0.2,
+          f"{'unknown' if dry is None else f'{dry:.2f} s'}")
 
     distortion = exp_ess_distortion()
     check("clean chain has no harmonic content", distortion["linear"][3] < -90.0,

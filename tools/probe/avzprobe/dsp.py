@@ -401,6 +401,11 @@ class MeasurementResult:
     median_snr_db: float
     warnings: list[str] = field(default_factory=list)
     normalization_db: float = 0.0
+    # W3/W4: measured on the same deconvolution, once per position.
+    thd_pct: float | None = None
+    harmonics_db: dict = field(default_factory=dict)
+    h3_minus_h2_db: float | None = None
+    room_rt60_s: float | None = None
 
 
 DC_REMOVAL_THRESHOLD = 1e-5
@@ -484,6 +489,134 @@ def windowed_ir_power(ir: np.ndarray, peak: int, fs: int, config: AnalyzerConfig
     return (spec.real ** 2 + spec.imag ** 2)[: n // 2 + 1]
 
 
+# ------------------------------------------------------- harmonic distortion (W3) --
+#
+# Farina's ESS trick: a memoryless nonlinearity of order n puts its distortion product for the *frequency
+# that is currently being swept* exactly `T * ln(n) / ln(f2/f1)` before the linear impulse response. So a
+# 5 s sweep that already contains the room's answer also contains H2..H5 at fixed lags - no extra
+# measurement, no extra second of playback. The windows are ±1 ms, which is why the 4 ms pre-window of
+# `AnalyzerConfig` never sees them: the magnitude measurement stays distortion-free.
+
+HARMONIC_ORDERS = (2, 3, 4, 5)
+HARMONIC_WINDOW_S = 0.001
+# The linear peak must sit this far above the local (non-harmonic) floor, otherwise the deconvolution is
+# noise and there is nothing to subtract from.
+MIN_PEAK_ABOVE_FLOOR_DB = 12.0
+# A harmonic window must clear that floor by this much to count as *observed*; anything closer is noise.
+HARMONIC_FLOOR_MARGIN_DB = 6.0
+# Warning thresholds (docs/AUDIO_ROADMAP.md, W3).
+DISTORTION_WARN_PCT = 3.0
+# The roadmap proposed "H3 - H2 > 6 dB" as the rattle signature. Measured against a symmetric soft clip -
+# which is what a driven driver actually does - that rule fires on everything: symmetric nonlinearity
+# produces *only* odd orders, so H3 sits 46 dB above H2 while nothing rattles. A mechanical buzz is
+# impulsive, i.e. broadband: its harmonics do not decay with order. The rule is therefore "rich high-order
+# content": H5 within this many dB of H3.
+RATTLE_H5_MINUS_H3_DB = -6.0
+# Control points in ln(order) units, deliberately *between* the harmonics: whatever sits there is the
+# room's own decay (or noise), not a distortion product.
+_FLOOR_LN_OFFSETS = (0.55, 0.90, 1.25, 1.50, 1.85)
+
+
+def _window_peak(x: np.ndarray, index: int, half: int) -> float:
+    """Largest |x| within ±`half` samples of `index`, wrapped (the deconvolution is circular)."""
+    idx = (index + np.arange(-half, half + 1)) % x.size
+    return float(np.max(np.abs(x[idx])))
+
+
+def harmonic_distortion(ir: np.ndarray, peak: int, sweep_seconds: float,
+                        f1: float, f2: float, fs: int) -> dict | None:
+    """H2..H5 relative to the linear peak and THD in percent, or None when the floor is too close.
+
+    `thd_pct` is the standard definition, `sqrt(sum_n a_n^2) * 100` with `a_n` the amplitude ratio of
+    harmonic n - i.e. every observed harmonic contributes, and a harmonic that does not clear the floor
+    is left out instead of being reported as noise.
+    """
+    half = max(1, int(round(HARMONIC_WINDOW_S * fs)))
+    span = math.log(f2 / f1)
+    if span <= 0.0 or sweep_seconds <= 0.0:
+        return None
+    def lag_index(ln_order: float) -> int:
+        return int(round(peak - sweep_seconds * ln_order / span * fs))
+    linear = _window_peak(ir, peak, half)
+    if linear <= 0.0:
+        return None
+    floor = max(_window_peak(ir, lag_index(u), half) for u in _FLOOR_LN_OFFSETS)
+    floor = max(floor, 1e-20)
+    peak_above_floor = 20.0 * math.log10(linear / floor)
+    if peak_above_floor < MIN_PEAK_ABOVE_FLOOR_DB:
+        return None
+    harmonics: dict[int, float] = {}
+    for order in HARMONIC_ORDERS:
+        level = _window_peak(ir, lag_index(math.log(order)), half)
+        if 20.0 * math.log10(max(level, 1e-20) / floor) < HARMONIC_FLOOR_MARGIN_DB:
+            continue
+        harmonics[order] = 20.0 * math.log10(max(level, 1e-20) / linear)
+    if not harmonics:
+        return None
+    thd_pct = 100.0 * math.sqrt(sum(10.0 ** (db / 10.0) for db in harmonics.values()))
+    h3_minus_h2 = (harmonics[3] - harmonics[2]) if (2 in harmonics and 3 in harmonics) else None
+    return {
+        "harmonics_db": harmonics,
+        "thd_pct": thd_pct,
+        "h3_minus_h2_db": h3_minus_h2,
+        "peak_above_floor_db": peak_above_floor,
+    }
+
+
+# ------------------------------------------------------------ room decay (W4) --
+
+REVERB_WARN_S = 0.8
+# How far below the end of the fit region (-25 dB) the noise plateau must sit for the fit to be believable.
+NOISE_CLEARANCE_DB = 10.0
+# The direct sound is not room decay: it is a few milliseconds of energy that would otherwise occupy the
+# first 10-15 dB of the Schroeder curve and make every room look ~40 % drier than it is (measured on
+# synthetic rooms: 0.50 s read as 0.27 s with the direct sound included, 0.50 s with this skip).
+_DIRECT_SKIP_S = 0.010
+
+
+def estimate_t30(ir: np.ndarray, peak: int, fs: int, max_seconds: float = 2.0) -> float | None:
+    """Reverberation time from the *unwindowed* response after the direct arrival (Schroeder).
+
+    The decay curve is integrated from the end of the window backwards, the direct sound is skipped (see
+    [_DIRECT_SKIP_S]) and the slope is a least-squares fit over the -5 .. -25 dB region, extrapolated to
+    60 dB (`T20 * 3`). The fit region, not a fixed -35 dB point, is what makes this robust: a recording's
+    noise floor ends the decay in a plateau, and a plateau has no slope - a threshold-based T30 would
+    happily extrapolate the plateau and report a church for a dry room.
+
+    Returns None ("unknown") when the curve never decays 25 dB within the window, when the -5 dB point is
+    not reached at all, or when the fitted region is not straight (R² < 0.98) - three ways of saying "this
+    recording cannot answer the question".
+    """
+    start = max(0, peak) + int(round(_DIRECT_SKIP_S * fs))
+    end = min(ir.size, peak + int(round(max_seconds * fs)))
+    if end - start < int(0.05 * fs):
+        return None
+    energy = ir[start:end] ** 2
+    total = np.cumsum(energy[::-1])[::-1]
+    if total[0] <= 0.0:
+        return None
+    decay_db = 10.0 * np.log10(np.maximum(total / total[0], 1e-30))
+    times = np.arange(decay_db.size) / fs
+
+    # A decay curve ends in the noise plateau of the deconvolution. If that plateau already sits inside
+    # the fit region, the "slope" is the noise, and the extrapolation turns a traffic jam into a cathedral
+    # (measured: 5.3-5.5 s on a 0.9 s room at 20 dB SNR). The fit region must therefore be well clear of it.
+    plateau = float(np.median(decay_db[int(0.75 * decay_db.size):]))
+    if plateau > -25.0 - NOISE_CLEARANCE_DB:
+        return None
+    fit = (decay_db <= -5.0) & (decay_db >= -25.0)
+    if fit.sum() < 8:
+        return None
+    t, y = times[fit], decay_db[fit]
+    if t[-1] - t[0] < 0.02:
+        return None
+    slope, intercept = np.polyfit(t, y, 1)
+    if slope >= 0.0:
+        return None
+    r2 = 1.0 - float(np.sum((y - (slope * t + intercept)) ** 2)) / max(float(np.sum((y - np.mean(y)) ** 2)), 1e-30)
+    if r2 < 0.98:
+        return None
+    return float(-60.0 / slope)
 def analyze(
     recording: np.ndarray,
     stim: Stimulus,
@@ -588,6 +721,19 @@ def analyze(
     if latency >= max_lag - int(round(LATENCY_EDGE_SECONDS * fs)):
         warnings.append("LATENCY_OUT_OF_RANGE")
 
+    # W3/W4: both come out of the same deconvolution - no extra playback, no extra capture time.
+    distortion = harmonic_distortion(
+        ir, latency, plan.sweep_length / fs, plan.sweep_start_hz, plan.sweep_end_hz, fs)
+    if distortion is not None:
+        if distortion["thd_pct"] >= DISTORTION_WARN_PCT:
+            warnings.append("SPEAKER_DISTORTION")
+        harmonics = distortion["harmonics_db"]
+        if 3 in harmonics and 5 in harmonics and harmonics[5] - harmonics[3] > RATTLE_H5_MINUS_H3_DB:
+            warnings.append("DRIVER_RATTLE")
+    rt60 = estimate_t30(ir, latency, fs)
+    if rt60 is not None and rt60 > REVERB_WARN_S:
+        warnings.append("REVERBERANT_ROOM")
+
     return MeasurementResult(
         sample_rate=fs,
         frequencies=grid,
@@ -602,4 +748,8 @@ def analyze(
         median_snr_db=median_snr,
         warnings=warnings,
         normalization_db=norm,
+        thd_pct=None if distortion is None else distortion["thd_pct"],
+        harmonics_db={} if distortion is None else distortion["harmonics_db"],
+        h3_minus_h2_db=None if distortion is None else distortion["h3_minus_h2_db"],
+        room_rt60_s=rt60,
     )

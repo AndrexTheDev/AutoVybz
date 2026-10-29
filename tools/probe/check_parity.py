@@ -189,6 +189,57 @@ def main() -> int:
     ok &= check("polyphase stays within 0.1 dB of the reference on band-limited material",
                 gap < 0.1, f"{gap:.3f} dB")
 
+    # --- HarmonicDistortion + RoomDecay (app: `measurement/dsp/…`, pinned by their JVM tests) ------
+    # Same synthetic fixture as `HarmonicDistortionTest`: only the windows' contents differ from zero, so
+    # the expected levels are exactly 20 log10 of the amplitude ratios.
+    fs_h, sweep_s, f1, f2 = 48000, 5.0, 30.0, 18000.0
+    n_h, peak_h = 1 << 16, 20000
+
+    def _lag(order: float) -> int:
+        return int(round(peak_h - sweep_s * math.log(order) / math.log(f2 / f1) * fs_h))
+
+    def _harmonic_ir(*harmonics: tuple[int, float]) -> np.ndarray:
+        x = np.zeros(n_h)
+        x[peak_h] = 1.0
+        for order, amplitude in harmonics:
+            x[_lag(order)] = amplitude
+        return x
+
+    clean = dsp.harmonic_distortion(_harmonic_ir(), peak_h, sweep_s, f1, f2, fs_h)
+    ok &= check("harmonic analysis rejects a linear system", clean is None)
+    found = dsp.harmonic_distortion(_harmonic_ir((2, 0.1), (3, 0.01), (5, 0.001)), peak_h, sweep_s, f1, f2, fs_h)
+    ok &= check("harmonic levels land at 20 log10 of the ratios",
+                found is not None and abs(found["harmonics_db"][2] + 20.0) < 0.3
+                and abs(found["harmonics_db"][3] + 40.0) < 0.3 and abs(found["harmonics_db"][5] + 60.0) < 0.3,
+                "H2 {:.1f} / H3 {:.1f} / H5 {:.1f} dB".format(*[found["harmonics_db"][o] for o in (2, 3, 5)]) if found else "none")
+    ok &= check("THD is sqrt(sum a_n^2)", found is not None and abs(found["thd_pct"] - 10.05) < 0.05,
+                f"{found['thd_pct']:.2f} %" if found else "none")
+    buzz = dsp.harmonic_distortion(_harmonic_ir((2, 0.02), (3, 0.02), (4, 0.018), (5, 0.017)), peak_h, sweep_s, f1, f2, fs_h)
+    clip = dsp.harmonic_distortion(_harmonic_ir((3, 0.05), (5, 0.005)), peak_h, sweep_s, f1, f2, fs_h)
+    ok &= check("rattle rule: flat series buzzes, odd-order clipping does not",
+                buzz is not None and clip is not None
+                and buzz["harmonics_db"][5] - buzz["harmonics_db"][3] > dsp.RATTLE_H5_MINUS_H3_DB
+                and clip["harmonics_db"][5] - clip["harmonics_db"][3] <= dsp.RATTLE_H5_MINUS_H3_DB,
+                f"buzz {buzz['harmonics_db'][5] - buzz['harmonics_db'][3]:+.1f} dB, clip {clip['harmonics_db'][5] - clip['harmonics_db'][3]:+.1f} dB")
+
+    # `RoomDecayTest`: noise shaped by exp(-6.9078 t / T60) 10 ms after the direct sound.
+    rng = np.random.default_rng(0x5EED)
+    t = np.arange(3 * fs_h) / fs_h
+    for rt60 in (0.4, 0.9, 1.2):
+        # The JVM test normalises the tail to 20 % of the direct sound; scaling does not change T60.
+        tail = rng.uniform(-1.0, 1.0, t.size) * np.exp(-6.9078 * np.maximum(t - 0.1, 0.0) / rt60)
+        ir_decay = tail * 0.2 + np.where(t >= 0.1, 0.0, 0.0)
+        ir_decay[t.size // 10] = 1.0
+        estimate = dsp.estimate_t30(ir_decay, t.size // 10, fs_h)
+        ok &= check(f"room decay {rt60} s", estimate is not None and abs(estimate - rt60) <= rt60 * 0.15,
+                    f"{estimate:.2f} s" if estimate else "unknown")
+    dry = np.zeros(3 * fs_h)
+    dry[t.size // 10] = 1.0
+    ok &= check("room decay of a dry response is 'unknown'", dsp.estimate_t30(dry, t.size // 10, fs_h) is None)
+    ok &= check("reverb boost trust is 1/(1+T60)",
+                abs(eqfit.dsp_room_boost_trust(1.0) - 0.5) < 1e-12
+                and abs(eqfit.dsp_room_transition_hz(0.9) - 300.0) < 10.0)
+
     print("\nparity:", "OK" if ok else "FAILED")
     return 0 if ok else 1
 

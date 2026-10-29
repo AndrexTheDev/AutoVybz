@@ -38,6 +38,23 @@ enum class MeasurementWarning {
      * the average; the result is built from the remaining positions.
      */
     POSITION_OUTLIER,
+    /**
+     * The loudspeaker distorts more than [HarmonicDistortion.THD_WARN_PERCENT] during the sweep: it is
+     * either driven too loud (the fix is one volume step quieter and a repeat) or its driver is damaged.
+     */
+    SPEAKER_DISTORTION,
+    /**
+     * The harmonic series of the sweep does not fall with order (H5 within
+     * [HarmonicDistortion.RATTLE_RATIO_DB] of H3) - the signature of something mechanical: a loose panel,
+     * a torn surround, a screw in the housing.
+     */
+    DRIVER_RATTLE,
+    /**
+     * The room rings ([RoomDecay.REVERBERANT_THRESHOLD_S] or more). The measurement stays usable, but the
+     * correction boosts less above the room's transition frequency, and the user should know why the
+     * result sounds softer in the mids than the last one.
+     */
+    REVERBERANT_ROOM,
 }
 
 class MeasurementException(val reason: Reason, message: String) : Exception(message) {
@@ -81,6 +98,14 @@ class MeasurementResult(
     val warnings: List<MeasurementWarning>,
     /** Offset that was subtracted for normalisation (absolute level info). */
     val normalizationDb: Double,
+    /** THD of the loudspeaker during the sweep in percent, `null` when it could not be measured. */
+    val thdPercent: Double? = null,
+    /** Observed harmonics relative to the linear peak (dB), keyed by order (2..5). */
+    val harmonicsDb: Map<Int, Double> = emptyMap(),
+    /** H3 − H2 in dB; `null` unless both were observed. */
+    val h3MinusH2Db: Double? = null,
+    /** Reverberation time of the room in seconds, `null` when the recording cannot answer that. */
+    val roomRt60S: Double? = null,
 ) {
     /** Same result with additional warnings (e.g. detected by the capture layer); unchanged if nothing is new. */
     fun withExtraWarnings(extra: Collection<MeasurementWarning>): MeasurementResult {
@@ -89,6 +114,7 @@ class MeasurementResult(
         return MeasurementResult(
             sampleRate, frequencies, rawDb, smoothedDb, thirdOctaveDb, sweepSmoothedDb, pinkSmoothedDb, snrDb,
             latencyMs, inputPeak, medianSnrDb, merged, normalizationDb,
+            thdPercent, harmonicsDb, h3MinusH2Db, roomRt60S,
         )
     }
 }
@@ -219,6 +245,18 @@ class MeasurementAnalyzer(private val fft: FftEngine = KotlinFft) {
         if (noiseTailDb != null && NoiseChecks.isUnsteady(grid, noiseHeadDb, noiseTailDb, medianSnr)) {
             warnings += MeasurementWarning.NOISE_UNSTEADY
         }
+        // ---- 6b. Distortion and room decay: both read out of the deconvolution that already exists ----
+        // The windows sit outside the magnitude window, so neither can bias the frequency response.
+        val distortion = HarmonicDistortion.analyse(
+            ir, latency, plan.sweepLength.toDouble() / fs, plan.sweepStartHz, plan.sweepEndHz, fs,
+        )
+        if (distortion != null) {
+            if (distortion.thdPercent >= HarmonicDistortion.THD_WARN_PERCENT) warnings += MeasurementWarning.SPEAKER_DISTORTION
+            if (distortion.isRattleLike) warnings += MeasurementWarning.DRIVER_RATTLE
+        }
+        val rt60 = RoomDecay.estimate(ir, latency, fs)
+        if (rt60 != null && rt60 >= RoomDecay.REVERBERANT_THRESHOLD_S) warnings += MeasurementWarning.REVERBERANT_ROOM
+
         val dropStart = plan.pinkStart + latency + plan.fadeInSamples
         val dropEnd = minOf(plan.pinkStart + plan.pinkLength - plan.fadeInSamples + latency, recording.size)
         if (NoiseChecks.hasDropout(signal, dropStart, dropEnd, fs)) warnings += MeasurementWarning.DROPOUT
@@ -237,6 +275,10 @@ class MeasurementAnalyzer(private val fft: FftEngine = KotlinFft) {
             medianSnrDb = medianSnr,
             warnings = warnings,
             normalizationDb = norm,
+            thdPercent = distortion?.thdPercent,
+            harmonicsDb = distortion?.harmonicsDb ?: emptyMap(),
+            h3MinusH2Db = distortion?.h3MinusH2Db,
+            roomRt60S = rt60,
         )
     }
 

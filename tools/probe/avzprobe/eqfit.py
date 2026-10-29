@@ -382,6 +382,7 @@ class AutoEqSettings:
     protective_high_pass_hz: float | None = None
     high_boost_cap_db: float | None = None
     high_boost_cap_start_hz: float = 6000.0
+    room_rt60_s: float | None = None
 
 
 @dataclass
@@ -697,6 +698,21 @@ class AutoEqResult:
     noise_gated_ranges: list[tuple[float, float]] = field(default_factory=list)
 
 
+ASSUMED_ROOM_VOLUME_M3 = 40.0
+
+
+def dsp_room_boost_trust(rt60_s: float) -> float:
+    """`RoomDecay.boostTrust`: a ringing room justifies fewer boosts, never fewer cuts."""
+    return 1.0 if rt60_s <= 0.0 else 1.0 / (1.0 + rt60_s)
+
+
+def dsp_room_transition_hz(rt60_s: float) -> float:
+    """`RoomDecay.transitionHz`: Schroeder frequency for an assumed 40 m3 room, clamped 150-600 Hz."""
+    if rt60_s <= 0.0:
+        return float("inf")
+    return min(max(2000.0 * math.sqrt(rt60_s / ASSUMED_ROOM_VOLUME_M3), 150.0), 600.0)
+
+
 def _normalise(f: np.ndarray, v: np.ndarray) -> np.ndarray:
     ref = band_mean(f, v, 300.0, 3000.0)
     return v if ref == 0.0 or not math.isfinite(ref) else v - ref
@@ -734,6 +750,14 @@ def render(
     reliable = (np.array([reliability(s, settings.min_snr_db, settings.full_snr_db) for s in snr_db])
                 if snr_db is not None else np.ones(frequencies.size))
     broad = median_log(frequencies, measured_db, settings.broad_boost_octaves) if settings.broad_boost_octaves else None
+    # `AutoEqSettings.roomRt60S` mirror: a ringing room gets less boost above its transition frequency.
+    reverb_factor = None
+    if settings.room_rt60_s is not None and settings.room_rt60_s > 0.0:
+        trust = dsp_room_boost_trust(settings.room_rt60_s)
+        f0 = dsp_room_transition_hz(settings.room_rt60_s)
+        def reverb_factor(f: float) -> float:
+            t = min(max((math.log2(f / f0) + 0.25) / 0.5, 0.0), 1.0)
+            return 1.0 + t * (trust - 1.0)
     cut_trust = min(max(settings.cut_trust, 0.1), 1.0)
     cut_trust_low = min(max(settings.cut_trust_low, 0.1), 1.0)
 
@@ -745,6 +769,8 @@ def render(
         raw = float(target_db[i] - measured_db[i])
         if broad is not None and raw > 0:
             raw = min(raw, max(0.0, float(target_db[i] - broad[i])))
+        if raw > 0 and reverb_factor is not None:
+            raw *= reverb_factor(f)
         ct = cut_trust_low if (settings.cut_trust_low_hz > 0.0 and f < settings.cut_trust_low_hz) else cut_trust
         scaled = raw * ct if raw < 0.0 else raw
         desired[i] = min(max(scaled, -settings.max_cut_db * ct), boost_cap) * in_range[i] * reliable[i]

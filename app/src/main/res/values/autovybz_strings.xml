@@ -429,4 +429,7 @@
     <string name="avz_help_device_title">Calibrating this phone or tablet</string>
     <string name="avz_help_device_body">The speaker type for this device measures the built-in speakers with the built-in microphone: disconnect all external outputs and lay the device screen-up on a table. Because the microphone sits only a few centimetres from the speaker, AutoVybz corrects gently and only up to 12 kHz – but it removes the inaudible deep bass that only makes small speakers distort, tames the typical shouty mids and keeps the limiter armed. The result is a normal profile; switch profiles when you connect an external speaker again.</string>
     <string name="avz_warn_position_outlier">One of the positions differed strongly from the others and is not included in the average. If the result looks wrong, measure again.</string>
+    <string name="avz_warn_speaker_distortion">The speaker distorts noticeably at this volume (about %1$s %%). Either measure one volume step quieter or have the speaker checked – a damaged driver sounds like this too.</string>
+    <string name="avz_warn_driver_rattle">Something is rattling or buzzing along: a loose panel, a screw or a torn surround. The correction cannot repair that – moving the speaker or tightening the housing helps more than any EQ.</string>
+    <string name="avz_warn_reverberant_room">This room rings a lot (%1$s s). The measurement stays usable, but the result will sound softer in the mids than a dry room would – and a correction cannot make a lively room dry.</string>
 </resources>

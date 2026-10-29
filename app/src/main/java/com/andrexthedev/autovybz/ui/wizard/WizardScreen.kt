@@ -99,6 +99,7 @@ import com.andrexthedev.autovybz.measurement.ListeningEnvironment
 import com.andrexthedev.autovybz.measurement.MeasurementProgress
 import com.andrexthedev.autovybz.measurement.SpeakerClass
 import com.andrexthedev.autovybz.measurement.audio.RouteClassifier
+import com.andrexthedev.autovybz.measurement.dsp.MeasurementResult
 import com.andrexthedev.autovybz.measurement.dsp.MeasurementWarning
 import com.andrexthedev.autovybz.measurement.eq.PeqType
 import com.andrexthedev.autovybz.measurement.eq.TargetType
@@ -855,7 +856,7 @@ private fun ResultStep(
 
     // Warnings
     for (w in r.warnings) {
-        val text = warningText(w, r.latencyMs)
+        val text = warningText(w, r.latencyMs, r)
         val severe = w in SEVERE_WARNINGS
         Row(
             Modifier.fillMaxWidth().clip(MaterialTheme.shapes.small)
@@ -1200,7 +1201,7 @@ internal fun avzTextFieldColors() = OutlinedTextFieldDefaults.colors(
 )
 
 @Composable
-private fun warningText(w: MeasurementWarning, latencyMs: Double): String = when (w) {
+private fun warningText(w: MeasurementWarning, latencyMs: Double, result: MeasurementResult? = null): String = when (w) {
     MeasurementWarning.CLIPPING -> stringResource(R.string.avz_warn_clipping)
     MeasurementWarning.LOW_SNR -> stringResource(R.string.avz_warn_low_snr)
     MeasurementWarning.SWEEP_NOISE_MISMATCH -> stringResource(R.string.avz_warn_mismatch)
@@ -1211,12 +1212,17 @@ private fun warningText(w: MeasurementWarning, latencyMs: Double): String = when
     MeasurementWarning.DROPOUT -> stringResource(R.string.avz_warn_dropout)
     MeasurementWarning.AUDIO_GLITCH -> stringResource(R.string.avz_warn_glitch)
     MeasurementWarning.POSITION_OUTLIER -> stringResource(R.string.avz_warn_position_outlier)
+    // Numbers, not adjectives: the user can act on "3.4 %" and "0.9 s", not on "noticeably".
+    MeasurementWarning.SPEAKER_DISTORTION ->
+        stringResource(R.string.avz_warn_speaker_distortion, fmt1(result?.thdPercent ?: 0.0))
+    MeasurementWarning.DRIVER_RATTLE -> stringResource(R.string.avz_warn_driver_rattle)
+    MeasurementWarning.REVERBERANT_ROOM -> stringResource(R.string.avz_warn_reverberant_room, fmt1(result?.roomRt60S ?: 0.0))
 }
 
 /** Warnings that make the result questionable (highlighted in gold). */
 private val SEVERE_WARNINGS = setOf(
     MeasurementWarning.CLIPPING, MeasurementWarning.LOW_SNR, MeasurementWarning.DROPOUT, MeasurementWarning.AUDIO_GLITCH,
-    MeasurementWarning.LATENCY_OUT_OF_RANGE,
+    MeasurementWarning.LATENCY_OUT_OF_RANGE, MeasurementWarning.SPEAKER_DISTORTION,
 )
 
 /** "41–320 Hz" / "3.0–8.0 kHz". */

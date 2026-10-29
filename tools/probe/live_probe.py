@@ -98,6 +98,8 @@ class CaseResult:
     # the largest boost inside a region where they disagree by more than NULL_SPREAD_DB.
     positions: int
     positions_used: int
+    thd_pct: float | None
+    room_rt60_s: float | None
     position_spread_db: float
     null_boost_db: float
     # Deepest single sample of gain reduction: the mean is near 0 whenever the peaks only just cross the
@@ -275,8 +277,13 @@ def run_case(
     mic_error_db: float = 0.0,
     positions: int = 1,
     truth_positions: int = 0,
+    rt60_s: float = 0.0,
+    distortion_drive: float = 0.0,
+    reverb_gate: bool = True,
 ) -> CaseResult:
     model = rooms.SCENARIOS[scenario]
+    if rt60_s > 0.0 or distortion_drive > 0.0:
+        model = rooms.stressed(model, rt60_s=rt60_s, drive=distortion_drive)
     noise_cfg = rooms.NOISE_PROFILES[noise]
     stim = dsp.stimulus()
     fs = audio.SAMPLE_RATE
@@ -307,7 +314,8 @@ def run_case(
     # --- 1. the "device": one real sweep per position ---------------------------------------
     def measure_at(index: int):
         ir = rooms.impulse_response(variants[index], dsp.next_power_of_two(stim.signal.size + 8192))
-        clean = rooms.convolve(stim.signal, ir)
+        clean = rooms.apply_distortion(variants[index], stim.signal)
+        clean = rooms.convolve(clean, ir)
         clean *= 0.25  # a comfortable measuring level, -12 dBFS for the -6 dBFS stimulus
         # Independent noise per position: that is what makes a position repeat meaningful.
         white, rumble = _noise_signal(clean.size, noise_cfg["snr_db"], noise_cfg["lf_rumble_db"], seed=7 + index)
@@ -325,6 +333,8 @@ def run_case(
     position_spread = float(np.max(_spread_between([per_position[i].smoothed_db for i in kept])))
 
     settings = eqfit.auto_eq_settings(band_count, env_tuning, cls)
+    if reverb_gate and measurement.room_rt60_s is not None:
+        settings.room_rt60_s = measurement.room_rt60_s
     eq_env, eq_cls = env_tuning, cls
     correction = eqfit.render(
         measurement.frequencies,
@@ -534,6 +544,8 @@ def run_case(
         limiter_max_gr_db=max_gr,
         positions=positions,
         positions_used=len(kept),
+        thd_pct=measurement.thd_pct,
+        room_rt60_s=measurement.room_rt60_s,
         position_spread_db=position_spread,
         null_boost_db=null_boost,
         failures=failures,
@@ -557,6 +569,55 @@ CASES = [
 ]
 
 
+# --------------------------------------------------------------- field failures (W3/W4) --
+#
+# The six standard cases are a *healthy* chain, and they must stay healthy: no distortion, no reverb, no
+# new warning. What the new metrics exist for is the other end - a driver driven too hard and a room that
+# rings. These three cases pin that end, so a metric that silently stops firing is caught.
+
+STRESS_CASES = (
+    # scenario, class, env, target, noise, rt60, drive, expected warnings, expectation text
+    ("bt-minibox", "STANDARD", "INDOOR", "SMART", "quiet-room", 0.0, 0.05,
+     {"SPEAKER_DISTORTION"}, "a driven mini box is heard as distortion"),
+    ("bt-minibox", "STANDARD", "INDOOR", "SMART", "quiet-room", 1.0, 0.0,
+     {"REVERBERANT_ROOM"}, "a 1 s room is heard as reverberant"),
+    ("bt-minibox", "STANDARD", "INDOOR", "SMART", "quiet-room", 0.0, 0.0,
+     set(), "a clean chain raises neither warning"),
+)
+
+
+def run_stress(music: np.ndarray, music_power: np.ndarray) -> int:
+    print("\n=== field failures: does the app notice?")
+    failures = 0
+    for scenario, cls, env, target, noise, rt60, drive, expected, text in STRESS_CASES:
+        res = run_case(scenario, cls, env, target, noise, music, music_power,
+                       rt60_s=rt60, distortion_drive=drive)
+        raised = {w for w in res.warnings if w in ("SPEAKER_DISTORTION", "DRIVER_RATTLE", "REVERBERANT_ROOM")}
+        detail = []
+        if res.thd_pct is not None:
+            detail.append(f"thd {res.thd_pct:.2f} %")
+        if res.room_rt60_s is not None:
+            detail.append(f"rt60 {res.room_rt60_s:.2f} s")
+        detail.append(f"tonal {res.tonal_rms_before_db:.2f} -> {res.tonal_rms_after_db:.2f} dB")
+        problems = []
+        if raised != expected:
+            problems.append(f"warnings {sorted(raised)} != {sorted(expected)}")
+        if rt60 > 0.0 and res.room_rt60_s is not None and abs(res.room_rt60_s - rt60) > 0.2:
+            problems.append(f"rt60 off by {abs(res.room_rt60_s - rt60):.2f} s")
+        if rt60 > 0.0 and res.room_rt60_s is None:
+            problems.append("rt60 not measured")
+        if drive > 0.0 and (res.thd_pct is None or res.thd_pct < 3.0):
+            problems.append("driven speaker not measured as distorted")
+        # A correction must still help in a ringing room: reporting is not an excuse to give up.
+        if res.tonal_rms_after_db > res.tonal_rms_before_db - 0.25 and res.tonal_rms_after_db > 3.0:
+            problems.append(f"correction did not help ({res.tonal_rms_before_db:.2f} -> {res.tonal_rms_after_db:.2f} dB)")
+        print(f"{'ok  ' if not problems else 'FAIL'} {text:46s} " + "  ".join(detail)
+              + ("" if not problems else "  <- " + "; ".join(problems)))
+        failures += bool(problems)
+    print(f"\n{len(STRESS_CASES) - failures}/{len(STRESS_CASES)} field-failure cases behave")
+    return failures
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--music", action="append", default=[], help="real recording(s) to audition (any ffmpeg format)")
@@ -566,6 +627,12 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--truth-positions", type=int, default=0,
                     help="positions the result is judged at (default: same as --positions). "
                          "--positions 1 --truth-positions 3 answers \"is one measurement enough?\"")
+    ap.add_argument("--rt60", type=float, default=0.0,
+                    help="add a diffuse room tail with this reverberation time (s) to every case (W4)")
+    ap.add_argument("--drive", type=float, default=0.0,
+                    help="drive the modelled speaker into soft saturation by this fraction (W3)")
+    ap.add_argument("--stress", action="store_true",
+                    help="also run the three field-failure cases (distortion, reverberation, clean chain)")
     ap.add_argument("--positions", type=int, default=1,
                     help="listening positions per case (1 = the single-position truth the probe always used; "
                          "3 = room modes and comb notches move between positions, so a dip can be judged as "
@@ -586,7 +653,8 @@ def main(argv: list[str] | None = None) -> int:
         for scenario, cls, env, target, noise in CASES:
             res = run_case(scenario, cls, env, target, noise, music, music_power,
                            mic_error_db=args.mic_error, positions=max(1, args.positions),
-                           truth_positions=args.truth_positions)
+                           truth_positions=args.truth_positions, rt60_s=args.rt60,
+                           distortion_drive=args.drive)
             results.append(res)
             status = "ok  " if res.ok else "FAIL"
             print(f"{status} {scenario:13s} {cls:8s} {env:7s} {target:10s} {noise:10s} "
@@ -597,12 +665,18 @@ def main(argv: list[str] | None = None) -> int:
                   + (f"  null-boost {res.null_boost_db:4.2f} dB  spread {res.position_spread_db:4.1f} dB"
                      if res.positions > 1 else "")
                   + (f"  used {res.positions_used}/{res.positions}" if res.positions_used < res.positions else "")
+                  + (f"  thd {res.thd_pct:4.2f} %" if res.thd_pct is not None else "")
+                  + (f"  rt60 {res.room_rt60_s:4.2f} s" if res.room_rt60_s is not None else "")
                   + (f"  limiter mean {res.limiter_mean_gr_db:4.2f} max {res.limiter_max_gr_db:5.2f} dB / "
                      f"{res.limiter_stress_pct:4.1f} %" if res.limiter_armed else "")
                   + ("" if res.ok else "  <- " + "; ".join(res.failures)))
 
     failed = [r for r in results if not r.ok]
     print(f"\n{len(results) - len(failed)}/{len(results)} cases within every threshold")
+    stress_failures = 0
+    if args.stress and music_paths:
+        last = load_music(music_paths[-1])
+        stress_failures = run_stress(last, 10.0 ** (audio.stats(last).spectrum_db / 10.0))
 
     if args.json:
         with open(args.json, "w", encoding="utf-8") as fh:
@@ -610,7 +684,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.markdown:
         with open(args.markdown, "w", encoding="utf-8") as fh:
             fh.write(_markdown(results))
-    return 0 if not failed else 1
+    return 0 if not failed and not stress_failures else 1
 
 
 def _markdown(results: list[CaseResult]) -> str:

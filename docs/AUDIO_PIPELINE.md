@@ -31,7 +31,8 @@ rooms. It is the reference for the code in `measurement/audio`, `measurement/dsp
 | 11 | Noise floor + SNR | `NoiseChecks`, `SpectrumBinning` | per-band SNR, `NOISE_UNSTEADY`, `LOW_FREQ_NOISE`, `DROPOUT` |
 | 12 | **SNR-weighted combine** | `blendWeight` | one magnitude curve |
 | 13 | Mic compensation + normalization | `MicCompensation`, `FrequencyGrid.bandMean` | 0 dB @ 300 Hz–3 kHz |
-| 14 | Target inversion | `AutoEqRenderer` | PEQ bands, pre-gain, safety |
+| 14 | **Speaker health** | `HarmonicDistortion`, `RoomDecay` | THD, H2…H5, `SPEAKER_DISTORTION`, `DRIVER_RATTLE`, room T60, `REVERBERANT_ROOM` |
+| 15 | Target inversion | `AutoEqRenderer` | PEQ bands, pre-gain, safety |
 
 The bold stages are the refinements of this iteration.
 
@@ -190,6 +191,27 @@ inside a region where the positions disagree by more than 6 dB gets no boost at 
 probe's position-aware room model, the largest narrow boost inside such a region is 1.96 dB, where the
 unconstrained fitter put 4 dB of Q 4 boost into a mode null.
 
+## 8c. Two free metrics: distortion and room decay
+
+Both come out of the deconvolution the analyzer already has – no extra playback, no extra capture second.
+
+**Distortion (`HarmonicDistortion`).** Farina's sweep maps the n-th harmonic of a memoryless nonlinearity to
+a fixed lag, `T·ln(n)/ln(f2/f1)` before the main peak (≈ −0.5 s for H2 on the 5 s sweep). The analyzer reads
+H2…H5 there in ±1 ms windows and compares them with a *local* floor sampled between the harmonics – the
+room's own decay, not a global noise number. A harmonic that does not clear the floor by 6 dB is dropped;
+a peak that does not clear it by 12 dB yields no THD at all (rather than "0.0 %"). Above 3 % the wizard
+raises `SPEAKER_DISTORTION` (severe: measure one step quieter), and a harmonic series that does not fall
+with order (`H5` within 6 dB of `H3` – the signature of a buzzing panel, unlike the odd-order-only series
+of a soft clip) raises `DRIVER_RATTLE`.
+
+**Room decay (`RoomDecay`).** Schroeder backward integration of the *unwindowed* response, direct sound
+skipped, slope fitted over −5 … −25 dB and extrapolated to T60. Two gates keep the number honest: the
+direct sound must be out of the window (it otherwise makes every room ~40 % drier) and the noise plateau
+must sit 10 dB below the fit region (a plateau has no slope – extrapolating it turned a 0.9 s room into
+5.4 s in the traffic model). Otherwise the answer is "unknown". From 0.8 s the wizard says "this room rings
+a lot (1.0 s)"; the result itself is unchanged, because the boost gate that could act on it could not be
+shown to help (see `docs/AUDIO_ROADMAP.md`, W4).
+
 ## 9. Failure modes → countermeasures → tests
 
 | # | Failure mode | Symptom without countermeasure | Countermeasure | Test |
@@ -206,6 +228,9 @@ unconstrained fitter put 4 dB of Q 4 boost into a mode null.
 | 10 | Inter-sample peak above 0 dBFS | distortion on the DAC although "0 clipped samples" | 4× oversampled true peak (`TruePeak`), limiter headroom 4.0 → 3.5 dB | `TruePeakTest`, `check_parity.py` peak block, probe `peak_dbtp` |
 | 11 | One disturbed microphone position | average pulled towards a response nobody hears | power average + `max(3 × median, 1.5 dB)` outlier rule, `POSITION_OUTLIER` | `SpatialAveragerTest` |
 | 12 | EQ fills a position-dependent null | excursion spent on a dip only one seat hears | 1-octave broad-boost rule indoors + `null_boost_db` gate | `AutoEqRendererTest` (broad boost), probe `--positions 3` |
+| 13 | Speaker driven past its limit (or damaged) | a "corrected" sound that is distorted at every level | THD from the sweep, `SPEAKER_DISTORTION` above 3 % | `HarmonicDistortionTest`, `pipeline_findings.py` finding 9, probe `--stress` |
+| 14 | Loose panel / torn surround | a rattle no EQ can remove | harmonic-series shape (`H5` vs `H3`), `DRIVER_RATTLE` | `HarmonicDistortionTest.onlyAFlatHarmonicSeriesCountsAsRattle`, probe `--stress` |
+| 15 | Lively room | measurement smoothed by its own reverb, user wonders why it sounds softer | reverb estimated from the same IR, `REVERBERANT_ROOM` ≥ 0.8 s | `RoomDecayTest`, `pipeline_findings.py` finding 10, probe `--rt60` |
 
 ## 10. Tuning knobs (and where they live)
 
@@ -226,3 +251,8 @@ unconstrained fitter put 4 dB of Q 4 boost into a mode null.
 | `TruePeak.OVERSAMPLE` / `TAPS_PER_PHASE` | 4 / 24 | intersection peak accuracy (0.17 dB grid limit) |
 | `PreampPlanner.LIMITER_HEADROOM_ALLOWANCE_DB` | 3.5 | make-up headroom below the limiter (4.0 − 0.5 dB ISP margin) |
 | `ListeningEnvironment.INDOOR.recommendedPositions` | 3 | positions the wizard asks for indoors |
+| `HarmonicDistortion.THD_WARN_PERCENT` | 3.0 | distortion that makes the measurement unusable |
+| `HarmonicDistortion.RATTLE_RATIO_DB` | −6.0 | H5 − H3 above which the series is flat (rattle) |
+| `RoomDecay.REVERBERANT_THRESHOLD_S` | 0.8 | from when the room counts as reverberant |
+| `RoomDecay.DIRECT_SKIP_SECONDS` | 0.010 | what is *not* room decay |
+| `RoomDecay.MIN_R_SQUARED` | 0.98 | how straight the decay must be to be believed |

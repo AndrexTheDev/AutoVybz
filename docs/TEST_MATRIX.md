@@ -12,11 +12,11 @@ the work:
 There is no JDK/Android SDK in the coding sandbox, so local verification is limited to the pure-Python and
 native host tools (see §5).
 
-## 1. JVM unit tests – 43 classes, 260 `@Test` methods
+## 1. JVM unit tests – 45 classes, 274 `@Test` methods
 
 | Package | Classes | What they pin down |
 |---|---|---|
-| `measurement/dsp` | `MeasurementAnalyzerTest` (13), `FftTest`, `StimulusGeneratorTest`, `SpatialAveragerTest` (9), `TruePeakTest` (8) | sweep deconvolution, latency window, SNR blending, power-of-two stimulus period per sample rate, spatial average + spread + outlier rejection, polyphase true peak |
+| `measurement/dsp` | `MeasurementAnalyzerTest` (13), `FftTest`, `StimulusGeneratorTest`, `SpatialAveragerTest` (9), `TruePeakTest` (8), `HarmonicDistortionTest` (7), `RoomDecayTest` (7) | sweep deconvolution, latency window, SNR blending, power-of-two stimulus period per sample rate, spatial average + spread + outlier rejection, polyphase true peak, harmonic lags/THD/rattle rule, reverb fit incl. its "unknown" cases |
 | `measurement/eq` | `AutoEqRendererTest` (20), `PreampPlannerTest` (9), `AutoEqPropertyTest`, `BiquadParityTest` | target inversion, band fitting, clipping-safe pre-gain, Kotlin↔C++ biquad parity |
 | `measurement/audio` | `CaptureRatesTest`, `CaptureTimingTest`, `RouteClassifierTest`, `InputSourceResolverTest` | rate negotiation, capture tail derivation, route verdicts, abandoned-volume rule, input device choice |
 | `measurement` | `OutdoorScenarioTest`, `SpeakerClassTuningTest`, `PerformanceBudgetTest` | outdoor/rescue/device tuning (incl. the indoor 1-octave / 3-position policy), analysis time budget |
@@ -80,10 +80,12 @@ Seven configurations, each running `ScreenshotTourE2ETest` + `LegacyScreensE2ETe
 ## 5. What can be verified without a device
 
 ```bash
-python3 tools/probe/check_parity.py                     # 33 self-checks: Python port vs. Kotlin goldens
+python3 tools/probe/check_parity.py                     # 42 self-checks: Python port vs. Kotlin goldens
 python3 tools/probe/live_probe.py --music <recording>   # real programme material through the whole chain
 python3 tools/probe/live_probe.py --positions 3         # ... against a position-aware room (W1)
 python3 tools/probe/live_probe.py --positions 1 --truth-positions 3   # "is one measurement enough?"
+python3 tools/probe/live_probe.py --stress              # W3/W4: distortion, reverberation, clean-chain control
+python3 tools/probe/live_probe.py --rt60 0.9 --drive 0.05   # one case per failure mode, with numbers
 python3 tools/probe/pipeline_findings.py --music <recording>  # THD / true peak / RT60 / band saturation
                                                          # (the evidence behind docs/AUDIO_ROADMAP.md)
 python3 tools/i18n/check_strings.py                     # string parity en/de/es
@@ -100,6 +102,13 @@ alternating → −0.688, a 12 kHz/45° signal that a sample meter under-reads b
 `SpatialAveragerTest` covers the outlier rule (two positions can never reject; one 20 dB-off position
 among four is dropped and the average equals the clean average to 1e-9; at least two positions always
 survive; three equally good positions are all kept).
+
+Round 12 added `HarmonicDistortionTest` and `RoomDecayTest` (14 tests). Both fixtures are *known answers*:
+impulses placed exactly where Farina's formula puts each harmonic (so the expected level is 20·log10 of the
+amplitude ratio to 0.5 dB), and noise shaped by `exp(-6.9078·t/T60)` with a known T60. The tests also pin
+the failure modes the calibration found: a linear system reports **no** THD, a floor 10 dB below the direct
+sound reports **no** THD, a dry response and a noise plateau return **unknown** instead of a number, and a
+symmetric odd-order clip is *not* called a rattle.
 
 `tools/probe` is the only suite that judges the *result* instead of the code: it runs real music through a
 modelled measurement chain (minimum-phase speaker + room + mic, sweep + noise) and scores tonal error,

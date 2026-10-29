@@ -208,6 +208,28 @@ system reports < 0.5 % THD, plus a port parity check.
 window and the noise-guard limit that. Needs the device to calibrate the 3 % threshold against real
 speakers.
 
+**Done (round 12).** `measurement/dsp/HarmonicDistortion.kt` reads H2…H5 at `T·ln(n)/ln(f2/f1)` before the
+main peak, with a ±1 ms window each and a *local* floor taken from five control points placed between the
+harmonics (ln 2…ln 5 = 0.69 / 1.10 / 1.39 / 1.61, controls at 0.55 / 0.90 / 1.25 / 1.50 / 1.85) – so the
+threshold is "the harmonics must clear the room's own decay", not "must clear a global noise number".
+A harmonic that does not clear that floor by 6 dB is *left out* instead of being reported as noise, and a
+peak that does not clear it by 12 dB produces no THD number at all rather than "0.0 %".
+
+Two things the implementation taught us:
+
+1. **The golden value reproduces the roadmap's prediction exactly.** `pipeline_findings.py` now prints
+   `soft clip 0.02 → H3 −31.4 dB` (the roadmap said "−31.4 dB ±1") and a monotonically rising series
+   2.69 % / 4.02 % / 6.54 % THD for drive 0.02 / 0.05 / 0.10.
+2. **The proposed rattle rule was wrong.** "H3 − H2 > 6 dB" fires on *every* symmetric soft clip, because a
+   symmetric nonlinearity produces only odd orders: our soft clip reads H2 −74 dB against H3 −29 dB, i.e.
+   +45 dB, while nothing rattles. A mechanical buzz is impulsive, i.e. broadband, and its series does not
+   fall with order. The shipped rule is therefore "H5 within 6 dB of H3" – `DRIVER_RATTLE`. The old rule
+   would have flagged every driven speaker as broken, which is worse than not having the warning.
+
+Warnings: `SPEAKER_DISTORTION` (≥ 3 %) is *severe* in the wizard (the fix is one step quieter and a repeat),
+`DRIVER_RATTLE` is informational-with-advice (an EQ cannot repair a loose panel). Both are silent on the six
+standard probe cases, whose chain is linear.
+
 ### W4 – Room decay (T30) and a trust gate (M)
 
 *Why:* F3 – reverb costs 2 dB of accuracy and the app throws the information away.
@@ -222,6 +244,25 @@ that shape; the probe must not regress its six cases.
 
 *Risk:* medium-low. Estimating decay from the *unwindowed* IR in a noisy outdoor recording is the weak
 spot – require a 10 dB decay range and report "unknown" otherwise.
+
+**Done (round 12), partly – and the part that is not done is a decision, not an omission.**
+`measurement/dsp/RoomDecay.kt` integrates the unwindowed response (Schroeder), skips the direct sound and
+fits a line over −5 … −25 dB, extrapolated to T60. Two thresholds were *calibrated against failures*:
+
+1. **The direct sound is not room decay.** Including it made every room ~40 % drier (0.50 s read as 0.27 s)
+   because the first milliseconds fill the top of the Schroeder curve. Skipping 10 ms fixes it to within
+   2 % (0.40 / 0.80 / 1.20 s → 0.41 / 0.81 / 1.19 s).
+2. **A plateau has no slope.** A threshold-crossing T30 happily extrapolates the noise floor: our own
+   traffic model turned a 0.9 s room into **5.3–5.5 s** at 20 dB SNR. The fit is now rejected unless the
+   plateau sits 10 dB below the fit region and R² ≥ 0.98 – in the noisy cases that means "unknown".
+
+`REVERBERANT_ROOM` is raised from 0.8 s and reports the number ("This room rings a lot (1.0 s)").
+
+The **gate** (`AutoEqSettings.roomRt60S`, `RoomDecay.boostTrust` = 1/(1+T60) above the room's Schroeder
+frequency for an assumed 40 m³) is implemented, mirrored in the probe and **deliberately off**: measured on
+the rever(berant) cases it costs 0.11 dB of tonal accuracy (mini box 0.89 → 1.00 dB) and its benefit - "less
+muddy" - is a listening impression no model here can score. Turning it on would be a claim we cannot
+verify; the knob exists so a device run can settle it.
 
 ### W5 – Multi-position indoors, with outlier rejection (S)
 
@@ -366,7 +407,8 @@ W1 (judge first) ──► W5 (positions + dip rule, needs W1)
 ```
 
 * **Round 11 (done):** W1, W2, W5 – harness first, then the two "we measure the wrong thing" defects.
-* **Round 12:** W3, W4 – the two free metrics (THD, RT60) and their warnings.
+* **Round 12 (done):** W3, W4 – the two free metrics (THD, RT60) and their warnings (W4's gate measured,
+  deliberately off).
 * **Round 13:** W10, W6 – the verification pass, which needs an honest peak/loudness metric first.
 * **Round 14:** W7, W8, and W9's measurement (build only if it shows ≥ 0.2 dB).
 

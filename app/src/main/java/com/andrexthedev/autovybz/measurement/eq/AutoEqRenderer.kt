@@ -1,9 +1,11 @@
 package com.andrexthedev.autovybz.measurement.eq
 
 import com.andrexthedev.autovybz.measurement.dsp.FrequencyGrid
+import com.andrexthedev.autovybz.measurement.dsp.RoomDecay
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.ln
+import kotlin.math.log2
 import kotlin.math.sqrt
 
 /** Default start of the per-class high-frequency boost cap region (see [AutoEqSettings.highBoostCapDb]). */
@@ -95,6 +97,15 @@ data class AutoEqSettings(
     val highBoostCapDb: Double? = null,
     /** Start of the [highBoostCapDb] region (Hz). */
     val highBoostCapStartHz: Double = HIGH_BOOST_CAP_START_HZ,
+    /**
+     * Measured reverberation time of the room (s), `null` when it could not be measured or is dry.
+     *
+     * Above the room's transition frequency ([RoomDecay.transitionHz]) a ringing room gets
+     * [RoomDecay.boostTrust] of each boost: the room already stores energy, the measurement is smoothed by
+     * its own reverb, and more low-mid energy is what turns a "fuller" calibration into a muddy one. Cuts
+     * are untouched - removing a boom is right in any room. `null` (the default) disables the gate.
+     */
+    val roomRt60S: Double? = null,
 ) {
     init {
         require(bandCount in 1..16)
@@ -225,6 +236,15 @@ object AutoEqRenderer {
             snrDb?.let { reliability(it[i], settings.minSnrDb, settings.fullSnrDb) } ?: 1.0
         }
         val broad = settings.broadBoostOctaves?.let { medianLog(frequencies, measuredDb, it) }
+        val reverbFactor: ((Double) -> Double)? = settings.roomRt60S?.let { rt60 ->
+            val trust = RoomDecay.boostTrust(rt60)
+            val f0 = RoomDecay.transitionHz(rt60)
+            val ramp: (Double) -> Double = { f ->
+                val t = ((log2(f / f0) + 0.25) / 0.5).coerceIn(0.0, 1.0)
+                1.0 + t * (trust - 1.0)
+            }
+            ramp
+        }
         // [cutTrust] scales cuts (a near-field self-measurement overstates peaks - correct only the
         // trusted fraction, the rest is what the manufacturer's tuning leaves in); boosts are already
         // limited by the excursion guard and the broad-only rule, and a missing treble is usually real
@@ -245,6 +265,9 @@ object AutoEqRenderer {
             )
             var raw = targetDb[i] - measuredDb[i]
             if (broad != null && raw > 0) raw = minOf(raw, maxOf(0.0, targetDb[i] - broad[i]))
+            // Reverberation gate: see [AutoEqSettings.roomRt60S]. Ramped over half an octave around the
+            // room's transition frequency, so the curve gets no ledge for the fitter to chase.
+            if (raw > 0 && reverbFactor != null) raw *= reverbFactor(frequencies[i])
             // Frequency-dependent cutTrust: below [AutoEqSettings.cutTrustLowHz] the near-field
             // self-measurement overstates the bass heavily (pressure zone + chassis vibration), so
             // cuts there are scaled by the lower trust fraction. The cut limit follows the same

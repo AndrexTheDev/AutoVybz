@@ -193,3 +193,32 @@ probe keeps several 48 kHz float copies per case); a 60 s excerpt of the same fi
 2.58 → 0.69 dB, loud master 6.2 dB crest) – the crest and the tonal numbers match the round-9 table, so
 nothing about round 11 depends on the full length.
 
+## Round-12 findings (2026-10) – the two metrics the sweep already contained
+
+Round 12 built W3 (distortion) and W4 (room decay) and, more importantly, found out where a naive
+implementation lies.
+
+1. **The roadmap's predicted number was exactly right.** A soft clip at drive 0.02 reads H3 −31.4 dB
+   (`pipeline_findings.py` finding 9) – the roadmap had predicted "−31.4 dB ±1". THD rises monotonically:
+   2.69 % / 4.02 % / 6.54 % for drive 0.02 / 0.05 / 0.10, and a linear chain reports *no number at all*
+   (not "0.0 %").
+2. **The proposed rattle rule was unusable.** "H3 − H2 > 6 dB" is true for every symmetric soft clip: our
+   clip reads H2 −74 dB against H3 −29 dB. A symmetric nonlinearity produces only odd orders, so this rule
+   flags every driven speaker as broken. A real rattle is impulsive (broadband): its series does not fall
+   with order. Shipped rule: `H5 − H3 > −6 dB` – 4 dB above the horizon for our buzz model, 14 dB below it
+   for clipping.
+3. **Reverb: the direct sound is not decay.** With the direct sound inside the Schroeder window, a 0.50 s
+   room reads 0.27 s (−46 %). Skipping 10 ms: 0.41 / 0.81 / 1.19 s for 0.40 / 0.80 / 1.20 s.
+4. **Reverb: a plateau has no slope.** A threshold-crossing T30 extrapolates the noise floor – the traffic
+   model (20 dB SNR) reported **5.3–5.5 s** for a 0.9 s room. Fitting −5 … −25 dB and rejecting anything
+   whose plateau is closer than 10 dB, or whose R² < 0.98, turns those cases into "unknown" and keeps the
+   clean ones within 2 %.
+5. **The trust gate is measurable only as a cost.** `RoomDecay.boostTrust` (1/(1+T60) above the Schroeder
+   frequency) costs 0.11 dB of tonal accuracy on the mini box (0.89 → 1.00 dB) and 0.08 dB on the laptop;
+   its benefit is a listening impression. Implemented, mirrored here, and deliberately **off**.
+
+New probe switches: `--rt60 <s>` (add a diffuse tail to every case), `--drive <fraction>` (soft-saturate
+the modelled speaker) and `--stress`, which runs the three field-failure cases and asserts that the app
+*notices*: a driven mini box (4.03 % THD), a 1 s room (1.04 s, `REVERBERANT_ROOM`) and a clean chain
+(neither warning). 3/3 pass; the six standard cases are unchanged (6/6, no new warning).
+

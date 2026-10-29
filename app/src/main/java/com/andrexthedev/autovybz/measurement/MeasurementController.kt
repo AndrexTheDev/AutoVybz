@@ -285,6 +285,10 @@ class MeasurementController(
             result.frequencies,
             result.smoothedDb,
             TargetCurve(request.target, request.customTarget),
+            // A measured reverberation time is *reported* (REVERBERANT_ROOM) but does not yet change the
+            // plan: `AutoEqSettings.roomRt60S` gates the boosts and was measured on the probe (see
+            // docs/AUDIO_ROADMAP.md, W4) - it costs ~0.1 dB of tonal accuracy against anechoic truth and
+            // its benefit is a listening impression no model here can score. Deliberately off.
             CorrectionPlanner.autoEqSettings(request.bandCount, request.tuning, request.classTuning),
             rollOffDb = result.thirdOctaveDb,
             snrDb = result.snrDb,
