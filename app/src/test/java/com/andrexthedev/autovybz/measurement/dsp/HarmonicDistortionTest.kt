@@ -22,7 +22,13 @@ class HarmonicDistortionTest {
     private val f1 = 30.0
     private val f2 = 18000.0
     private val n = 1 shl 16
-    private val peak = 20000
+
+    /**
+     * The main peak has to sit *behind* the furthest harmonic: H5 of a 5 s sweep spanning 30 Hz - 18 kHz
+     * lands 60 378 samples earlier (1.26 s), H3 still 41 220. A peak at 20 000 - the obvious choice -
+     * produces negative indices, which numpy wraps and Kotlin (rightly) does not.
+     */
+    private val peak = 62000
 
     private fun lag(order: Int): Int =
         (peak - sweepSeconds * ln(order.toDouble()) / ln(f2 / f1) * fs).roundToInt()

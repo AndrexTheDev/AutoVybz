@@ -193,7 +193,9 @@ def main() -> int:
     # Same synthetic fixture as `HarmonicDistortionTest`: only the windows' contents differ from zero, so
     # the expected levels are exactly 20 log10 of the amplitude ratios.
     fs_h, sweep_s, f1, f2 = 48000, 5.0, 30.0, 18000.0
-    n_h, peak_h = 1 << 16, 20000
+    # Same fixture as the JVM test, including the peak position: it must sit behind H5 (~60 400 samples
+    # earlier), otherwise the lag indices are negative - numpy wraps them, Kotlin would not.
+    n_h, peak_h = 1 << 16, 62000
 
     def _lag(order: float) -> int:
         return int(round(peak_h - sweep_s * math.log(order) / math.log(f2 / f1) * fs_h))
