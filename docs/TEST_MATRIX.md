@@ -84,12 +84,6 @@ away from the app before a suite *and* the monkey run of the same job hit the sa
 ANR'd, because the launcher was never asked to draw). Anything else fails the job, as before: an ANR with an
 app frame on the main thread is still ours, and a stall without a second observation stays unexplained.
 
-**Focus before every tap.** Campaign 16 (API 30) lost a `WizardFlowE2ETest` tap to a stalled notification
-shade: the launcher held the window focus, the injected click was dropped, and the test waited a minute for
-a screen that was never coming while the button was visible. `Robot.tap` now checks who owns the focus first
-(a dialog *of our own* counts as fine), and if it is a foreign window it dismisses system dialogs, raises the
-task with `am start` and waits for the focus - failing with the focus owner in the message if it never comes.
-
 ## 4. Screenshot + accessibility matrix (API 35)
 
 Seven configurations, each running `ScreenshotTourE2ETest` + `LegacyScreensE2ETest` and then
