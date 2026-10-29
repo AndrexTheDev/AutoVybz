@@ -615,6 +615,21 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
                 }
                 savedBeforeCheck = null
                 setStep(step.copy(verification = report))
+                // The check belongs to the calibration, not to this screen: store it with the preset so the
+                // share card and every export can say that the result was measured twice, and with which
+                // numbers. Best effort - a failed rewrite must not cost the user the check they just ran.
+                withContext(Dispatchers.IO) {
+                    runCatching {
+                        val app = getApplication<Application>()
+                        val stored = AutoVybzPresetStore.loadFull(app, step.presetName)
+                        if (stored != null) {
+                            AutoVybzPresetStore.save(
+                                app,
+                                stored.copy(measurement = stored.measurement?.withVerification(report)),
+                            )
+                        }
+                    }.onFailure { Log.w(TAG, "storing the check with the calibration failed", it) }
+                }
             } catch (c: CancellationException) {
                 throw c
             } catch (e: Exception) {

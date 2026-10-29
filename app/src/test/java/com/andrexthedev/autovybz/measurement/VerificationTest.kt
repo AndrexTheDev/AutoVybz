@@ -185,6 +185,32 @@ class VerificationTest {
         assertTrue(summary, summary.contains("%.1f".format(report.predictedImprovementDb)))
     }
 
+    /**
+     * The line the exports carry (APO comment, REW header). It is English on purpose - the export files keep
+     * the English "Preamp:"/"Filter 1:" vocabulary - and it must say what happened for every verdict, because
+     * a shared card or a re-imported preset is exactly where a "not confirmed" would otherwise vanish.
+     */
+    @Test
+    fun everyVerdictHasAnExportLine() {
+        fun line(verdict: Verification.Verdict) = Verification.Report(
+            correlation = 0.9, measuredChangeDb = 2.0, predictedChangeDb = 2.5, predictionErrorDb = 0.4,
+            residualBeforeDb = 3.0, residualAfterDb = 1.0, residualPredictedDb = 0.5,
+            measuredImprovementDb = 2.0, predictedImprovementDb = 2.5,
+            judgeLowHz = 71.0, judgeHighHz = 16000.0, verdict = verdict,
+        ).exportLine
+        val lines = Verification.Verdict.values().associateWith { line(it) }
+        lines.forEach { (verdict, text) ->
+            assertTrue("$verdict: $text", text.startsWith("Check: "))
+            assertTrue("$verdict mentions the measured improvement", "measured +2.0 dB" in text)
+            assertTrue("$verdict mentions the prediction", "predicted +2.5 dB" in text)
+            assertTrue("$verdict names the judged band", "71-16000 Hz" in text)
+        }
+        // The four failure modes must not be worded the same - the whole point of storing them.
+        assertEquals(lines.size, lines.values.toSet().size)
+        assertTrue(lines.getValue(Verification.Verdict.NO_CHANGE).contains("not reaching the speaker"))
+        assertTrue(lines.getValue(Verification.Verdict.AS_PREDICTED).startsWith("Check: as predicted"))
+    }
+
     /** The correlation helper itself, including its degenerate cases. */
     @Test
     fun correlationIsAPearsonCoefficient() {

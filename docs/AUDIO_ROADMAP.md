@@ -361,6 +361,13 @@ The wizard step (round 14) is deliberately small: no new DSP and no new measurem
   do. `Report.isConfirmation` (AS_PREDICTED or BETTER) is what decides between gold and warning; `WEAKER`
   is an improvement but not a confirmation, and a test pins that.
 
+**Extended (round 15): the check travels with the result.** The report used to live on one screen. It is now
+stored with the calibration (`MeasurementSnapshot.verification`) and re-drawn from there: the share card
+prints "✓ Checked: measured 1.8 dB, predicted 2.1 dB" next to the key figure (in the warning colour when the
+check did *not* confirm the plan), the APO export carries a `# Check: …` comment, the REW export a `*` header
+line, and the internal preset keeps the whole report – so a re-imported calibration still knows it was
+measured twice. Older files and verdicts from a newer build load as "not checked" rather than a guess.
+
 ### W7 – Bounded adaptive target (M)
 
 *Why:* F4 – after 10 bands the residual is the target's shape. Fixed shelves fight a speaker's natural

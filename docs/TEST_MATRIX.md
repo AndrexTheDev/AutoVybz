@@ -12,7 +12,7 @@ the work:
 There is no JDK/Android SDK in the coding sandbox, so local verification is limited to the pure-Python and
 native host tools (see §5).
 
-## 1. JVM unit tests – 48 classes, 301 `@Test` methods
+## 1. JVM unit tests – 48 classes, 306 `@Test` methods
 
 | Package | Classes | What they pin down |
 |---|---|---|
@@ -122,6 +122,11 @@ amplitude ratio to 0.5 dB), and noise shaped by `exp(-6.9078·t/T60)` with a kno
 the failure modes the calibration found: a linear system reports **no** THD, a floor 10 dB below the direct
 sound reports **no** THD, a dry response and a noise plateau return **unknown** instead of a number, and a
 symmetric odd-order clip is *not* called a rattle.
+
+Round 15 added five tests that pin "the check travels with the result": the report survives the internal JSON
+and an unknown verdict degrades to "not checked" (`AutoVybzPresetCodecTest`), the check is only ever a comment
+in the APO and REW exports and the filters parse exactly as before (`AutoVybzPresetTest`), and every verdict
+has its own English export line (`VerificationTest`).
 
 Round 14 added three W8 tests to `AutoEqRendererTest`: that a declared subwoofer lifts the lower limit to the
 crossover and leaves nothing in the plan below it, that the crossover never *lowers* a limit the measurement

@@ -1,5 +1,6 @@
 package com.andrexthedev.autovybz.preset
 
+import com.andrexthedev.autovybz.measurement.Verification
 import com.andrexthedev.autovybz.measurement.eq.PeqBand
 import com.andrexthedev.autovybz.measurement.eq.PeqType
 import com.andrexthedev.autovybz.measurement.eq.TargetType
@@ -39,6 +40,27 @@ object AutoVybzPresetCodec {
                 environment = mo.optString("environment", "INDOOR").ifEmpty { "INDOOR" },
                 positions = mo.optInt("positions", 1),
                 speakerClass = mo.optString("speakerClass", "STANDARD").ifEmpty { "STANDARD" },
+                verification = mo.optJSONObject("verification")?.let { vo ->
+                    // A preset from a newer build may carry a verdict this one does not know: the numbers are
+                    // still worth keeping, the verdict is what the UI words, so an unknown name means "none".
+                    val verdict = runCatching { Verification.Verdict.valueOf(vo.optString("verdict")) }.getOrNull()
+                    verdict?.let {
+                        Verification.Report(
+                            correlation = vo.optDouble("correlation", 0.0),
+                            measuredChangeDb = vo.optDouble("measuredChangeDb", 0.0),
+                            predictedChangeDb = vo.optDouble("predictedChangeDb", 0.0),
+                            predictionErrorDb = vo.optDouble("predictionErrorDb", 0.0),
+                            residualBeforeDb = vo.optDouble("residualBeforeDb", 0.0),
+                            residualAfterDb = vo.optDouble("residualAfterDb", 0.0),
+                            residualPredictedDb = vo.optDouble("residualPredictedDb", 0.0),
+                            measuredImprovementDb = vo.optDouble("measuredImprovementDb", 0.0),
+                            predictedImprovementDb = vo.optDouble("predictedImprovementDb", 0.0),
+                            judgeLowHz = vo.optDouble("judgeLowHz", 0.0),
+                            judgeHighHz = vo.optDouble("judgeHighHz", 0.0),
+                            verdict = it,
+                        )
+                    }
+                },
             )
         }
         return AutoVybzPreset(

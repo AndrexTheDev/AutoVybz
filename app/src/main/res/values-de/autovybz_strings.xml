@@ -353,6 +353,8 @@
     <string name="avz_share_failed">Das Share-Bild konnte nicht erstellt werden.</string>
     <string name="avz_share_card_headline">Mein Lautsprecher, auf meinen Raum eingemessen</string>
     <string name="avz_share_card_deviation">Abweichung von der Zielkurve: vorher → nachher</string>
+    <string name="avz_share_card_checked">✓ Geprüft: %1$s dB gemessen, %2$s dB vorhergesagt</string>
+    <string name="avz_share_card_check_failed">Prüfung nicht bestätigt: %1$s dB gemessen, %2$s dB vorhergesagt</string>
     <plurals name="avz_share_card_filters">
         <item quantity="one">%1$d Filter · Vorverstärkung %2$s dB</item>
         <item quantity="other">%1$d Filter · Vorverstärkung %2$s dB</item>

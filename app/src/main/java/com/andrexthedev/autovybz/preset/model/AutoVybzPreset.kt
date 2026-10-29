@@ -1,6 +1,7 @@
 package com.andrexthedev.autovybz.preset.model
 
 import com.andrexthedev.autovybz.export.PresetExporters
+import com.andrexthedev.autovybz.measurement.Verification
 import com.andrexthedev.autovybz.measurement.eq.PeqBand
 import com.andrexthedev.autovybz.measurement.eq.PeqType
 import com.andrexthedev.autovybz.measurement.eq.TargetType
@@ -29,11 +30,28 @@ class MeasurementSnapshot(
     val positions: Int = 1,
     /** [com.andrexthedev.autovybz.measurement.SpeakerClass] name; STANDARD for older presets. */
     val speakerClass: String = "STANDARD",
+    /**
+     * The optional "Check" run (W6) that verified this very plan, `null` when the user never ran one.
+     *
+     * It belongs to the calibration, not to the wizard session: a shared card and an exported preset should
+     * say that the result was measured a second time, and with which numbers. A re-fit (another target)
+     * would produce a different plan, so the wizard drops the report on the way to the new preset.
+     */
+    val verification: Verification.Report? = null,
 ) {
     init {
         val n = frequencies.size
         require(rawDb.size == n && smoothedDb.size == n && targetDb.size == n && predictedDb.size == n)
     }
+
+    /**
+     * A copy with [report] attached. Written out rather than using a data-class `copy`, because the class
+     * carries five arrays: a generated `copy` would invite an accidental "same measurement, other arrays".
+     */
+    fun withVerification(report: Verification.Report?) = MeasurementSnapshot(
+        frequencies, rawDb, smoothedDb, targetDb, predictedDb, micProfileId, micDescription,
+        inputSource, engine, latencyMs, medianSnrDb, warnings, environment, positions, speakerClass, report,
+    )
 }
 
 /**
@@ -139,7 +157,24 @@ data class AutoVybzPreset(
             arr("rawDb", m.rawDb, ",\n")
             arr("smoothedDb", m.smoothedDb, ",\n")
             arr("targetDb", m.targetDb, ",\n")
-            arr("predictedDb", m.predictedDb, "\n")
+            // Trailing comma only when another member follows: an unchecked preset must stay valid JSON.
+            arr("predictedDb", m.predictedDb, if (m.verification == null) "\n" else ",\n")
+            m.verification?.let { v ->
+                append("    \"verification\": {\n")
+                append("      \"verdict\": \"").append(v.verdict.name).append("\",\n")
+                append("      \"correlation\": ").append(num(v.correlation)).append(",\n")
+                append("      \"measuredChangeDb\": ").append(num(v.measuredChangeDb)).append(",\n")
+                append("      \"predictedChangeDb\": ").append(num(v.predictedChangeDb)).append(",\n")
+                append("      \"predictionErrorDb\": ").append(num(v.predictionErrorDb)).append(",\n")
+                append("      \"residualBeforeDb\": ").append(num(v.residualBeforeDb)).append(",\n")
+                append("      \"residualAfterDb\": ").append(num(v.residualAfterDb)).append(",\n")
+                append("      \"residualPredictedDb\": ").append(num(v.residualPredictedDb)).append(",\n")
+                append("      \"measuredImprovementDb\": ").append(num(v.measuredImprovementDb)).append(",\n")
+                append("      \"predictedImprovementDb\": ").append(num(v.predictedImprovementDb)).append(",\n")
+                append("      \"judgeLowHz\": ").append(num(v.judgeLowHz)).append(",\n")
+                append("      \"judgeHighHz\": ").append(num(v.judgeHighHz)).append("\n")
+                append("    }\n")
+            }
             append("  }")
         }
         append("\n}\n")
@@ -147,8 +182,26 @@ data class AutoVybzPreset(
 
     fun toApoText(): String = PresetExporters.toApoText(
         bands, preampDb,
-        "AutoVybz calibration: $name\nTarget: ${target.name}, device: $deviceManufacturer $deviceModel",
+        buildString {
+            append("AutoVybz calibration: $name\nTarget: ${target.name}, device: $deviceManufacturer $deviceModel")
+            // The check (W6) travels with the file: whoever imports these filters can see that the result
+            // was measured a second time through the correction, and with which numbers.
+            measurement?.verification?.let { append("\n").append(it.exportLine) }
+        },
     )
+
+    /**
+     * Header lines for the REW export (`* ` comments): what was measured how, and - when it was run - the
+     * verdict of the check. Lives here rather than in the export menu so it can be unit-tested.
+     */
+    fun rewHeader(): List<String> = buildList {
+        add("Name: $name")
+        val m = measurement ?: return@buildList
+        add("Mic: ${m.micDescription}")
+        add("Input: ${m.inputSource}")
+        add("Normalised to 0 dB (300 Hz - 3 kHz)")
+        m.verification?.let { add(it.exportLine) }
+    }
 
     private fun StringBuilder.kv(k: String, v: String) {
         append("  \"").append(k).append("\": ").append(v).append(",\n")

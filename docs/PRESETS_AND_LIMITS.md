@@ -37,6 +37,12 @@ asymmetry is the whole reason for §3.
   metadata the result screen, the share card, exports and re-fitting use: mic profile, input source, engine,
   latency, median SNR, warnings, **environment** (`INDOOR`/`OUTDOOR`), **positions**, **speaker class**
   (`STANDARD`/`RESCUE`/`DEVICE`).
+* **The check (optional)** – `verification`: verdict, correlation, measured/predicted change, prediction
+  error and the judged band, written when the user ran the second measurement through the applied preset
+  (W6). It belongs to the *calibration*, not to the wizard session: the share card prints it next to the key
+  figure, the APO export carries it as a `# Check: …` comment, the REW export as a `*` header line, and the
+  internal JSON keeps it so a re-imported preset still knows it was verified. A file without the block (or
+  with a verdict from a newer build) loads as "not checked" – the numbers are never guessed.
 * **Band budget (16 filters in the engine)**: the calibration bands stay, the two Studio tone shelves always
   fit, and the style is cut last (`SoundComposer.fitLayers`). The order used to be "calibration + style +
   tone, then truncate", which dropped the user's Bass/Höhen shelves first on a calibration with more than

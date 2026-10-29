@@ -90,6 +90,25 @@ object Verification {
         val summary: String
             get() = "measured %.1f dB better, predicted %.1f dB".format(measuredImprovementDb, predictedImprovementDb)
 
+        /**
+         * One English line for the exports (APO comment, REW header, internal JSON): exports are technical
+         * files that keep the English "Preamp:"/"Filter 1:" vocabulary, so the check stays English there too
+         * - the UI (wizard card, share card) is what gets translated.
+         */
+        val exportLine: String
+            get() = "Check: " + when (verdict) {
+                Verdict.AS_PREDICTED -> "as predicted"
+                Verdict.BETTER_THAN_PREDICTED -> "better than predicted"
+                Verdict.WEAKER_THAN_PREDICTED -> "weaker than predicted - part of the correction did not arrive"
+                Verdict.NO_CHANGE -> "no measurable change - the correction is not reaching the speaker"
+                Verdict.UNEXPECTED -> "unexpected change - not the predicted correction"
+            } + java.lang.String.format(
+                java.util.Locale.US,
+                ", measured %+.1f dB, predicted %+.1f dB (error %.1f dB, %d-%d Hz)",
+                measuredImprovementDb, predictedImprovementDb, predictionErrorDb,
+                judgeLowHz.toInt(), judgeHighHz.toInt(),
+            )
+
         /** True when the wizard should show a warning rather than a confirmation. */
         val isUnexpected: Boolean get() = verdict == Verdict.UNEXPECTED
 

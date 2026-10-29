@@ -1024,7 +1024,7 @@ private fun ResultStep(
             externalExportsEnabled = externalExportsEnabled,
             onOpenPremium = onOpenPremium,
         )
-        ShareResultButton(o, step.presetName, Modifier.slot(1f).testTag("avz:share"))
+        ShareResultButton(o, step.presetName, modifier = Modifier.slot(1f).testTag("avz:share"))
     }
 
     // Details for the curious
@@ -1170,19 +1170,25 @@ private fun SavedStep(
                 textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(8.dp))
-            ShareResultButton(outcome, step.presetName, Modifier.fillMaxWidth())
+            // The check travels with the card: it is the only number on it that was measured twice.
+            ShareResultButton(outcome, step.presetName, step.verification, Modifier.fillMaxWidth())
         }
     }
 }
 
 /** Renders the result card and opens the system share sheet. */
 @Composable
-private fun ShareResultButton(outcome: com.andrexthedev.autovybz.measurement.MeasurementOutcome, presetName: String, modifier: Modifier = Modifier) {
+private fun ShareResultButton(
+    outcome: com.andrexthedev.autovybz.measurement.MeasurementOutcome,
+    presetName: String,
+    verification: Verification.Report? = null,
+    modifier: Modifier = Modifier,
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     OutlinedButton(
         // The card is rendered on Dispatchers.IO (bitmap + PNG encode); the share sheet still opens on main.
-        onClick = { scope.launch { ResultSharer.share(context, outcome, presetName) } },
+        onClick = { scope.launch { ResultSharer.share(context, outcome, presetName, verification) } },
         border = BorderStroke(1.dp, AutoVybzColors.Gold),
         modifier = modifier,
     ) {

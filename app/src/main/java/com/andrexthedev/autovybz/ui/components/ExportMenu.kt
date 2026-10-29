@@ -39,10 +39,8 @@ private fun render(preset: AutoVybzPreset, format: ExportFormat): String = when 
     ExportFormat.PEQ_JSON -> PresetExporters.toPeqJson(preset.bands, preset.preampDb, preset.name)
     ExportFormat.REW_CSV -> {
         val m = requireNotNull(preset.measurement)
-        PresetExporters.toRewCsv(
-            m.frequencies, m.rawDb,
-            listOf("Name: ${preset.name}", "Mic: ${m.micDescription}", "Input: ${m.inputSource}", "Normalised to 0 dB (300 Hz - 3 kHz)"),
-        )
+        // The header (and, when the user ran one, the check's verdict) comes from the preset itself.
+        PresetExporters.toRewCsv(m.frequencies, m.rawDb, preset.rewHeader())
     }
     ExportFormat.INTERNAL -> preset.toInternalJson()
 }

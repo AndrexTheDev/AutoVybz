@@ -255,6 +255,24 @@ and a failed check costs nothing: the calibration stays saved, and the card offe
 18 dB SNR: measured improvement +1.66 / +1.73 / +2.64 dB against +1.73 / +1.82 / +2.53 dB predicted (worst
 gap 0.11 dB), while the same comparison on an unapplied correction returns `NO_CHANGE` every time.
 
+**Where the check goes afterwards (round 15).** A report that only exists on one screen is worth little: the
+result the user shares and exports is the one that travels. The report is therefore stored with the
+calibration (`MeasurementSnapshot.verification`) and re-drawn from there:
+
+* **share card** – one line on the baseline of the key figure, right-aligned: *"✓ Checked: 1.8 dB measured,
+  2.1 dB predicted"*, in green when the check confirmed the plan and in the warning colour when it did not.
+  A shared result that did not do what was promised must not look like one that did;
+* **APO / Peace export** – a `# Check: …` comment line, invisible to Equalizer APO and to the app's own
+  parser (a comment cannot change a preset, only describe it);
+* **REW export** – one more `*` header line;
+* **internal `*.avz.json`** – the whole report, so a re-imported preset still knows it was verified. A
+  missing block (older files) or a verdict from a newer build loads as "not checked"; the numbers are never
+  guessed.
+
+The wizard writes the block back to the stored preset after a successful check (best effort – failing to
+rewrite the file must not cost the user the ten seconds they just spent). A new plan – another target, or a
+new measurement – starts without a report, because a report describes exactly one plan.
+
 ## 8e. A subwoofer is declared, not detected
 
 A phone microphone cannot tell whether the bass it hears comes from the speaker or from a sub. The user

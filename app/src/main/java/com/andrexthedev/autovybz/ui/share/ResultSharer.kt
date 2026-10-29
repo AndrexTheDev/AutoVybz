@@ -9,6 +9,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.core.content.FileProvider
 import com.andrexthedev.autovybz.measurement.MeasurementOutcome
+import com.andrexthedev.autovybz.measurement.Verification
 import com.bearinmind.equalizer314.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -27,9 +28,14 @@ object ResultSharer {
      * "Input dispatching timed out" while the main thread was busy, and the share button was the only place that
      * encoded a bitmap inside an onClick. Call from a main-dispatched scope; the chooser is started on main.
      */
-    suspend fun share(context: Context, outcome: MeasurementOutcome, presetName: String) {
+    suspend fun share(
+        context: Context,
+        outcome: MeasurementOutcome,
+        presetName: String,
+        verification: Verification.Report? = null,
+    ) {
         try {
-            val file = withContext(Dispatchers.IO) { writeCard(context, outcome, presetName) }
+            val file = withContext(Dispatchers.IO) { writeCard(context, outcome, presetName, verification) }
             val uri = FileProvider.getUriForFile(context, context.packageName + ".avzfiles", file)
             val send = Intent(Intent.ACTION_SEND).apply {
                 type = "image/png"
@@ -49,11 +55,16 @@ object ResultSharer {
     }
 
     /** Renders the card into cache/share/ (old cards are removed; the cache is never backed up). */
-    private fun writeCard(context: Context, outcome: MeasurementOutcome, presetName: String): File {
+    private fun writeCard(
+        context: Context,
+        outcome: MeasurementOutcome,
+        presetName: String,
+        verification: Verification.Report?,
+    ): File {
         val dir = File(context.cacheDir, SHARE_DIR).apply { mkdirs() }
         dir.listFiles()?.forEach { it.delete() }
         val file = File(dir, "AutoVybz_result_${outcome.createdAtMillis}.png")
-        val bmp = ResultCardRenderer.render(context, outcome, presetName)
+        val bmp = ResultCardRenderer.render(context, outcome, presetName, verification)
         try {
             file.outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
         } finally {

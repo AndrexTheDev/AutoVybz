@@ -354,6 +354,8 @@
     <string name="avz_share_failed">Could not create the share image.</string>
     <string name="avz_share_card_headline">My speaker, tuned to my room</string>
     <string name="avz_share_card_deviation">Deviation from the target curve: before → after</string>
+    <string name="avz_share_card_checked">✓ Checked: %1$s dB measured, %2$s dB predicted</string>
+    <string name="avz_share_card_check_failed">Check not confirmed: %1$s dB measured, %2$s dB predicted</string>
     <plurals name="avz_share_card_filters">
         <item quantity="one">%1$d filter · pre-gain %2$s dB</item>
         <item quantity="other">%1$d filters · pre-gain %2$s dB</item>

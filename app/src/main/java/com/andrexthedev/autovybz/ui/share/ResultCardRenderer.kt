@@ -15,6 +15,7 @@ import android.graphics.Shader
 import android.graphics.Typeface
 import androidx.compose.ui.graphics.toArgb
 import com.andrexthedev.autovybz.measurement.MeasurementOutcome
+import com.andrexthedev.autovybz.measurement.Verification
 import com.andrexthedev.autovybz.measurement.eq.TargetType
 import com.andrexthedev.autovybz.preset.PresetDisplayName
 import com.andrexthedev.autovybz.ui.theme.AutoVybzColors
@@ -50,12 +51,23 @@ object ResultCardRenderer {
     private val DEEP = AutoVybzColors.BackgroundDeep.toArgb()
     private val PANEL = AutoVybzColors.Surface.toArgb()
     private val ZERO_LINE = Color.rgb(0x4C, 0x5A, 0x67)
+    private val PROBLEM = AutoVybzColors.Error.toArgb()
 
     // Brand typeface (Outfit); falls back to the system font if the resource can't be loaded.
     @Volatile private var regular: Typeface = Typeface.DEFAULT
     @Volatile private var bold: Typeface = Typeface.DEFAULT_BOLD
 
-    fun render(context: Context, outcome: MeasurementOutcome, presetName: String): Bitmap {
+    /**
+     * @param verification the "Check" run's report (W6) when the user verified this result, `null` otherwise.
+     *   It is drawn as one line next to the key figure, because that is what it qualifies: the deviation on
+     *   the card is a *prediction*, and the check is the only number on it that was measured twice.
+     */
+    fun render(
+        context: Context,
+        outcome: MeasurementOutcome,
+        presetName: String,
+        verification: Verification.Report? = null,
+    ): Bitmap {
         val bmp = Bitmap.createBitmap(WIDTH, HEIGHT, Bitmap.Config.ARGB_8888)
         val c = Canvas(bmp)
         val res = context.resources
@@ -136,7 +148,30 @@ object ResultCardRenderer {
         c.drawText("  →  ", x, 1160f, big); x += big.measureText("  →  ")
         big.color = CORRECTED
         c.drawText(after, x, 1160f, big)
-        c.drawText(res.getString(R.string.avz_share_card_deviation), 64f, 1206f, text(30f, MUTED))
+        // The check, right-aligned on the baseline of the key figure: "checked: 1.8 dB measured, 2.1 dB
+        // predicted". A verdict that is not a confirmation stays on the card - a shared result that did not
+        // do what the plan promised must not look like one that did.
+        val deviationPaint = text(30f, MUTED)
+        val deviation = res.getString(R.string.avz_share_card_deviation)
+        val verdictPaint = verification?.let {
+            text(26f, if (it.isConfirmation) GREEN else PROBLEM, bold = true)
+        }
+        val verdict = verification?.let {
+            res.getString(
+                if (it.isConfirmation) R.string.avz_share_card_checked else R.string.avz_share_card_check_failed,
+                String.format(loc, "%.1f", it.measuredImprovementDb),
+                String.format(loc, "%.1f", it.predictedImprovementDb),
+            )
+        }
+        val verdictWidth = if (verdict != null && verdictPaint != null) verdictPaint.measureText(verdict) else 0f
+        // Both share the line; the verdict wins, because it is the only measured number up here. The label is
+        // then simply not drawn - nothing is painted over (the background glow would show a patch).
+        if (verdict == null || 64f + deviationPaint.measureText(deviation) + 24f + verdictWidth <= WIDTH - 64f) {
+            c.drawText(deviation, 64f, 1206f, deviationPaint)
+        }
+        if (verdict != null && verdictPaint != null) {
+            c.drawText(verdict, WIDTH - 64f - verdictWidth, 1206f, verdictPaint)
+        }
 
         val details = buildList {
             add(res.getString(targetName(outcome.request.target)))

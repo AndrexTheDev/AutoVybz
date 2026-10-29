@@ -356,6 +356,8 @@
     <string name="avz_share_failed">No se pudo crear la imagen para compartir.</string>
     <string name="avz_share_card_headline">Mi altavoz, ajustado a mi sala</string>
     <string name="avz_share_card_deviation">Desviación de la curva objetivo: antes → después</string>
+    <string name="avz_share_card_checked">✓ Comprobado: %1$s dB medidos, %2$s dB previstos</string>
+    <string name="avz_share_card_check_failed">Comprobación no confirmada: %1$s dB medidos, %2$s dB previstos</string>
     <plurals name="avz_share_card_filters">
         <item quantity="one">%1$d filtro · pre-ganancia %2$s dB</item>
         <item quantity="many">%1$d filtros · pre-ganancia %2$s dB</item>

@@ -323,7 +323,15 @@ class MeasurementController(
         /** Xrun tolerance / clipping rules live with the capture layer, see [CaptureAudit]. */
         const val XRUN_TOLERANCE = CaptureAudit.XRUN_TOLERANCE
 
-        fun buildPreset(name: String, outcome: MeasurementOutcome): AutoVybzPreset {
+        /**
+         * @param verification the "Check" run's report (W6) when the user ran one *for this plan*. It is stored
+         *   with the calibration so the share card and every export can say the result was measured twice.
+         */
+        fun buildPreset(
+            name: String,
+            outcome: MeasurementOutcome,
+            verification: Verification.Report? = null,
+        ): AutoVybzPreset {
             val r = outcome.result
             val e = outcome.autoEq
             return AutoVybzPreset(
@@ -354,6 +362,7 @@ class MeasurementController(
                     environment = outcome.request.environment.name,
                     positions = outcome.positions,
                     speakerClass = outcome.request.speakerClass.name,
+                    verification = verification,
                 ),
             )
         }
