@@ -1,6 +1,6 @@
 # Privacy Policy — AutoVybz
 
-**Effective date:** 2026-10-25
+**Effective date:** 2026-10-29
 **App:** AutoVybz (`com.andrexthedev.autovybz`)
 **Developer:** AndrexTheDev — hippie.highho@gmail.com
 **Source code:** https://github.com/AndrexTheDev/AutoVybz
@@ -45,6 +45,16 @@ AutoVybz itself makes **no network requests**. The `INTERNET`, `ACCESS_WIFI_STAT
 ## 4. Stored data
 
 Settings, presets and calibrations are stored with `SharedPreferences` and in app-private files (`files/autovybz/…`). They are removed when you uninstall the app. Exports (APO text, JSON, REW CSV, `.avz.json`) are written only to locations you choose.
+
+**Field data (optional, local only).** To calibrate its own limits against real devices, AutoVybz keeps
+one record per calibration in `files/autovybz/fieldlog.jsonl`: the measured distortion, the room's
+reverberation time, the spread between the microphone positions, whether the recording clipped, the
+volume fraction used, and which of the app's own warnings fired – plus the same manufacturer/model pair
+that a preset already stores. No audio, no frequency-response curves, no filter settings, no preset or
+speaker names, no account and no identifier of any kind. The file is capped at 2000 records and **is
+never transmitted**: it leaves the device only if you export it yourself (Studio → Felddaten →
+Datei exportieren). The switch is on by default because nothing leaves your device; turning it off stops
+collection immediately, and "Löschen" deletes the file.
 
 ## 5. Pro payments & donations
 

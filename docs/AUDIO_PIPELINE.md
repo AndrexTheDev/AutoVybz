@@ -324,6 +324,18 @@ Two rules the measurements forced:
   that distorts even there gets the `SPEAKER_DISTORTION` warning - the honest answer - rather than an
   ever-quieter measurement.
 
+## 8g. What the pipeline still guesses, and the record that settles it
+
+Four numbers in this document are constants because nobody has measured the population they describe: the
+3 % distortion gate, the 0.8 s room gate, the `3×` position-outlier rule and the 70 % starting level. They
+are exactly the four questions in `AUDIO_ROADMAP.md` §7.
+
+Every calibration therefore writes one line to a local field log (`FieldLog`, `docs/FIELD_DATA.md`): THD at
+the level actually used, RT60, the per-position deviations, whether the capture clipped, the applied level
+step and which warnings fired. Nothing else - no audio, no curves, no names. `tools/fielddata/analyze.py`
+turns a file of those lines into a threshold decision using rules that were written before the data
+existed, and CI fails when one of the constants above moves without the rules being revisited.
+
 ## 9. Failure modes → countermeasures → tests
 
 | # | Failure mode | Symptom without countermeasure | Countermeasure | Test |

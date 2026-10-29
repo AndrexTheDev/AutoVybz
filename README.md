@@ -55,7 +55,10 @@ The permanent bottom banner in this build is an in-app placeholder and Pro entry
   microphone's DC offset, crossfades sweep and pink-noise results by SNR and flags a response whose latency
   exceeds the search window. Stage by stage: [docs/AUDIO_PIPELINE.md](docs/AUDIO_PIPELINE.md);
   what comes next (measured THD, true peak, room decay, a verification pass) with the numbers behind it:
-  [docs/AUDIO_ROADMAP.md](docs/AUDIO_ROADMAP.md).
+  [docs/AUDIO_ROADMAP.md](docs/AUDIO_ROADMAP.md). The four limits that still need real devices – the
+  distortion gate, the room gate, the position outlier rule, the measurement level – are measured by an
+  optional, local-only field log and decided by a pre-registered rule set:
+  [docs/FIELD_DATA.md](docs/FIELD_DATA.md).
 - **Capture path**: Oboe (C++, AAudio/OpenSL) full-duplex with `UNPROCESSED` input, fallback
   `VOICE_RECOGNITION` → `MIC`; Java `AudioRecord/AudioTrack` fallback if the native engine fails.
   Native C++ FFT via JNI, Kotlin FFT fallback.

@@ -452,4 +452,10 @@
     <string name="avz_warn_speaker_distortion">Der Lautsprecher verzerrt weiterhin deutlich (etwa %1$s %%), obwohl die App schon leiser gemessen hat. Lass den Lautsprecher prüfen – ein beschädigter Treiber klingt genauso.</string>
     <string name="avz_warn_driver_rattle">Etwas klappert oder schnarrt mit: ein loses Gehäuseteil, eine Schraube oder eine gerissene Sicke. Das kann keine Korrektur reparieren – den Lautsprecher umstellen oder das Gehäuse nachziehen hilft mehr als jeder EQ.</string>
     <string name="avz_warn_reverberant_room">Dieser Raum hallt stark nach (%1$s s). Die Messung bleibt brauchbar, aber das Ergebnis klingt in den Mitten weicher als in einem trockenen Raum – und eine Korrektur macht einen halligen Raum nicht trocken.</string>
+    <string name="avz_field_title">Felddaten</string>
+    <string name="avz_field_toggle">Pro Kalibrierung einen Datensatz aufzeichnen</string>
+    <string name="avz_field_hint">Verzerrung, Nachhall, Positionsstreuung und Messpegel – nur Zahlen: keine Aufnahme, keine Kurven, kein Sprechernamen. Bleibt auf diesem Gerät; die Datei verlässt es nur, wenn du sie hier exportierst.</string>
+    <string name="avz_field_count">%1$d Kalibrierungen aufgezeichnet</string>
+    <string name="avz_field_export">Datei exportieren</string>
+    <string name="avz_field_delete">Löschen</string>
 </resources>

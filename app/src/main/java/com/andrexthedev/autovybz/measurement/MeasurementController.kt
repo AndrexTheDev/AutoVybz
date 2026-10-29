@@ -100,6 +100,12 @@ class MeasurementOutcome(
     val positionSpreadDb: Double? = null,
     /** Positions excluded as outliers from a multi-position average (0 = all of them were used). */
     val rejectedPositions: Int = 0,
+    /**
+     * Deviation of every position from the median curve of all of them (dB, same order as the inputs).
+     * The outlier rule compares these to their own median; the field log keeps them so W5 ("are 3x the
+     * median, or 2x?") can be answered from real runs instead of from the model.
+     */
+    val positionDeviationsDb: List<Double> = emptyList(),
 )
 
 /**
@@ -292,6 +298,7 @@ class MeasurementController(
             last.fftEngine, last.createdAtMillis, positions = outcomes.size,
             positionSpreadDb = analysed.spreadDb,
             rejectedPositions = analysed.rejected.size,
+            positionDeviationsDb = analysed.deviations,
         )
     }
 

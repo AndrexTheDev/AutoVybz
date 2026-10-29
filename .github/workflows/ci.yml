@@ -57,6 +57,15 @@ jobs:
       - name: Probe findings (roadmap evidence)
         run: /tmp/probe-venv/bin/python tools/probe/pipeline_findings.py
 
+      # The field log (Studio -> field data) is analysed by tools/fielddata/analyze.py, whose decision
+      # rules are built on six of the app's constants. If one of them moves, the analysis has to be
+      # revisited deliberately - a threshold that changes silently invalidates every conclusion drawn
+      # from an exported file.
+      - name: Field-data rules match the app and still fire
+        run: |
+          python3 tools/fielddata/analyze.py --check
+          python3 tools/fielddata/analyze.py --selftest
+
       - name: Mic profile DB is up to date
         run: |
           python3 tools/micdb/generate_mic_profiles.py

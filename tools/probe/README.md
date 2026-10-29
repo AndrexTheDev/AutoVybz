@@ -14,6 +14,10 @@ python3 tools/probe/pipeline_findings.py --music <file>   # the numbers behind d
 Requirements: `numpy` (plus `ffmpeg` on `PATH`, or `imageio-ffmpeg`) for `live_probe.py`;
 `check_parity.py` needs `numpy` only.
 
+The fourth piece of the puzzle is not in this directory: the probe judges the app against *modelled*
+rooms, while `tools/fielddata/analyze.py` judges the app's own limits against *real* ones (the four
+questions in `docs/AUDIO_ROADMAP.md` §7, answered from the field log the app writes).
+
 ## What the probe models
 
 | Piece | Source of truth in the app |

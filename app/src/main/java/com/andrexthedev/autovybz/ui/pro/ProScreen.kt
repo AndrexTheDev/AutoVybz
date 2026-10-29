@@ -136,6 +136,11 @@ fun ProScreen(entitlement: Entitlement = Entitlement.free(), onOpenPremium: () -
         SoundCorrectionToggle()
         CalibrationList(externalExportsEnabled = limits.externalExports, onOpenPremium = onOpenPremium)
 
+        // Field data: the four questions no model can answer, one record per calibration (docs/FIELD_DATA.md).
+        CollapsibleCard(title = stringResource(R.string.avz_field_title), icon = Icons.Filled.List) {
+            FieldDataCard()
+        }
+
         SectionTitle(stringResource(R.string.avz_pro_engine_title))
         HintRow(stringResource(R.string.avz_pro_engine_hint))
         EngineLink(VybzIcons.Studio, R.string.avz_pro_peq, R.string.avz_pro_peq_desc) { open(context, MainActivity::class.java) }

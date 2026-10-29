@@ -12,7 +12,7 @@ the work:
 There is no JDK/Android SDK in the coding sandbox, so local verification is limited to the pure-Python and
 native host tools (see §5).
 
-## 1. JVM unit tests – 49 classes, 309 `@Test` methods
+## 1. JVM unit tests – 51 classes, 319 `@Test` methods
 
 | Package | Classes | What they pin down |
 |---|---|---|
@@ -122,6 +122,16 @@ amplitude ratio to 0.5 dB), and noise shaped by `exp(-6.9078·t/T60)` with a kno
 the failure modes the calibration found: a linear system reports **no** THD, a floor 10 dB below the direct
 sound reports **no** THD, a dry response and a noise plateau return **unknown** instead of a number, and a
 symmetric odd-order clip is *not* called a rattle.
+
+Round 17 added `FieldLogTest` (6: round-trip, exactly the documented keys and no curves/names, unparsable
+and newer-schema lines skipped instead of repaired, the W11 level-bound matrix, the per-session level step)
+and `FieldDataAuditTest` (4: every calibration records one sample at the level it actually ran at, the record
+stays anonymous and the file bounded, the Studio card shows the count before offering the export, and
+`tools/fielddata/analyze.py` still knows all four questions).
+
+CI additionally runs `python3 tools/fielddata/analyze.py --check` (the analyser's copy of the six
+constants still matches the Kotlin sources) and `--selftest` (each of the four rules fires on a synthetic
+world where it must, and stays silent on an empty log).
 
 Round 16 added `VerificationBadgeUsageAuditTest` (3): every screen that lists a stored calibration shows the
 check badge (Sound chips, Pro list), the verdict is worded in exactly one place (`verificationVerdictLabel`,

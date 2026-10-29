@@ -1,6 +1,7 @@
 package com.andrexthedev.autovybz.ui.wizard
 
 import android.app.Application
+import android.os.Build
 import android.os.Looper
 import android.util.Log
 import android.widget.Toast
@@ -9,6 +10,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.andrexthedev.autovybz.export.PresetNaming
 import com.andrexthedev.autovybz.measurement.EnvironmentTuning
+import com.andrexthedev.autovybz.measurement.FieldLog
+import com.andrexthedev.autovybz.measurement.FieldLogStore
 import com.andrexthedev.autovybz.measurement.ListeningEnvironment
 import com.andrexthedev.autovybz.measurement.MeasurementController
 import com.andrexthedev.autovybz.measurement.MeasurementOutcome
@@ -138,6 +141,9 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
     private val volume = VolumeGuard(app)
     private var job: Job? = null
     private var refitJob: Job? = null
+
+    /** W11's step as it was applied in this session (the largest of the positions), for the field log. */
+    private var levelStepDb = 0.0
 
     private fun featureLimits() = EntitlementPolicy.limits(entitlementStore.load())
 
@@ -400,6 +406,7 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
                 val step = MeasurementLevel.stepDownDb(outcome.result.thdPercent)
                 val quieterFraction = MeasurementLevel.fractionAfter(volume.currentFraction, step)
                 if (step > 0.0 && quieterFraction < volume.currentFraction - 1e-4f) {
+                    levelStepDb = maxOf(levelStepDb, step)
                     volume.setFraction(quieterFraction)
                     // Device-speaker runs remember the quieter level, so the next calibration does not
                     // start over at a volume that already rattled this phone's chassis.
@@ -473,6 +480,10 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
     private fun finish() {
         val request = activeRequest ?: return
         val measured = partial.toList()
+        // Before the volume is restored: the fraction the measurement actually ran at is the W3 covariate.
+        val measuredFraction = volume.currentFraction
+        val appliedStep = levelStepDb
+        levelStepDb = 0.0
         job = viewModelScope.launch {
             setStep(WizardStep.Analyzing)
             val outcome = try {
@@ -500,12 +511,55 @@ class WizardViewModel(app: Application) : AndroidViewModel(app) {
                     profileLimitReached = isProfileLimitReached(name),
                 ),
             )
+            // After the result is on screen: the record is bookkeeping, the user came for the plan.
+            recordFieldSample(outcome, request, measuredFraction, appliedStep)
+        }
+    }
+
+    /**
+     * One [FieldLog] record per calibration - the numbers behind docs/FIELD_DATA.md. Best effort and in the
+     * background: it must never fail a calibration, and it must never be the reason a screen waits.
+     */
+    private suspend fun recordFieldSample(
+        outcome: MeasurementOutcome,
+        request: MeasurementRequest,
+        measuredFraction: Float,
+        appliedLevelStepDb: Double,
+    ) {
+        withContext(Dispatchers.IO) {
+            try {
+                val r = outcome.result
+                val sample = FieldLog.sample(
+                    createdAtMillis = outcome.createdAtMillis,
+                    device = listOfNotNull(Build.MANUFACTURER, Build.MODEL).joinToString(" "),
+                    speakerClass = request.speakerClass,
+                    environment = request.environment,
+                    target = request.target,
+                    positions = outcome.positions,
+                    positionDeviationsDb = outcome.positionDeviationsDb,
+                    rejectedPositions = outcome.rejectedPositions,
+                    spreadDb = outcome.positionSpreadDb,
+                    thdPercent = r.thdPercent,
+                    micClipped = MeasurementWarning.CLIPPING in r.warnings,
+                    inputPeak = r.inputPeak,
+                    rt60S = r.roomRt60S,
+                    volumeFraction = measuredFraction.toDouble(),
+                    levelStepDb = appliedLevelStepDb,
+                    warnings = r.warnings,
+                )
+                FieldLogStore.record(getApplication(), sample)
+            } catch (c: CancellationException) {
+                throw c
+            } catch (e: Exception) {
+                Log.w("AutoVybz", "could not record the field sample", e)
+            }
         }
     }
 
     private fun resetSession() {
         partial.clear()
         activeRequest = null
+        levelStepDb = 0.0
         volume.restore()
     }
 

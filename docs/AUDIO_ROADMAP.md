@@ -601,3 +601,13 @@ W1 (judge first) ──► W5 (positions + dip rule, needs W1)
 3. How far apart do users actually hold the phone between the three positions – sets the outlier
    threshold of W5 (is 3× the median right, or 2×?).
 4. Whether a real phone's mic clipping, not the speaker's THD, limits the measurement level first (W11).
+
+**Round 17 (2026-10): the instrument, not the answers.** All four are still open, and anything else
+would have been a model agreeing with itself. What ships is the record that carries the numbers out of a
+calibration (`measurement/FieldLog.kt`, one JSON line per run: THD at a known level, RT60, the
+per-position deviations, mic clipping vs. speaker distortion, the applied level step) plus the analyser
+that turns a file of them into a threshold decision (`tools/fielddata/analyze.py`). The decision rules
+were written down before any data existed, they refuse to act under 20 samples, and CI fails when a
+Kotlin constant moves without the analysis being updated (`--check`) or when a rule stops firing on a
+synthetic world where it must (`--selftest`). See `docs/FIELD_DATA.md`; the user's switch, count, export
+and delete live in Studio → Felddaten.

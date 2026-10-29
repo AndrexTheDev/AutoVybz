@@ -91,6 +91,16 @@ class AutoVybzSettings(context: Context) {
         get() = prefs.getBoolean("restoreVolumeAfter", true)
         set(v) = prefs.edit().putBoolean("restoreVolumeAfter", v).apply()
 
+    /**
+     * Field data: keep one anonymous record per calibration so the app's own limits (distortion gate,
+     * room gate, position outlier rule, measurement level) can be recalibrated against real devices
+     * instead of a model - see docs/FIELD_DATA.md. Local only; defaults on, and the Studio card shows the
+     * count and can delete or export the file. Nothing is ever uploaded.
+     */
+    var fieldLog: Boolean
+        get() = prefs.getBoolean("fieldLog", true)
+        set(v) = prefs.edit().putBoolean("fieldLog", v).apply()
+
     var enableLimiterOnApply: Boolean
         get() = prefs.getBoolean("enableLimiterOnApply", true)
         set(v) = prefs.edit().putBoolean("enableLimiterOnApply", v).apply()

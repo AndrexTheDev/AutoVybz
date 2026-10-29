@@ -453,4 +453,10 @@
     <string name="avz_warn_speaker_distortion">The speaker still distorts noticeably (about %1$s %%) after the app already measured at a lower level. Have the speaker checked – a damaged driver sounds like this too.</string>
     <string name="avz_warn_driver_rattle">Something is rattling or buzzing along: a loose panel, a screw or a torn surround. The correction cannot repair that – moving the speaker or tightening the housing helps more than any EQ.</string>
     <string name="avz_warn_reverberant_room">This room rings a lot (%1$s s). The measurement stays usable, but the result will sound softer in the mids than a dry room would – and a correction cannot make a lively room dry.</string>
+    <string name="avz_field_title">Field data</string>
+    <string name="avz_field_toggle">Record one sample per calibration</string>
+    <string name="avz_field_hint">Distortion, reverberation, position spread and the measurement level, as numbers only: no recording, no curves, no speaker name. Stays on this device – the file leaves it only when you export it here.</string>
+    <string name="avz_field_count">%1$d calibrations recorded</string>
+    <string name="avz_field_export">Export file</string>
+    <string name="avz_field_delete">Delete</string>
 </resources>

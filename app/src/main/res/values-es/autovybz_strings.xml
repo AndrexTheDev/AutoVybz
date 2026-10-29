@@ -456,4 +456,10 @@
     <string name="avz_warn_speaker_distortion">El altavoz sigue distorsionando de forma notable (unos %1$s %%) aunque la app ya ha medido a un nivel más bajo. Revisa el altavoz: un altavoz dañado suena igual.</string>
     <string name="avz_warn_driver_rattle">Algo vibra o zumba: un panel suelto, un tornillo o una suspensión rota. Ninguna corrección lo arregla: mover el altavoz o apretar la carcasa ayuda más que cualquier ecualizador.</string>
     <string name="avz_warn_reverberant_room">Esta sala reverbera mucho (%1$s s). La medición sigue siendo válida, pero el resultado sonará más suave en los medios que en una sala seca; ninguna corrección vuelve seca una sala viva.</string>
+    <string name="avz_field_title">Datos de campo</string>
+    <string name="avz_field_toggle">Registrar una muestra por calibración</string>
+    <string name="avz_field_hint">Distorsión, reverberación, dispersión entre posiciones y nivel de medición: solo números, sin grabación, sin curvas y sin el nombre del altavoz. Se queda en este dispositivo; el archivo solo sale si lo exportas aquí.</string>
+    <string name="avz_field_count">%1$d calibraciones registradas</string>
+    <string name="avz_field_export">Exportar archivo</string>
+    <string name="avz_field_delete">Borrar</string>
 </resources>
