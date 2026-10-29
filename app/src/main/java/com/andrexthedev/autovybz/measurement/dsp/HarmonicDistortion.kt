@@ -106,7 +106,7 @@ object HarmonicDistortion {
 
         val harmonics = LinkedHashMap<Int, Double>()
         for (order in ORDERS) {
-            val level = windowPeak(ir, lagIndex(ln(order)), half)
+            val level = windowPeak(ir, lagIndex(ln(order.toDouble())), half)
             if (20.0 * log10(max(level, 1e-20) / floor) < HARMONIC_FLOOR_MARGIN_DB) continue
             harmonics[order] = 20.0 * log10(max(level, 1e-20) / linear)
         }
