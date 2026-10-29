@@ -86,6 +86,7 @@ python3 tools/probe/live_probe.py --positions 3         # ... against a position
 python3 tools/probe/live_probe.py --positions 1 --truth-positions 3   # "is one measurement enough?"
 python3 tools/probe/live_probe.py --stress              # W3/W4: distortion, reverberation, clean-chain control
 python3 tools/probe/live_probe.py --verify              # W6: re-measure through the fitted EQ, compare with the plan
+python3 tools/probe/live_probe.py --adaptive-target     # W7: a target that follows the room (measured, not adopted)
 python3 tools/probe/live_probe.py --rt60 0.9 --drive 0.05   # one case per failure mode, with numbers
 python3 tools/probe/pipeline_findings.py --music <recording>  # THD / true peak / RT60 / band saturation
                                                          # + verification and PEQ-vs-FIR (no --music needed)

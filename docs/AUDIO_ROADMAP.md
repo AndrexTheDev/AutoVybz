@@ -375,6 +375,31 @@ a deliberately wrong measurement (a 2 dB tilt error) does not move the target by
 
 *Risk:* medium – it can mask a real defect; the "≤ half of the measured tilt" cap is the guard.
 
+**Measured (round 14) – not adopted.** Implemented in the probe (`live_probe.py --adaptive-target`,
+`--adaptive-pivot`) and in `avzprobe/eqfit.py` (`adaptive_tilt_db_per_octave`: least-squares slope over
+300 Hz–16 kHz, never upward, half of it, at most 1 dB/octave, pivoting at the lower edge of the correction
+range so it cannot ask for more bass). Then measured against the *fixed* target, which is the only honest
+reference – a target that follows the speaker cannot grade its own homework.
+
+| model | measured tilt | distance to the fixed target (fixed → adaptive) | plan's bass gain |
+|---|---|---|---|
+| bt-minibox | −0.38 dB/oct | 0.55 → 0.84 dB | +1.89 → +1.99 dB |
+| party-box | −0.64 dB/oct | 0.94 → 1.38 dB | −0.47 → +0.46 dB |
+| laptop | −0.32 dB/oct | 0.08 → 0.56 dB | +0.07 → +0.06 dB |
+| phone-speaker | 0.00 (rising trend, no tilt) | 2.47 → 2.47 dB | +0.48 → +0.48 dB |
+
+Every case that gets a tilt ends up *further* from the target the user picked, and the party box – the one
+case where the app was cutting bass – starts boosting it instead. That is structural, not a tuning problem:
+a tilt is renormalised to 0 dB in 300 Hz–3 kHz, so a downward tilt in the treble is a bass boost in
+disguise. The full probe agrees: on the six live scenarios the tonal error after correction went
+0.85/1.04/0.88/0.32/0.38/0.80 → 0.87/1.15/1.11/0.32/0.15/0.94 dB with the 300 Hz pivot (worse in four of
+six, better only for the laptop, and the RESCUE case regressed in the bass transition band).
+
+So: fixed targets stay, and "follow the room" can only ever be an explicit *taste* option ("a bit more
+bass"), never an automatic adaptation – it would silently move every calibration towards the same warm
+curve. `pipeline_findings.py` finding 16 keeps that decision measured, and the probe flags stay so a future
+change can re-run it.
+
 ### W8 – Bass management for speakers with a sub (M)
 
 *Why:* party boxes and hi-fi setups are in the probe's scenario list, but the app has no concept of a
@@ -508,8 +533,8 @@ W1 (judge first) ──► W5 (positions + dip rule, needs W1)
 * **Round 12 (done):** W3, W4 – the two free metrics (THD, RT60) and their warnings (W4's gate measured,
   deliberately off).
 * **Round 13 (done):** W10, W6 – BS.1770 integrated loudness + the verification comparison (DSP and probe).
-* **Round 14 (in progress):** W6's wizard step (done: the "Check" run on the saved card) and W9's
-  measurement (done: closed, it would buy 0.06–0.24 dB). Left in this round: W7, W8.
+* **Round 14 (in progress):** W6's wizard step (done: the "Check" run on the saved card), W9's measurement
+  (done: closed, it would buy 0.06–0.24 dB) and W7 (done: measured, not adopted). Left: W8.
 
 ## 7. Questions that need a device, not a model
 

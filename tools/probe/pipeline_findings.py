@@ -41,6 +41,14 @@ Added in round 14:
     inverse cannot do better than ~0.7 dB either, because the correction is range-limited and boost-capped
     by design. W9 (convolution mode, which would need a screen-capture permission) is therefore closed by
     measurement rather than by opinion.
+16. **A target that follows the room is a taste, not an improvement.** W7 proposed tilting the target by up
+    to half of the measured trend, capped at 1 dB/octave and never upward. Implemented and measured
+    (`live_probe.py --adaptive-target`), it moves the result *away* from the fixed reference target on every
+    model that gets a tilt (mini box 0.55 -> 0.84 dB, party box 0.94 -> 1.38 dB, laptop 0.08 -> 0.56 dB) and
+    turns the party box's bass *cut* (-0.47 dB) into a boost (+0.46 dB) - a tilt renormalised to 0 dB in
+    300 Hz - 3 kHz always buys bass at the midrange's expense. A bright speaker gets no tilt at all (the
+    guard works: the phone speaker measures a rising trend and stays unchanged). Not adopted; the fixed
+    targets stay, and following the room would have to be an explicit user choice, not an automatic one.
 """
 
 from __future__ import annotations
@@ -402,6 +410,56 @@ def exp_fir_ceiling() -> dict:
     return out
 
 
+# --------------------------------------- 16. adaptive target (W7, not adopted) --
+
+
+def exp_adaptive_target() -> dict:
+    """Would a target that follows the room's own tilt get closer to a fixed, honest reference?
+
+    The reference is the fixed target - it must not move, or the comparison grades its own homework. Both
+    plans are corrected responses of the same measured curve; the question is which one lands closer to the
+    target a listener actually asked for.
+    """
+    print("\n=== 16. does a target that follows the room's tilt help? (reference = the fixed target)")
+    grid = dsp.log_grid()
+    reference = eqfit.TargetCurve(eqfit.SMART).sample(grid)
+    freqs = np.maximum(np.fft.rfftfreq(1 << 19, 1.0 / FS), 1e-3)
+    settings = eqfit.AutoEqSettings(band_count=10, max_boost_db=6.0, high_limit_hz=16000.0)
+    out: dict[str, dict[str, float]] = {}
+    for scenario in ("bt-minibox", "party-box", "laptop", "phone-speaker"):
+        model = rooms.SCENARIOS[scenario]
+        measured = _rel(grid, _third_octave(grid, dsp.resample(freqs, model.magnitude_db(freqs, FS), grid)))
+        tilt = eqfit.adaptive_tilt_db_per_octave(grid, measured)
+        fixed = eqfit.render(grid, measured, eqfit.TargetCurve(eqfit.SMART), settings, roll_off_db=measured)
+        tilted_curve = eqfit.TargetCurve(eqfit.SMART, adaptive_tilt_db_per_octave=tilt, adaptive_pivot_hz=300.0)
+        tilted = eqfit.render(grid, measured, tilted_curve, settings, roll_off_db=measured)
+        judge = (grid >= max(fixed.low_limit_hz * 1.41, 150.0)) & (grid <= fixed.high_limit_hz)
+
+        def to_reference(curve: np.ndarray) -> float:
+            e = (curve - reference)[judge]
+            e = e - float(np.mean(e))
+            return float(np.sqrt(np.mean(e * e)))
+
+        def bass_gain(plan) -> float:
+            band = (grid >= 40.0) & (grid <= 160.0)
+            mid = dsp.band_mean(grid, plan.filter_response_db, 300.0, 3000.0)
+            return float(np.mean(plan.filter_response_db[band]) - mid)
+
+        out[scenario] = {
+            "tilt_db_per_oct": tilt,
+            "fixed_db": to_reference(measured + fixed.filter_response_db),
+            "tilted_db": to_reference(measured + tilted.filter_response_db),
+            "bass_fixed_db": bass_gain(fixed),
+            "bass_tilted_db": bass_gain(tilted),
+        }
+        print(f"    {scenario:14s} tilt {tilt:+.2f} dB/oct: distance to the fixed target "
+              f"{out[scenario]['fixed_db']:4.2f} -> {out[scenario]['tilted_db']:4.2f} dB, "
+              f"bass gain {out[scenario]['bass_fixed_db']:+.2f} -> {out[scenario]['bass_tilted_db']:+.2f} dB")
+    print("    -> following the room moves every tilted case away from the fixed target and buys bass with")
+    print("       midrange accuracy. A taste, not a correction - so it is not adopted automatically.")
+    return out
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--music", help="real recording for findings 2 and 4 (any ffmpeg format)")
@@ -498,6 +556,18 @@ def main(argv: list[str] | None = None) -> int:
     check("the ten-band fit realises its plan to < 0.7 dB rms (worst case: the narrow resonance)",
           all(v["realisation_db"] < 0.7 for v in fir.values()),
           f"worst {max(v['realisation_db'] for v in fir.values()):.2f} dB")
+
+    adaptive = exp_adaptive_target()
+    tilted = {k: v for k, v in adaptive.items() if abs(v["tilt_db_per_oct"]) > 0.05}
+    check("following the room's tilt moves away from the fixed target",
+          bool(tilted) and all(v["tilted_db"] > v["fixed_db"] for v in tilted.values()),
+          ", ".join(f"{k}: {v['fixed_db']:.2f} -> {v['tilted_db']:.2f} dB" for k, v in tilted.items()))
+    check("a bright speaker gets no adaptive tilt at all",
+          adaptive["phone-speaker"]["tilt_db_per_oct"] == 0.0,
+          f"{adaptive['phone-speaker']['tilt_db_per_oct']:+.2f} dB/oct")
+    check("the tilt buys bass at the midrange's expense",
+          adaptive["party-box"]["bass_tilted_db"] > adaptive["party-box"]["bass_fixed_db"] + 0.5,
+          f"{adaptive['party-box']['bass_fixed_db']:+.2f} -> {adaptive['party-box']['bass_tilted_db']:+.2f} dB")
 
     bad = [c for c in checks if not c[1]]
     print(f"\n{len(checks) - len(bad)}/{len(checks)} findings hold. See docs/AUDIO_ROADMAP.md.")

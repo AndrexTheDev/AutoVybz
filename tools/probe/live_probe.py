@@ -112,6 +112,8 @@ class CaseResult:
     # Deepest single sample of gain reduction: the mean is near 0 whenever the peaks only just cross the
     # threshold (a safety net that works *rarely*), so the mean alone reads like "never engaged".
     limiter_max_gr_db: float
+    # W7: the bounded tilt the target followed (0.0 = fixed target). Negative = downward in dB/octave.
+    adaptive_tilt_db_per_oct: float = 0.0
     failures: list[str] = field(default_factory=list)
 
     @property
@@ -288,6 +290,8 @@ def run_case(
     distortion_drive: float = 0.0,
     reverb_gate: bool = True,
     verify_run: bool = False,
+    adaptive_target: bool = False,
+    adaptive_pivot_hz: float = 1000.0,
 ) -> CaseResult:
     model = rooms.SCENARIOS[scenario]
     if rt60_s > 0.0 or distortion_drive > 0.0:
@@ -353,10 +357,16 @@ def run_case(
     if reverb_gate and measurement.room_rt60_s is not None:
         settings.room_rt60_s = measurement.room_rt60_s
     eq_env, eq_cls = env_tuning, cls
+    # W7: a bounded tilt that follows the measured trend, computed from the *measurement* - so it is a
+    # property of this run and has to be stored with the preset (the app shows it in Pro).
+    adaptive_tilt = (eqfit.adaptive_tilt_db_per_octave(measurement.frequencies, measurement.smoothed_db)
+                     if adaptive_target else 0.0)
+    target_curve = eqfit.TargetCurve(target, adaptive_tilt_db_per_octave=adaptive_tilt,
+                                     adaptive_pivot_hz=adaptive_pivot_hz)
     correction = eqfit.render(
         measurement.frequencies,
         measurement.smoothed_db,
-        eqfit.TargetCurve(target),
+        target_curve,
         settings,
         roll_off_db=measurement.third_octave_db,
         snr_db=measurement.snr_db,
@@ -384,7 +394,7 @@ def run_case(
     corr_db = dsp.Grid(audit_f, fs).response_many(correction.bands)
     # the plan expands to the audit resolution (it is defined on the 48/oct grid)
     desired_full = dsp.resample(measurement.frequencies, correction.desired_correction_db, audit_f)
-    tgt_db = eqfit.TargetCurve(target).sample(audit_f)
+    tgt_db = target_curve.sample(audit_f)
 
     grid = dsp.log_grid()
     def on_grid(values: np.ndarray) -> np.ndarray:
@@ -595,6 +605,7 @@ def run_case(
         limiter_mean_gr_db=mean_gr,
         limiter_stress_pct=stress,
         limiter_max_gr_db=max_gr,
+        adaptive_tilt_db_per_oct=adaptive_tilt,
         positions=positions,
         positions_used=len(kept),
         thd_pct=measurement.thd_pct,
@@ -701,6 +712,11 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--verify", action="store_true",
                     help="also run the verification pass (W6): measure again through the fitted EQ and "
                          "compare what improved with what the plan predicted")
+    ap.add_argument("--adaptive-target", action="store_true",
+                    help="W7: let the target follow a bounded share of the measured tilt (at most 1 dB/oct, "
+                         "never upward) and print it")
+    ap.add_argument("--adaptive-pivot", type=float, default=1000.0,
+                    help="W7 experiment: frequency the adaptive tilt pivots at (default 1 kHz)")
     ap.add_argument("--stress", action="store_true",
                     help="also run the three field-failure cases (distortion, reverberation, clean chain)")
     ap.add_argument("--positions", type=int, default=1,
@@ -724,7 +740,8 @@ def main(argv: list[str] | None = None) -> int:
             res = run_case(scenario, cls, env, target, noise, music, music_power,
                            mic_error_db=args.mic_error, positions=max(1, args.positions),
                            truth_positions=args.truth_positions, rt60_s=args.rt60,
-                           distortion_drive=args.drive, verify_run=args.verify)
+                           distortion_drive=args.drive, verify_run=args.verify,
+                           adaptive_target=args.adaptive_target, adaptive_pivot_hz=args.adaptive_pivot)
             results.append(res)
             status = "ok  " if res.ok else "FAIL"
             print(f"{status} {scenario:13s} {cls:8s} {env:7s} {target:10s} {noise:10s} "
@@ -738,6 +755,7 @@ def main(argv: list[str] | None = None) -> int:
                   + (f"  verify {res.verification['verdict']}: {res.verification['measured_improvement_db']:.2f}"
                      f"/{res.verification['predicted_improvement_db']:.2f} dB (err {res.verification['prediction_error_db']:.2f})"
                      if res.verification is not None else "")
+                  + (f"  tilt {res.adaptive_tilt_db_per_oct:+.2f} dB/oct" if res.adaptive_tilt_db_per_oct else "")
                   + (f"  thd {res.thd_pct:4.2f} %" if res.thd_pct is not None else "")
                   + (f"  rt60 {res.room_rt60_s:4.2f} s" if res.room_rt60_s is not None else "")
                   + (f"  limiter mean {res.limiter_mean_gr_db:4.2f} max {res.limiter_max_gr_db:5.2f} dB / "

@@ -40,12 +40,56 @@ def _tilt(db_per_oct: float, f: float) -> float:
     return db_per_oct * math.log(f / 1000.0) / math.log(2.0)
 
 
+# --------------------------------------------------------------- adaptive tilt --
+
+ADAPTIVE_TILT_MAX_DB_PER_OCT = 1.0
+ADAPTIVE_TILT_SHARE = 0.5
+ADAPTIVE_TILT_LO_HZ = 300.0
+ADAPTIVE_TILT_HI_HZ = 16000.0
+
+
+def measured_tilt_db_per_octave(frequencies: np.ndarray, measured_db: np.ndarray) -> float:
+    """Least-squares slope of the measured response between 300 Hz and 16 kHz, in dB per octave."""
+    mask = (frequencies >= ADAPTIVE_TILT_LO_HZ) & (frequencies <= ADAPTIVE_TILT_HI_HZ)
+    if int(np.sum(mask)) < 8:
+        return 0.0
+    x = np.log2(frequencies[mask])
+    y = measured_db[mask] - float(np.mean(measured_db[mask]))
+    x = x - float(np.mean(x))
+    den = float(np.sum(x * x))
+    return 0.0 if den <= 1e-12 else float(np.sum(x * y) / den)
+
+
+def adaptive_tilt_db_per_octave(frequencies: np.ndarray, measured_db: np.ndarray) -> float:
+    """The bounded tilt the target may follow: never upward, half the measured trend, at most 1 dB/oct.
+
+    Only a *falling* measured response earns a tilt: a speaker that measures bright (a rising trend) is a
+    defect to correct, not a taste to adopt. Half, not all, of the trend - the other half stays as
+    correction, so a wrong measurement can move the target by at most half of its own error.
+    """
+    slope = measured_tilt_db_per_octave(frequencies, measured_db)
+    if slope >= 0.0:
+        return 0.0
+    return max(-ADAPTIVE_TILT_MAX_DB_PER_OCT, slope * ADAPTIVE_TILT_SHARE)
+
+
 class TargetCurve:
-    def __init__(self, kind: str = SMART, custom: CustomTarget | None = None):
+    def __init__(self, kind: str = SMART, custom: CustomTarget | None = None,
+                 adaptive_tilt_db_per_octave: float = 0.0, adaptive_pivot_hz: float = 1000.0):
         self.kind = kind
         self.custom = custom or CustomTarget()
+        self.adaptive_tilt = adaptive_tilt_db_per_octave
+        self.adaptive_pivot = adaptive_pivot_hz
 
     def level_at(self, f: float) -> float:
+        if not self.adaptive_tilt:
+            return self.base_level_at(f)
+        # The tilt pivots at the low edge of the correction range: below it nothing changes, so a target
+        # that follows the room's tilt cannot ask for more bass than the fixed target would.
+        octaves = math.log(f / self.adaptive_pivot) / math.log(2.0)
+        return self.base_level_at(f) + self.adaptive_tilt * max(0.0, octaves)
+
+    def base_level_at(self, f: float) -> float:
         if self.kind == FLAT:
             return 0.0
         if self.kind == SMART:
