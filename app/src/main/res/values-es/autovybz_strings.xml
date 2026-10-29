@@ -462,4 +462,7 @@
     <string name="avz_field_count">%1$d calibraciones registradas</string>
     <string name="avz_field_export">Exportar archivo</string>
     <string name="avz_field_delete">Borrar</string>
+    <string name="avz_field_mark">Registrar solo las nuevas a partir de ahora</string>
+    <string name="avz_field_mark_clear">Quitar la marca</string>
+    <string name="avz_field_since">Desde la marca: %1$d calibraciones (el archivo contiene solo estas)</string>
 </resources>

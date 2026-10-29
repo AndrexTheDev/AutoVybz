@@ -64,8 +64,17 @@ fun FieldDataCard() {
     var count by remember { mutableIntStateOf(0) }
     var reload by remember { mutableIntStateOf(0) }
 
+    // "Since the beta started" never forgets the mark on its own: a reminder loop would need a service, and a
+    // mark that silently disappears is worse than one that is one tap away from being set again.
+    var since by remember { mutableStateOf<Long?>(null) }
+    var sinceCount by remember { mutableIntStateOf(0) }
     LaunchedEffect(reload) {
         count = withContext(Dispatchers.IO) { FieldLogStore.count(context) }
+        val mark = withContext(Dispatchers.IO) { FieldLogStore.betaMarkMillis(context) }
+        since = mark
+        sinceCount = withContext(Dispatchers.IO) {
+            if (mark == null) 0 else FieldLogStore.count(context, mark)
+        }
     }
 
     val okMsg = stringResource(R.string.avz_export_done)
@@ -74,8 +83,9 @@ fun FieldDataCard() {
         ActivityResultContracts.CreateDocument("application/json"),
     ) { uri: Uri? ->
         if (uri == null) return@rememberLauncherForActivityResult
+        val mark = since
         val ok = runCatching {
-            val text = FieldLogStore.text(context)
+            val text = if (mark == null) FieldLogStore.text(context) else FieldLogStore.text(context, mark)
             context.contentResolver.openOutputStream(uri)?.use { it.write(text.toByteArray(Charsets.UTF_8)) } != null
         }.getOrDefault(false)
         Toast.makeText(context, if (ok) okMsg else failMsg, Toast.LENGTH_SHORT).show()
@@ -114,6 +124,37 @@ fun FieldDataCard() {
         modifier = Modifier.padding(top = 2.dp).testTag("avz:field:count"),
     )
     HintRow(stringResource(R.string.avz_field_hint))
+    if (count > 0) {
+        TextButton(
+            onClick = {
+                scope.launch {
+                    withContext(Dispatchers.IO) {
+                        if (since == null) {
+                            FieldLogStore.markBetaStart(context)
+                        } else {
+                            FieldLogStore.clearBetaMark(context)
+                        }
+                    }
+                    reload++
+                }
+            },
+            modifier = Modifier.testTag("avz:field:mark"),
+        ) {
+            Text(
+                if (since == null) stringResource(R.string.avz_field_mark)
+                else stringResource(R.string.avz_field_mark_clear),
+                color = AutoVybzColors.GreenBright,
+            )
+        }
+        since?.let {
+            Text(
+                stringResource(R.string.avz_field_since, sinceCount),
+                style = MaterialTheme.typography.bodySmall,
+                color = AutoVybzColors.OnDarkMuted,
+                modifier = Modifier.testTag("avz:field:since"),
+            )
+        }
+    }
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         OutlinedButton(
             onClick = { launcher.launch("autovybz_fielddata.jsonl") },

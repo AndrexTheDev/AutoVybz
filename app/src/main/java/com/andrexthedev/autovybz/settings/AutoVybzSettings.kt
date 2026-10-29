@@ -101,6 +101,15 @@ class AutoVybzSettings(context: Context) {
         get() = prefs.getBoolean("fieldLog", true)
         set(v) = prefs.edit().putBoolean("fieldLog", v).apply()
 
+    /**
+     * Start of the current field-data collection run (0 = none). The Studio card exports only samples from
+     * this moment on, so a tester can hand over what they recorded for a beta without handing over every
+     * calibration their phone ever made.
+     */
+    var fieldLogMarkMillis: Long
+        get() = prefs.getLong("fieldLogMark", 0L)
+        set(v) = prefs.edit().putLong("fieldLogMark", v).apply()
+
     var enableLimiterOnApply: Boolean
         get() = prefs.getBoolean("enableLimiterOnApply", true)
         set(v) = prefs.edit().putBoolean("enableLimiterOnApply", v).apply()

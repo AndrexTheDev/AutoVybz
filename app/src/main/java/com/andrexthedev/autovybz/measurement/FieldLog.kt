@@ -204,6 +204,19 @@ object FieldLog {
         )
     }
 
+    /**
+     * The lines of a log file recorded at or after [sinceMillis] - what a beta tester hands over.
+     *
+     * Kept here (and pure) rather than in the store because it is the one piece of the export that decides
+     * *which* data leaves the phone: a line whose timestamp cannot be read is dropped, never guessed into
+     * either side.
+     */
+    fun linesSince(logText: String, sinceMillis: Long): String =
+        logText.lineSequence()
+            .filter { it.isNotBlank() }
+            .filter { line -> (fromJson(line)?.createdAtMillis ?: -1L) >= sinceMillis }
+            .joinToString("\n", postfix = "\n")
+
     /** Every key [toJson] writes - the set a privacy test can check and the analyser relies on. */
     val KEYS = listOf(
         "schema", "at", "device", "speakerClass", "environment", "target", "positions", "deviations",

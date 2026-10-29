@@ -61,13 +61,37 @@ object FieldLogStore {
     /** Number of usable samples - what the settings card shows. */
     fun count(context: Context): Int = samples(context).size
 
-    /** The file's own bytes, for the export (no re-encoding, so a future schema still exports as written). */
-    fun text(context: Context): String = try {
+    /** Samples recorded at or after [sinceMillis] - the "this beta run only" count. */
+    fun count(context: Context, sinceMillis: Long): Int =
+        samples(context).count { it.createdAtMillis >= sinceMillis }
+
+    /**
+     * The file's own bytes, for the export (no re-encoding, so a future schema still exports as written).
+     * With [sinceMillis] only the lines from that moment on are written, so a beta tester can hand over
+     * exactly what they recorded after they installed the build - their earlier calibrations stay private.
+     */
+    fun text(context: Context, sinceMillis: Long? = null): String = try {
         val f = file(context)
-        if (f.exists()) f.readText() else ""
+        when {
+            !f.exists() -> ""
+            sinceMillis == null -> f.readText()
+            else -> FieldLog.linesSince(f.readText(), sinceMillis)
+        }
     } catch (e: Exception) {
         Log.w(TAG, "could not read the field log", e)
         ""
+    }
+
+    /** Start of the current beta run, or null when no mark was set. */
+    fun betaMarkMillis(context: Context): Long? =
+        AutoVybzSettings(context).fieldLogMarkMillis.takeIf { it > 0L }
+
+    fun markBetaStart(context: Context, nowMillis: Long = System.currentTimeMillis()) {
+        AutoVybzSettings(context).fieldLogMarkMillis = nowMillis
+    }
+
+    fun clearBetaMark(context: Context) {
+        AutoVybzSettings(context).fieldLogMarkMillis = 0L
     }
 
     fun clear(context: Context) {

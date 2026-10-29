@@ -12,7 +12,7 @@ the work:
 There is no JDK/Android SDK in the coding sandbox, so local verification is limited to the pure-Python and
 native host tools (see §5).
 
-## 1. JVM unit tests – 51 classes, 319 `@Test` methods
+## 1. JVM unit tests – 51 classes, 320 `@Test` methods
 
 | Package | Classes | What they pin down |
 |---|---|---|
@@ -139,7 +139,7 @@ the failure modes the calibration found: a linear system reports **no** THD, a f
 sound reports **no** THD, a dry response and a noise plateau return **unknown** instead of a number, and a
 symmetric odd-order clip is *not* called a rattle.
 
-Round 17 added `FieldLogTest` (6: round-trip, exactly the documented keys and no curves/names, unparsable
+Round 17 added `FieldLogTest` (7: round-trip, exactly the documented keys and no curves/names, unparsable
 and newer-schema lines skipped instead of repaired, the W11 level-bound matrix, the per-session level step)
 and `FieldDataAuditTest` (4: every calibration records one sample at the level it actually ran at, the record
 stays anonymous and the file bounded, the Studio card shows the count before offering the export, and

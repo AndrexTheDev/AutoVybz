@@ -59,6 +59,10 @@ class FieldDataAuditTest {
             "export is disabled while there is nothing to export",
             "enabled = count > 0" in card,
         )
+        // A beta tester must be able to hand over *their* round only, not every calibration the phone made.
+        assertTrue("the card can mark the start of a round", "avz:field:mark" in card)
+        assertTrue("the export honours the mark", "FieldLogStore.text(context, mark)" in card)
+        assertTrue("and the card says how many are in it", "avz:field:since" in card)
     }
 
     @Test

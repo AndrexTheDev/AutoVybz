@@ -121,6 +121,25 @@ class FieldLogTest {
         assertFalse(atPlannedLevel.levelWasLowered)
     }
 
+    @Test
+    fun anExportFromAMarkContainsExactlyTheLinesAfterIt() {
+        val old = sample().copy(createdAtMillis = 1_000L, device = "before")
+        val new1 = sample().copy(createdAtMillis = 2_000L, device = "after-1")
+        val new2 = sample().copy(createdAtMillis = 3_000L, device = "after-2")
+        val log = listOf(old, new1, new2).joinToString("\n") { FieldLog.toJson(it) } + "\n" +
+            "not a sample at all\n" + "\n"
+
+        val since = FieldLog.linesSince(log, 2_000L)
+        assertTrue("the sample at the mark counts", "after-1" in since)
+        assertTrue("later samples count", "after-2" in since)
+        assertFalse("earlier samples do not", "before" in since)
+        assertFalse("unparsable lines never leave the phone", "not a sample" in since)
+        assertEquals(2, since.trim().lines().size)
+
+        // No mark, no filter: everything the file holds.
+        assertEquals(FieldLog.toJson(old), FieldLog.linesSince(FieldLog.toJson(old), 0L).trim())
+    }
+
     /** The exported column names are what `tools/fielddata/analyze.py` reads; keep them discoverable. */
     @Test
     fun theKeysTheAnalyserNeedsAreStable() {
